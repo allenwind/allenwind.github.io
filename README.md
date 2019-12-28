@@ -1,3 +1,3 @@
 # github page
 
-[go to blog](https://allenwind.github.io)
+[go to blog](https://allenwind.github.io/blog/)
