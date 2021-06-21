@@ -1,3 +1,6 @@
-# github page
+# allenwind's blog
 
-[go to blog](https://allenwind.github.io/blog/)
+
+
+[go to allenwind's blog](https://allenwind.github.io/blog/)
+
