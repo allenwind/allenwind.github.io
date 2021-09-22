@@ -1,0 +1,169 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.9.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description" content="你好，世界！"><title>漫谈注意力机制（一）：人类的注意力和注意力机制基础 | Mr.Feng Blog</title><link rel="stylesheet" type="text/css" href="/blog/css/style.css?v=0.0.0"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/normalize/8.0.1/normalize.min.css"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/pure/1.0.0/pure-min.css"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/pure/1.0.0/grids-responsive-min.css"><link rel="stylesheet" href="//lib.baomitu.com/font-awesome/4.7.0/css/font-awesome.min.css"><script type="text/javascript" src="//lib.baomitu.com/jquery/3.4.0/jquery.min.js"></script><link rel="icon" mask sizes="any" href="/blog/favicon.ico"><link rel="Shortcut Icon" type="image/x-icon" href="/blog/favicon.ico"><link rel="apple-touch-icon" href="/blog/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/blog/apple-touch-icon.png"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">漫谈注意力机制（一）：人类的注意力和注意力机制基础</h1><a id="logo" href="/blog/.">Mr.Feng Blog</a><p class="description">NLP、深度学习、机器学习、Python、Go</p></div><div id="nav-menu"><a class="current" href="/blog/."><i class="fa fa-home"> 首页</i></a><a href="/blog/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/blog/about/"><i class="fa fa-user"> 关于</i></a></div></div><div class="pure-g" id="layout"><div class="pure-u-1 pure-u-md-3-4"><div class="content_container"><div class="post"><h1 class="post-title">漫谈注意力机制（一）：人类的注意力和注意力机制基础</h1><div class="post-meta">Mar 3, 2019<span> | </span><span class="category"><a href="/blog/categories/机器学习深度学习/">机器学习深度学习</a></span></div><div class="clear"><div class="toc-article" id="toc"><div class="toc-title">文章目录</div><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#人类的注意力"><span class="toc-number">1.</span> <span class="toc-text">人类的注意力</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#显著性注意力"><span class="toc-number">1.1.</span> <span class="toc-text">显著性注意力</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#聚焦式注意力"><span class="toc-number">1.2.</span> <span class="toc-text">聚焦式注意力</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Attention机制的基本思路"><span class="toc-number">2.</span> <span class="toc-text">Attention机制的基本思路</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#常见评分函数"><span class="toc-number">3.</span> <span class="toc-text">常见评分函数</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#加性模型"><span class="toc-number">3.1.</span> <span class="toc-text">加性模型</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#减法模型"><span class="toc-number">3.2.</span> <span class="toc-text">减法模型</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#点积模型"><span class="toc-number">3.3.</span> <span class="toc-text">点积模型</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#点积缩放模型"><span class="toc-number">3.4.</span> <span class="toc-text">点积缩放模型</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#双线性模型"><span class="toc-number">3.5.</span> <span class="toc-text">双线性模型</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#一个具体的例子"><span class="toc-number">4.</span> <span class="toc-text">一个具体的例子</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#再谈查询向量"><span class="toc-number">5.</span> <span class="toc-text">再谈查询向量</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#引入键值对结构"><span class="toc-number">6.</span> <span class="toc-text">引入键值对结构</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Attention解决seq2seq问题"><span class="toc-number">7.</span> <span class="toc-text">Attention解决seq2seq问题</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#总结"><span class="toc-number">8.</span> <span class="toc-text">总结</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#参考文献"><span class="toc-number">9.</span> <span class="toc-text">参考文献</span></a></li></ol></div></div><div class="post-content"><p>计划写一个系列，讲讲、漫谈Attention，本篇为第一篇，先讲讲人类的注意力和注意力机制基础，包括入门内容。</p>
+<a id="more"></a>
+<p>过去文章<a href="../9458">漫谈序列编码：MLP、CNN、RNN</a>梳理了Attention前的序列编码方式及其优缺点，包括MLP、CNN、RNN。本文正式进入注意力机制Attention的大门，一种有别于过去模型的全新模型架构。</p>
+<h2 id="人类的注意力"><a href="#人类的注意力" class="headerlink" title="人类的注意力"></a>人类的注意力</h2><p>在《超负荷的大脑》一书中提到人脑的工作记忆为 7±2，就是一次能处理的资讯的数量。人类每时每刻接受来着视觉、听觉等大量的信息，由于工作记忆的限制，并不能处理所有的信息，但是我们在具体的任务中，依然表现很好。这需要的就是<strong>注意力</strong>，在大量的信息中，寻找与任务相关的信息。</p>
+<p>注意力一般分为两种：</p>
+<ul>
+<li><p><strong>显著性（saliency-based）注意力</strong></p>
+</li>
+<li><p><strong>聚焦式（focus）注意力</strong></p>
+</li>
+</ul>
+<p>为了更好地理解人类的注意力与深度学习中的注意力机制，我们把这两种注意力展开了谈一谈。</p>
+<h3 id="显著性注意力"><a href="#显著性注意力" class="headerlink" title="显著性注意力"></a>显著性注意力</h3><p><strong>显著性注意力</strong>，自下而上的无意识的注意力，对信息的处理是被动的。这个被动体现在注意力获取信息上是无意识的、受外界刺激而驱动的、没有目的性的。例如我们走在路边，马路上传来汽车喇叭的声音，吸引我们注意汽车经过。</p>
+<p>像 CNN 中的最大汇聚（Max Pooling）和门控机制（Gating），本质上是降采样过操作。它们的目的都是筛选最显著的信息（某个度量值最大），因此这类模型可以看做是显著性注意力的运用。</p>
+<h3 id="聚焦式注意力"><a href="#聚焦式注意力" class="headerlink" title="聚焦式注意力"></a>聚焦式注意力</h3><p><strong>聚焦式注意力</strong>，自上而下的有意识的注意力，对信息的处理是主动的、有选择的，因此也可以称为选择性注意力。这个主动性体现在注意力获取信息上是有目的性的、有意识的、被任务驱动的。例如我们要寻找视野中的苹果，聚焦式注意力能够帮助我们快速聚焦在苹果和苹果有关的特征上，进而快速找到苹果。再比如人类在做阅读理解时，一般都是带着问题去阅读去寻找答案，这个“带着问题阅读”的过程就体现了聚焦式注意力的主动性。</p>
+<p>聚焦式注意力和显著性注意力的最大差别是获取信息的主动性上，前者获取信息是被动的，后者则是主动的。</p>
+<p>根据上述的讨论，我们知道人类中的显著性注意力早就在深度学习中有所体现了。而聚焦式注意力正是本文需要展开的。</p>
+<h2 id="Attention机制的基本思路"><a href="#Attention机制的基本思路" class="headerlink" title="Attention机制的基本思路"></a>Attention机制的基本思路</h2><p>假设有一向量序列 $\boldsymbol{X} = [\boldsymbol{x}_{1}, \dots, \boldsymbol{x}_{n}] \in \mathbb{R}^{n \times d}$​，如一句子通过 Embedding 后的输出，其维度为<code>(timesteps, features)</code>。我们有一个和任务相关的向量，称为查询向量 $\boldsymbol{q}$​，可以根据任务生成，也可以是可学习的参数（下一章我们谈可学习的情况），其具体的意义我们可以先不用关心。那么注意力机制要做的事情分三步：</p>
+<ul>
+<li>查询向量 $\boldsymbol{q}$​ 与每个 $\boldsymbol{x}_{i}$​ 计算相关性 $\alpha_{i}$​，相关性通过评分函数（也称为相关性函数）获得</li>
+<li>使用softmax归一化相关性 $\alpha_{i}$，称为注意力分布</li>
+<li>根据注意力分布计算向量序列的均值</li>
+</ul>
+<p>假设我们有评分函数 $s$ 用于计算查询向量 $\boldsymbol{q}$ 与每个 $\boldsymbol{x}_{i}$ 的相关性，那么有</p>
+<script type="math/tex; mode=display">
+\alpha_{i} = s(\boldsymbol{q}, \boldsymbol{x}_{i})</script><p>使用 softmax 函数进行归一化相关性，获得注意力分布，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+p(z=i|\boldsymbol{X},\boldsymbol{q}) 
+&= \operatorname{softmax}(\alpha_{1},\dots,\alpha_{n}) \newline
+&= \frac{\exp(\alpha_{i})}{\displaystyle{\sum_{i=1}^{n}\exp(\alpha_{i})}} \newline
+&= \frac{\exp(s(\boldsymbol{q}, \boldsymbol{x}_{i}))}{\displaystyle{\sum_{i=1}^{n}\exp(s(\boldsymbol{q}, \boldsymbol{x}_{i}))}}
+\end{align}</script><p>我们可能会问，为什么归一化使用softmax方法，而不是其他方法呢？这个疑问我们等会解答。</p>
+<p>加权平均，即注意力分布下的均值，</p>
+<script type="math/tex; mode=display">
+\operatorname{Attention}(\boldsymbol{X},\boldsymbol{q}) = \sum_{i=1}^{n}p(z=i|\boldsymbol{X},\boldsymbol{q})\boldsymbol{x}_{i}</script><p>为更直观理解注意力机制，以阅读理解为例，向量序列为阅读材料，查询向量为问题，评分函数通过问题和阅读材料的相关性找出答案。</p>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th>注意力机制</th>
+<th>阅读理解任务</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>向量序列</td>
+<td>阅读材料</td>
+</tr>
+<tr>
+<td>查询向量</td>
+<td>问题</td>
+</tr>
+<tr>
+<td>注意力分布</td>
+<td>阅读材料中答案有关的材料的分布</td>
+</tr>
+<tr>
+<td>加权平均</td>
+<td>根据阅读材料整合与<strong>答案</strong>相关的内容</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>阅读理解任务是典型的Seq2Seq问题或序列标注问题，借这个问题来类比思考Attention中相关的概念，以上的一一对应的。尽管不太严格，但是相当直观。</p>
+<p>那么聚焦式注意力是如何设计到Attention机制中呢？所谓的聚焦式就是在庞大的信息集中，主动去关注需要的目标信息。这里的信息集指向量序列$\boldsymbol{X} = [\boldsymbol{x}_{1}, \dots, \boldsymbol{x}_{n}] \in \mathbb{R}^{n \times d}$。如何体现主动去关注需要的目标信息，就取决于查询向量$\boldsymbol{q}$。查询向量$\boldsymbol{q}$​决定了哪些信息是模型需要主动去关注的。这个过程可以通过一个<strong>评分函数</strong>（也称为相关性函数）来量化，评估模型应该分配多大的权重去关注某个信息。</p>
+<h2 id="常见评分函数"><a href="#常见评分函数" class="headerlink" title="常见评分函数"></a>常见评分函数</h2><p>查询向量 $\boldsymbol{q}$ 与每个 $\boldsymbol{x}_{i}$ 计算相关性 $\alpha_{i}$，相关性通过评分函数获得，目前常见的评分函数有若干个：加性模型、点积模型等等。</p>
+<p>以下评分函数中的 $\boldsymbol{W}$，$\boldsymbol{U}$，$\boldsymbol{v}$ 都是网络中可以学习的参数。</p>
+<h3 id="加性模型"><a href="#加性模型" class="headerlink" title="加性模型"></a>加性模型</h3><script type="math/tex; mode=display">
+s(\boldsymbol{x},\boldsymbol{q}) = \boldsymbol{v}^{\top}\tanh(\boldsymbol{W}\boldsymbol{x}+\boldsymbol{U}\boldsymbol{q})</script><p>加性模型无法直接计算 $\boldsymbol{q}$ 和 $\boldsymbol{x}$ 的相关性。点积模型通过矩阵的乘法可以解决该问题，且提升计算效率。</p>
+<h3 id="减法模型"><a href="#减法模型" class="headerlink" title="减法模型"></a>减法模型</h3><script type="math/tex; mode=display">
+s(\boldsymbol{x}, \boldsymbol{q}) = \boldsymbol{w} \tanh (\boldsymbol{w} [\boldsymbol{q}-\boldsymbol{k}])</script><h3 id="点积模型"><a href="#点积模型" class="headerlink" title="点积模型"></a>点积模型</h3><script type="math/tex; mode=display">
+s(\boldsymbol{x},\boldsymbol{q}) = \boldsymbol{x}^{\top}\boldsymbol{q}</script><p>点积模型有一个问题，当查询向量维度较高时，$s(\boldsymbol{x},\boldsymbol{q})$ 取值的方差较大（正比于维度），进而导致 softmax 函数的梯度较少（落入饱和区间），加大学习难度。点积缩放模型通过添加一个缩放因子可以解决这个问题。</p>
+<h3 id="点积缩放模型"><a href="#点积缩放模型" class="headerlink" title="点积缩放模型"></a>点积缩放模型</h3><script type="math/tex; mode=display">
+s(\boldsymbol{x},\boldsymbol{q}) = \frac{\boldsymbol{x}^{\top}\boldsymbol{q}}{\sqrt{d}}</script><p>为进一步提高泛化性能，可以引入双线性模型。</p>
+<h3 id="双线性模型"><a href="#双线性模型" class="headerlink" title="双线性模型"></a>双线性模型</h3><script type="math/tex; mode=display">
+s(\boldsymbol{x},\boldsymbol{q}) = \boldsymbol{x}^{\top}\boldsymbol{W}\boldsymbol{q}</script><p>展开看，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+s(\boldsymbol{x},\boldsymbol{q}) 
+&= (\boldsymbol{Ux})^{\top}(\boldsymbol{Vq}) \newline  
+&= \boldsymbol{x}^{\top}(\boldsymbol{U}^{\top}\boldsymbol{V}) \boldsymbol{q} \newline 
+&= \boldsymbol{x}^{\top}\boldsymbol{W}\boldsymbol{q}
+\end{align}</script><p>双线性模型对 $\boldsymbol{q}$ 和 $\boldsymbol{x}$ 都进行线性变换。双线性模型引入更多的参数增加泛化性能，同时，由于在矩阵的形状变换下，不要求 $\boldsymbol{q}$ 和 $\boldsymbol{x}$​ 有相同的维度。</p>
+<p>总之，评分函数是可以根据自己对任务的理解<strong>自行设计</strong>，考虑如何与查询向量交互；考虑是否需要可学习的参数；考虑评分函数的值域，因为下一步要softmax归一化，要考虑后者的活性区间；考虑计算性能，梯度优良性等等。</p>
+<h2 id="一个具体的例子"><a href="#一个具体的例子" class="headerlink" title="一个具体的例子"></a>一个具体的例子</h2><p>以上我们列举了很多评分函数，这里以此为基础举一个例子。点积缩放模型$s(\boldsymbol{x},\boldsymbol{q}) = \frac{\boldsymbol{x}^{\top}\boldsymbol{q}}{\sqrt{d}}$的计算比较简单，我们以此为例子。</p>
+<p>第一步，计算查询向量 $\boldsymbol{q}$​ 与每个 $\boldsymbol{x}_{i}$​ 的相关性，那么有</p>
+<script type="math/tex; mode=display">
+s(\boldsymbol{x}_{i},\boldsymbol{q}) = \frac{\boldsymbol{x}_{i}^{\top}\boldsymbol{q}}{\sqrt{d}}</script><p>第二步，计算注意力分布，即归一化评分函数，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+p(z=i|\boldsymbol{X},\boldsymbol{q}) 
+&= \operatorname{softmax}(\alpha_{1},\dots,\alpha_{n}) \newline
+&= \frac{\exp(\alpha_{i})}{\displaystyle{\sum_{i=1}^{n}\exp(\alpha_{i})}} \newline
+&= \frac{\exp(\frac{\boldsymbol{x}_{i}^{\top}\boldsymbol{q}}{\sqrt{d}})}{\displaystyle{\sum_{i=1}^{n}\exp(\frac{\boldsymbol{x}_{i}^{\top}\boldsymbol{q}}{\sqrt{d}})}}
+\end{align}</script><p>第三部，加权平均，</p>
+<script type="math/tex; mode=display">
+\operatorname{Attention}(\boldsymbol{X},\boldsymbol{q}) = \sum_{i=1}^{n}\alpha_{i}\boldsymbol{x}_{i}</script><p>这就是基于点积缩放模型的Attention机制的三个步骤。获得的输出用作下游网络模型的输入以更进一步处理信息，例如输入到Dense网络中，然后做分类。</p>
+<p>那么现在还有一个问题，如何构建查询向量？这个问题留作思考。</p>
+<h2 id="再谈查询向量"><a href="#再谈查询向量" class="headerlink" title="再谈查询向量"></a>再谈查询向量</h2><p>在注意力中，所谓的主动与被动的关键是，我们是否提前知道自己需要什么信息。知道自己需要什么信息体现在查询向量$\boldsymbol{q}$上。</p>
+<p>经过不断的折腾，我们找到一个”标的”向量，如果一个向量和它越”相似”，那么这个向量对任务的贡献就更大。即，如果 $\boldsymbol{x}_{i}$​ 和某个标的向量 $\boldsymbol{q}$​ 越相似，它的重要性越高。至于为什么？经验罢了。现在于是，又要重新回去折腾 $s$ 这个函数。即用 $s(\boldsymbol{q}, \boldsymbol{x}_{i})$ 来表示 $\boldsymbol{x}_{i}$ 的重要性。于是，每个 $\boldsymbol{x}_{i}$ 的权重 $\lambda_{i}$​ 计算如下，</p>
+<script type="math/tex; mode=display">
+\lambda_{i} =  \frac{e^{s(\boldsymbol{q},\boldsymbol{x}_{i})}}{\displaystyle \sum_{i=1}^n e^{s(\boldsymbol{q},\boldsymbol{x}_{i})}}</script><p>那么，获得的注意力输出为，</p>
+<script type="math/tex; mode=display">
+\boldsymbol{C} =\sum_{i=1}^n \lambda_i \boldsymbol{x}_i</script><p>这个过程就是查询向量参与下的Attention机制，直观看如下，</p>
+<p><img src="../images/additive-attention-query.png" alt="additive-attention-query.png"></p>
+<p>有了这个标的向量 $\boldsymbol{q}$​​​ 对目标任务描述得越准确，模型性能进一步提升。</p>
+<p>如果目标任务并不只有查询向量呢？而是一系列查询向量$\boldsymbol{q}_i, i = 1, 2, \dots, m$​​，那么Attention机制应该如何表示？其实就是多少个查询向量就重复以上多少次的Attention计算过程。</p>
+<p>我们还是以点积缩放模型$s(\boldsymbol{x},\boldsymbol{q}) = \frac{\boldsymbol{x}^{\top}\boldsymbol{q}}{\sqrt{d}}$作为评分函数，假设有一向量序列 $\boldsymbol{X} = [\boldsymbol{x}_{1}, \dots, \boldsymbol{x}_{n}] \in \mathbb{R}^{n \times d}$，以及一系列查询向量$\boldsymbol{q}_i \in \mathbb{R}^{1 \times d}, i = 1, 2, \dots, m$，令$\boldsymbol{Q} = [\boldsymbol{q}_1, \dots, \boldsymbol{q}_m] \in \mathbb{R}^{m \times d}$​​。</p>
+<p>使用$\alpha_{ij}$​​表示第$i$​​个查询向量$\boldsymbol{q}_i$​​对向量序列中第$j$​​个元素$\boldsymbol{x}_j$​​的评分值，那么可以构成矩阵$A = [a_{ij}]$​，其每个元素为，</p>
+<script type="math/tex; mode=display">
+\alpha_{ij} = s(\boldsymbol{q}_i, \boldsymbol{x}_j) = \frac{\boldsymbol{x}_j^{\top}\boldsymbol{q}_i}{\sqrt{d}}, \quad i = 1, \dots, m ; j=1, \dots, n</script><p>于是有，</p>
+<script type="math/tex; mode=display">
+\boldsymbol{A} = \frac{\boldsymbol{Q}^{\top} \boldsymbol{X}}{\sqrt{d}}</script><p>可以知道，矩阵$A$​​的每一行表示一个固定的查询向量对向量序列中所有元素的评分值，因此对矩阵按行进行$\operatorname{softmax}(\boldsymbol{x})$​归一化可以得到注意力分布矩阵，</p>
+<script type="math/tex; mode=display">
+\boldsymbol{S} = \operatorname{softmax}(\frac{\boldsymbol{Q}^{\top} \boldsymbol{X}}{\sqrt{d}})</script><p>因此，多查询向量下，Attention机制表示为，</p>
+<script type="math/tex; mode=display">
+\operatorname{Attention}(\boldsymbol{X},\boldsymbol{Q}) = \operatorname{softmax}(\frac{\boldsymbol{Q}^{\top} \boldsymbol{X}}{\sqrt{d}}) \boldsymbol{X}</script><p>由于查询向量的存在，对于$\boldsymbol{X}$的使用可以不再使用Pooling，而是根据下游需求构造查询向量$\boldsymbol{q}$，在再Attention下获得需要的信息，这在一定程度上缓解Pooling来说的信息容量有限的问题。例如在seq2seq中，第$i$步的解码时，构造查询向量$\boldsymbol{q}_i$（如decoder中RNN模型第$i$步的输出），解码输出需要关于$\boldsymbol{X}$​的信息可以从Attention中获得，</p>
+<script type="math/tex; mode=display">
+\boldsymbol{y}_i = \operatorname{Attention}(\boldsymbol{q}_i, \boldsymbol{X}, \boldsymbol{X})</script><p>然后这个$\boldsymbol{y}_i$再通过一定的处理后就可以送入$\operatorname{softmax}(\boldsymbol{y}_i)$，获得当前时间步解码的分布。</p>
+<h2 id="引入键值对结构"><a href="#引入键值对结构" class="headerlink" title="引入键值对结构"></a>引入键值对结构</h2><p>有时候向量序列$\boldsymbol{X} = \left [\boldsymbol{x}_{1},\boldsymbol{x}_{2},\cdots,\boldsymbol{x}_{k} \right]$不一定是这种形式，而是长键值对（key-value pair）结构，即</p>
+<script type="math/tex; mode=display">
+\boldsymbol{X} = \left [(\boldsymbol{k}_{1},\boldsymbol{v}_{1}),(\boldsymbol{k}_{2},\boldsymbol{v}_{2}),\cdots,(\boldsymbol{k}_{n},\boldsymbol{v}_{n}) \right]</script><p>这种数据结构，在Attention中是期望使用$\boldsymbol{k}_i$​与查询向量$\boldsymbol{q}$​计算相关性并进行归一化，而加权平均则是使用$\boldsymbol{v}_i$​​，同时也起到记忆检索的作用。这个要求对注意力机制的计算影响不大，依旧可以分为三个步骤来完成：</p>
+<ul>
+<li>查询向量 $\boldsymbol{q}$​​ 与每个 $\boldsymbol{k}_{i}$​​ 计算相关性 $\alpha_{i}$​​</li>
+<li>使用softmax归一化相关性 $\alpha_{i}$，称为注意力分布</li>
+<li>根据注意力分布计算向量序列$[\boldsymbol{v}_1, \dots, \boldsymbol{v}_n]$的均值</li>
+</ul>
+<p>假设我们有评分函数 $s$​ 用于计算查询向量 $\boldsymbol{q}$​ 与每个 $\boldsymbol{k}_{i}$​ 的相关性，那么有</p>
+<script type="math/tex; mode=display">
+\alpha_{i} = s(\boldsymbol{q}, \boldsymbol{k}_{i})</script><p>使用 softmax 函数进行归一化相关性，获得注意力分布，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+p(z=i|\boldsymbol{X},\boldsymbol{q}) 
+&= \operatorname{softmax}(\alpha_{1},\dots,\alpha_{n}) \newline
+&= \frac{\exp(\alpha_{i})}{\displaystyle{\sum_{i=1}^{n}\exp(\alpha_{i})}} \newline
+&= \frac{\exp(s(\boldsymbol{q}, \boldsymbol{k}_{i}))}{\displaystyle{\sum_{i=1}^{n}\exp(s(\boldsymbol{q}, \boldsymbol{k}_{i}))}}
+\end{align}</script><p>加权平均，即注意力分布下的均值，</p>
+<script type="math/tex; mode=display">
+\operatorname{Attention}(\boldsymbol{X},\boldsymbol{q}) = \sum_{i=1}^{n}p(z=i|\boldsymbol{X},\boldsymbol{q})\boldsymbol{v}_{i}</script><p>直观的示意图如下，</p>
+<p><img src="../images/attention-kv.png" alt="attention-kv"></p>
+<p>为什么要引入键值对结构呢？其实是为了相关性计算与注意力加权平均的分离。这样的注意力模型更具普遍性。</p>
+<p>类似上一节的推导，当查询向量为多个，评分函数为点积缩放模型的情况下，注意力机制可以紧凑第表示为，</p>
+<script type="math/tex; mode=display">
+\operatorname{Attention}(\boldsymbol{K},\boldsymbol{V}, \boldsymbol{Q}) = \operatorname{softmax}(\frac{\boldsymbol{Q}^{\top} \boldsymbol{K}}{\sqrt{d}}) \boldsymbol{V}</script><p>其中softmax是对矩阵按行计算。</p>
+<h2 id="Attention解决seq2seq问题"><a href="#Attention解决seq2seq问题" class="headerlink" title="Attention解决seq2seq问题"></a>Attention解决seq2seq问题</h2><p>在没有Attention之前，seq2seq问题通常是这样的，假设输入是$\boldsymbol{x} = [x_1, \dots, x_n]$，</p>
+<script type="math/tex; mode=display">
+\boldsymbol{h} = \operatorname{encoder}(\boldsymbol{x}_1, \dots, \boldsymbol{x}_n) \\
+y_i = \operatorname{decoder}(y_{i-1}, s_{i}, \boldsymbol{h})</script><p>encoder负责对输入序列$\boldsymbol{x} = [x_1, \dots, x_n]$编码成一个向量$\boldsymbol{h}$，理论上该向量包括了输入序列的主要信息。encoder通常是双向的RNN，如Bi-LSTM或者CNN+某种Pooling。decoder中，第$i$步的解码需要第$i-1$步的解码以及当前时刻的隐状态$s_i$和encoder获得的向量$\boldsymbol{h}$。decoder通常是单向的RNN。</p>
+<p>这种encoder-decoder解码架构有一种问题：随着序列的变长，encoder无法把更多有效的信息融入到$\boldsymbol{h}$​​中，即encoder存在遗忘性，即便是双向的LSTM也无法解决这个问题。</p>
+<p>而Attention的引入，可以解决这个问题，首先encoder不需要把输入序列编码成单个向量，毕竟单个向量存储信息的能力是有限的，</p>
+<script type="math/tex; mode=display">
+\boldsymbol{H} = [\boldsymbol{h}_1, \boldsymbol{h}_2, \dots, \boldsymbol{h}_n] 
+= \operatorname{encoder}(\boldsymbol{x}_1, \dots, \boldsymbol{x}_n) \\
+y_i = \operatorname{decoder}(y_{i-1}, s_i, \boldsymbol{c}_i) \\
+\boldsymbol{c}_i = \operatorname{Attention}(s_i, H, H)</script><p>对于decoder来说，第$i$步的解码不再固定一个来自encoder的向量$\boldsymbol{h}$，而是根据Attention机制动态地构建。构建方式是以decoder第$i$步的隐状态$s_i$（或者$s_{i-1}$）作为查询向量在Attention下获取$\boldsymbol{H}$中对当前时刻解码有用的信息。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>本文从人类的显著性注意力、聚焦式注意力为开头，然后讲述以聚焦式注意力为原理的Attention机制的三个步骤~</p>
+<p>什么情况下需要注意力机制？处理大量信息、需要聚焦大量信息中的特定信息、信息记忆有限。更多注意力机制的研究，比如稀疏注意力、位置问题、注意力的可解释性、结构化注意力。注意力机制的应用，如指针网络。比如，设想一个排序过程，输入 5, 168, 13，输出排序后的序列的索引，也就是 1, 3, 2。这就网络指针做的事情。此外，还有神经图灵机。</p>
+<p>作为一个系列，下一篇会写软硬性注意力及其导出关系。</p>
+<h2 id="参考文献"><a href="#参考文献" class="headerlink" title="参考文献"></a>参考文献</h2><p>[1] nndl.github.io</p>
+<p>[2] <a href="https://arxiv.org/abs/1409.0473" target="_blank" rel="noopener">Neural Machine Translation by Jointly Learning to Align and Translate</a></p>
+<p>[3] A structured Self-Attentive Sentence Embedding</p>
+<p>[4] Sparse Attentive Backtracking: Temporal Credit Assignment Through Reminding</p>
+<p>[5] <a href="https://arxiv.org/abs/1706.03762" target="_blank" rel="noopener">Attention is all you need</a></p>
+<p>转载请包括本文地址：<a href="../9477">https://allenwind.github.io/blog/9477</a><br>更多文章请参考：<a href="../archives">https://allenwind.github.io/blog/archives/</a></p>
+</div><div class="tags"><a href="/blog/tags/神经网络/">神经网络</a><a href="/blog/tags/Attention/">Attention</a><a href="/blog/tags/注意力/">注意力</a><a href="/blog/tags/序列编码/">序列编码</a></div><div class="post-nav"><a class="pre" href="/blog/9478/">漫谈注意力机制（二）：硬性注意力机制与软性注意力机制</a><a class="next" href="/blog/9458/">漫谈序列编码：MLP、CNN、RNN</a></div></div></div></div><div class="pure-u-1-4 hidden_mid_and_down"><div id="sidebar"><div class="widget"><form class="search-form" action="//www.google.com/search" method="get" accept-charset="utf-8" target="_blank"><input type="text" name="q" maxlength="20" placeholder="Search"><input type="hidden" name="sitesearch" value="http://allenwind.github.io/blog"></form></div><div class="widget"><div class="widget-title"><i class="fa fa-folder-o"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/blog/categories/C-C/">C/C++</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Go/">Go</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Java/">Java</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Linux/">Linux</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/NLP/">NLP</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Python/">Python</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/数学/">数学</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/数据库/">数据库</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/数据结构和算法/">数据结构和算法</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/机器学习深度学习/">机器学习深度学习</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/记录/">记录</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-star-o"> 标签</i></div><div class="tagcloud"><a href="/blog/tags/算法/" style="font-size: 15px;">算法</a> <a href="/blog/tags/C/" style="font-size: 15px;">C</a> <a href="/blog/tags/Python/" style="font-size: 15px;">Python</a> <a href="/blog/tags/设计模式/" style="font-size: 15px;">设计模式</a> <a href="/blog/tags/C语言/" style="font-size: 15px;">C语言</a> <a href="/blog/tags/数据库/" style="font-size: 15px;">数据库</a> <a href="/blog/tags/区块链/" style="font-size: 15px;">区块链</a> <a href="/blog/tags/MySQL/" style="font-size: 15px;">MySQL</a> <a href="/blog/tags/分布式/" style="font-size: 15px;">分布式</a> <a href="/blog/tags/ACID/" style="font-size: 15px;">ACID</a> <a href="/blog/tags/sudo/" style="font-size: 15px;">sudo</a> <a href="/blog/tags/Docker/" style="font-size: 15px;">Docker</a> <a href="/blog/tags/SQL/" style="font-size: 15px;">SQL</a> <a href="/blog/tags/NoSQL/" style="font-size: 15px;">NoSQL</a> <a href="/blog/tags/git/" style="font-size: 15px;">git</a> <a href="/blog/tags/Linux/" style="font-size: 15px;">Linux</a> <a href="/blog/tags/Git/" style="font-size: 15px;">Git</a> <a href="/blog/tags/命令行/" style="font-size: 15px;">命令行</a> <a href="/blog/tags/Systemd/" style="font-size: 15px;">Systemd</a> <a href="/blog/tags/Tensorflow/" style="font-size: 15px;">Tensorflow</a> <a href="/blog/tags/gcc/" style="font-size: 15px;">gcc</a> <a href="/blog/tags/网络/" style="font-size: 15px;">网络</a> <a href="/blog/tags/操作系统/" style="font-size: 15px;">操作系统</a> <a href="/blog/tags/正则表达式/" style="font-size: 15px;">正则表达式</a> <a href="/blog/tags/记录/" style="font-size: 15px;">记录</a> <a href="/blog/tags/数据结构/" style="font-size: 15px;">数据结构</a> <a href="/blog/tags/Go/" style="font-size: 15px;">Go</a> <a href="/blog/tags/go/" style="font-size: 15px;">go</a> <a href="/blog/tags/LRU/" style="font-size: 15px;">LRU</a> <a href="/blog/tags/ARC/" style="font-size: 15px;">ARC</a> <a href="/blog/tags/Java/" style="font-size: 15px;">Java</a> <a href="/blog/tags/搜索引擎/" style="font-size: 15px;">搜索引擎</a> <a href="/blog/tags/剑指Offer/" style="font-size: 15px;">剑指Offer</a> <a href="/blog/tags/函数式/" style="font-size: 15px;">函数式</a> <a href="/blog/tags/Stack/" style="font-size: 15px;">Stack</a> <a href="/blog/tags/并发编程/" style="font-size: 15px;">并发编程</a> <a href="/blog/tags/网络编程/" style="font-size: 15px;">网络编程</a> <a href="/blog/tags/HTTP/" style="font-size: 15px;">HTTP</a> <a href="/blog/tags/并发/" style="font-size: 15px;">并发</a> <a href="/blog/tags/装饰器/" style="font-size: 15px;">装饰器</a> <a href="/blog/tags/Redis/" style="font-size: 15px;">Redis</a> <a href="/blog/tags/数学/" style="font-size: 15px;">数学</a> <a href="/blog/tags/时间序列/" style="font-size: 15px;">时间序列</a> <a href="/blog/tags/投资/" style="font-size: 15px;">投资</a> <a href="/blog/tags/概率/" style="font-size: 15px;">概率</a> <a href="/blog/tags/统计/" style="font-size: 15px;">统计</a> <a href="/blog/tags/信息论/" style="font-size: 15px;">信息论</a> <a href="/blog/tags/度量/" style="font-size: 15px;">度量</a> <a href="/blog/tags/机器学习/" style="font-size: 15px;">机器学习</a> <a href="/blog/tags/贝叶斯/" style="font-size: 15px;">贝叶斯</a> <a href="/blog/tags/最小二乘法/" style="font-size: 15px;">最小二乘法</a> <a href="/blog/tags/分布/" style="font-size: 15px;">分布</a> <a href="/blog/tags/深度学习/" style="font-size: 15px;">深度学习</a> <a href="/blog/tags/变分推断/" style="font-size: 15px;">变分推断</a> <a href="/blog/tags/随机/" style="font-size: 15px;">随机</a> <a href="/blog/tags/不等式/" style="font-size: 15px;">不等式</a> <a href="/blog/tags/采样/" style="font-size: 15px;">采样</a> <a href="/blog/tags/光滑/" style="font-size: 15px;">光滑</a> <a href="/blog/tags/逼近/" style="font-size: 15px;">逼近</a> <a href="/blog/tags/矩阵/" style="font-size: 15px;">矩阵</a> <a href="/blog/tags/交叉验证/" style="font-size: 15px;">交叉验证</a> <a href="/blog/tags/特征工程/" style="font-size: 15px;">特征工程</a> <a href="/blog/tags/集成学习/" style="font-size: 15px;">集成学习</a> <a href="/blog/tags/分类/" style="font-size: 15px;">分类</a> <a href="/blog/tags/证明/" style="font-size: 15px;">证明</a> <a href="/blog/tags/损失函数/" style="font-size: 15px;">损失函数</a> <a href="/blog/tags/回归/" style="font-size: 15px;">回归</a> <a href="/blog/tags/正则化/" style="font-size: 15px;">正则化</a> <a href="/blog/tags/词向量/" style="font-size: 15px;">词向量</a> <a href="/blog/tags/NLP/" style="font-size: 15px;">NLP</a> <a href="/blog/tags/信息/" style="font-size: 15px;">信息</a> <a href="/blog/tags/Embedding/" style="font-size: 15px;">Embedding</a> <a href="/blog/tags/神经网络/" style="font-size: 15px;">神经网络</a> <a href="/blog/tags/Transformer/" style="font-size: 15px;">Transformer</a> <a href="/blog/tags/Attention/" style="font-size: 15px;">Attention</a> <a href="/blog/tags/对抗训练/" style="font-size: 15px;">对抗训练</a> <a href="/blog/tags/文本分类/" style="font-size: 15px;">文本分类</a> <a href="/blog/tags/分词/" style="font-size: 15px;">分词</a> <a href="/blog/tags/并行/" style="font-size: 15px;">并行</a> <a href="/blog/tags/NER/" style="font-size: 15px;">NER</a> <a href="/blog/tags/概率图/" style="font-size: 15px;">概率图</a> <a href="/blog/tags/HMM/" style="font-size: 15px;">HMM</a> <a href="/blog/tags/图/" style="font-size: 15px;">图</a> <a href="/blog/tags/可视化/" style="font-size: 15px;">可视化</a> <a href="/blog/tags/RNN/" style="font-size: 15px;">RNN</a> <a href="/blog/tags/LSTM/" style="font-size: 15px;">LSTM</a> <a href="/blog/tags/梯度/" style="font-size: 15px;">梯度</a> <a href="/blog/tags/注意力/" style="font-size: 15px;">注意力</a> <a href="/blog/tags/序列编码/" style="font-size: 15px;">序列编码</a> <a href="/blog/tags/磁盘故障/" style="font-size: 15px;">磁盘故障</a> <a href="/blog/tags/BERT/" style="font-size: 15px;">BERT</a> <a href="/blog/tags/CNN/" style="font-size: 15px;">CNN</a> <a href="/blog/tags/卷积/" style="font-size: 15px;">卷积</a> <a href="/blog/tags/优化/" style="font-size: 15px;">优化</a> <a href="/blog/tags/调参/" style="font-size: 15px;">调参</a> <a href="/blog/tags/Flask/" style="font-size: 15px;">Flask</a> <a href="/blog/tags/web/" style="font-size: 15px;">web</a> <a href="/blog/tags/socket/" style="font-size: 15px;">socket</a> <a href="/blog/tags/安全/" style="font-size: 15px;">安全</a> <a href="/blog/tags/协程/" style="font-size: 15px;">协程</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-file-o"> 最近文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/blog/16003/">天马行空：设计自己的激活函数</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/15887/">函数光滑近似（4）：Heaviside step函数及其应用</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/15205/">引入参数控制softmax的smooth程度</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/15110/">分析与拓展：多分类模型的输出为什么使用softmax？</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14990/">一种基于光滑逼近的正态分布采样法</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14721/">GELU由来：从狄拉克函数到GELU激活函数</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14465/">Lp范数的上下界分析</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14441/">logsumexp函数分析</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14133/">分析Mish激活函数的设计思路</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/13899/">阿尔法经济学：Shiller模型介绍</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-external-link"> 友情链接</i></div><ul></ul><a href="https://github.com/allenwind" title="My GitHub" target="_blank">My GitHub</a><ul></ul><a href="http://www.arxiv-sanity.com/" title="arxiv-sanity" target="_blank">arxiv-sanity</a><ul></ul><a href="https://arxiv.org/" title="arxiv.org" target="_blank">arxiv.org</a></div></div></div><div class="pure-u-1 pure-u-md-3-4"><div id="footer">Copyright © 2021 <a href="/blog/." rel="nofollow">Mr.Feng Blog.</a> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a><a rel="nofollow" target="_blank" href="https://github.com/tufu9441/maupassant-hexo"> Theme</a> by<a rel="nofollow" target="_blank" href="https://github.com/pagecho"> Cho.</a></div></div></div><a class="show" id="rocket" href="#top"></a><script type="text/javascript" src="/blog/js/totop.js?v=0.0.0" async></script><script type="text/javascript" src="//lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js" async></script><script type="text/javascript" src="/blog/js/fancybox.js?v=0.0.0" async></script><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css"><script type="text/x-mathjax-config">MathJax.Hub.Config({
+  tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}
+  });
+</script><script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-MML-AM_CHTML" async></script><script type="text/javascript" src="/blog/js/codeblock-resizer.js?v=0.0.0"></script><script type="text/javascript" src="/blog/js/smartresize.js?v=0.0.0"></script></div></body></html>

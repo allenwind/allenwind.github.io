@@ -1,0 +1,283 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.9.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description" content="你好，世界！"><title>函数光滑近似（4）：Heaviside step函数及其应用 | Mr.Feng Blog</title><link rel="stylesheet" type="text/css" href="/blog/css/style.css?v=0.0.0"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/normalize/8.0.1/normalize.min.css"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/pure/1.0.0/pure-min.css"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/pure/1.0.0/grids-responsive-min.css"><link rel="stylesheet" href="//lib.baomitu.com/font-awesome/4.7.0/css/font-awesome.min.css"><script type="text/javascript" src="//lib.baomitu.com/jquery/3.4.0/jquery.min.js"></script><link rel="icon" mask sizes="any" href="/blog/favicon.ico"><link rel="Shortcut Icon" type="image/x-icon" href="/blog/favicon.ico"><link rel="apple-touch-icon" href="/blog/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/blog/apple-touch-icon.png"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">函数光滑近似（4）：Heaviside step函数及其应用</h1><a id="logo" href="/blog/.">Mr.Feng Blog</a><p class="description">NLP、深度学习、机器学习、Python、Go</p></div><div id="nav-menu"><a class="current" href="/blog/."><i class="fa fa-home"> 首页</i></a><a href="/blog/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/blog/about/"><i class="fa fa-user"> 关于</i></a></div></div><div class="pure-g" id="layout"><div class="pure-u-1 pure-u-md-3-4"><div class="content_container"><div class="post"><h1 class="post-title">函数光滑近似（4）：Heaviside step函数及其应用</h1><div class="post-meta">Sep 7, 2021<span> | </span><span class="category"><a href="/blog/categories/数学/">数学</a></span></div><div class="clear"><div class="toc-article" id="toc"><div class="toc-title">文章目录</div><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Heaviside-step函数"><span class="toc-number">1.</span> <span class="toc-text">Heaviside step函数</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#从封闭形式出发"><span class="toc-number">2.</span> <span class="toc-text">从封闭形式出发</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#从光滑逼近max函数的角度"><span class="toc-number">3.</span> <span class="toc-text">从光滑逼近max函数的角度</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#从光滑逼近狄拉克函数的角度"><span class="toc-number">4.</span> <span class="toc-text">从光滑逼近狄拉克函数的角度</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#扩展思路"><span class="toc-number">5.</span> <span class="toc-text">扩展思路</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#实现"><span class="toc-number">6.</span> <span class="toc-text">实现</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#总结"><span class="toc-number">7.</span> <span class="toc-text">总结</span></a></li></ol></div></div><div class="post-content"><p>其实Heaviside step函数在本博客在介绍了很多次，不过比较松散，这篇把它系统梳理一下。</p>
+<a id="more"></a>
+<p><strong>函数光滑近似</strong>在本博客已经有很多相关内容，这里整理一下：</p>
+<ul>
+<li><a href="../9998">Sigmoid函数导出的另外一个角度</a>，从光滑近似角度导出$\sigma(x)$</li>
+<li><a href="../9999">Google的激活函数Swish是怎么设计出来的？</a>从光滑近似角度导出Swish激活函数</li>
+<li><a href="../10705">从函数光滑近似的角度统一理解激活函数</a></li>
+<li><a href="../14721">GELU由来：从狄拉克函数到GELU激活函数</a></li>
+<li><a href="../15110">多分类模型的输出为什么使用softmax？</a></li>
+<li><a href="../14133">Mish激活函数的设计思路</a></li>
+<li><a href="../14990">一种基于光滑逼近的正态分布采样法</a></li>
+<li><a href="../15205">引入参数控制softmax的smooth程度</a></li>
+<li><a href="../9478">漫谈注意力机制（二）：硬性注意力机制与软性注意力机制 </a></li>
+</ul>
+<p>通过这些文章，我们意识到，深度学习中，似乎处处都是某几个基本函数的光滑逼近的踪影。这几个基本函数是什么？不熟悉的读者可以带着这个问题去读以上文章。</p>
+<p>作为本系列的前三篇有：</p>
+<ul>
+<li><a href="../9831">函数光滑近似（1）：maximum函数</a></li>
+<li><a href="../9905">函数光滑近似（2）：softmax与argmax</a></li>
+<li><a href="../9959">函数光滑近似（3）：abs函数</a></li>
+</ul>
+<p>本篇延续前三篇的内容，讲Heaviside step函数的光滑逼近。下面的推导需要使用到这三篇文章里面的相关结论。其实Heaviside step函数在本博客在介绍了很多次，不过比较松散，本篇详细讲述。</p>
+<h2 id="Heaviside-step函数"><a href="#Heaviside-step函数" class="headerlink" title="Heaviside step函数"></a>Heaviside step函数</h2><p>Heaviside step函数，也称为unit step函数，它的定义有很多，比如作为分段函数，</p>
+<script type="math/tex; mode=display">
+\displaystyle H(x)=\begin{cases}1,&\;x>0\\0,&\;x\leq 0\end{cases}</script><p>这样的分段式在机器学习或深度学习中有重要意义，对于$x \in \mathbb{R}$，把它压缩到${0, 1}$取值上，使其完成<strong>类别判别</strong>输出。例如，如果logit取值为负半轴，则把类别判别为负类（0），如果取值为正半轴，则把类别判别为正类（+1）。$H(x)$正满足需求，但是要考虑两点：</p>
+<ul>
+<li>$H(x)$​非光滑，对于机器学习或深度学习模型训练来说难求梯度</li>
+<li>很多情况下，希望模型输出类别概率$p \in [0, 1]$​，而不是类别判别${0, 1}$​</li>
+</ul>
+<p>此外，Heaviside step函数的好的光滑逼近$H_s(x)$应该满足关于点$(0, \frac{1}{2})$中心对称，即$H_s(x) = 1 - H_s(-x)$，于是$H_s(0) = \frac{1}{2}$。这种对称性对概率建模有意义，即如$P(x^+|\theta) = 1 - P(x^-|\theta)$。不过，如果是为设计$\operatorname{relu}(x)$的光滑逼近而逼近$H(x)$可以不用考虑这一点，如<a href="../14133">Mish激活函数的设计思路</a>一文中的思路。</p>
+<p>因此，寻找Heaviside step函数的光滑近似（本文使用$H_s(x)$表示）相当有意义。另外，根据以上分段式，有</p>
+<script type="math/tex; mode=display">
+\operatorname{relu}(x) = x \times H(x) \\
+\operatorname{relu}(x) = \int_{-\infty}^{x} H(x) \; dx</script><p>也就是说，如果<strong>找到Heaviside step函数的光滑近似，也就找到激活函数$\operatorname{relu}(x)$的光滑近似</strong>。由于激活函数是神经网络的重中之重，因此除了光滑近似外，常常还要考虑三点：</p>
+<ul>
+<li>非线性，这是必须的，否则神经网络就是一个线性函数</li>
+<li>负半轴非单调性，以便增加非线性</li>
+<li>在$x$较小时，应该满足$f(x) \approx x$，以便保证输出的统计不变性</li>
+</ul>
+<p>像GELU激活函数也是从这里思路来的，可参看过去的文章<a href="../14721">GELU由来：从狄拉克函数到GELU激活函数</a>。</p>
+<p>Heaviside step函数还有作为$\max(0, x)$​的导数的定义，</p>
+<script type="math/tex; mode=display">
+H(x) = \frac {d}{dx}\max\{0, x\}, \; x \ne 0</script><p>Heaviside step函数还有一种关于狄拉克函数（dirac function）的定义，</p>
+<script type="math/tex; mode=display">
+\displaystyle H(x)=\int _{-\infty }^{x}{\delta (s)}\,ds</script><p>其中狄拉克函数为，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+\delta(x) =\left\{\begin{matrix}
++\infty &\;\;x = 0\\ 
+0 & \;\; x \neq 0
+\end{matrix}\right.
+\end{align}</script><p>狄拉克函数满足，</p>
+<script type="math/tex; mode=display">
+\int_{-\infty}^{\infty}\delta(x)dx = 1</script><p>因此Heaviside step函数的光滑近似的构造思路有三个：</p>
+<ul>
+<li>寻找Heaviside step函数分段形式的封闭形式，如果该封闭形式具有非光滑的元素，则对该元素光滑处理</li>
+<li>寻找$\max{0, x}$​的光滑逼近，其导数光滑逼近Heaviside step函数</li>
+<li>寻找狄拉克函数$\delta(x)$的光滑逼，近其积分光滑逼近Heaviside step函数</li>
+</ul>
+<h2 id="从封闭形式出发"><a href="#从封闭形式出发" class="headerlink" title="从封闭形式出发"></a>从封闭形式出发</h2><p>寻找$H(x)$​的封闭形式就需要发挥个人的数学直觉，在我看来，最容易构造的就是基于$f(x) = |x|$，因为改变符号容易自消除，进而得到负半轴的表示，</p>
+<script type="math/tex; mode=display">
+H(x)=\frac {x+|x|}{2|x|}, \; x \ne 0</script><p>为使其在$x=0$处有定义，可以添加一个因子以及对称处理技巧，考虑到（这是<a href="../9959#max变换出发">函数光滑近似（3）：abs函数</a>中的结论），</p>
+<script type="math/tex; mode=display">
+\begin{align}
+|x| &= \max\{-x, x \} \newline
+&\approx \frac{1}{\alpha}\log(e^{-\alpha x}+e^{\alpha x})
+\end{align}</script><p>于是，</p>
+<script type="math/tex; mode=display">
+H(x) \approx \frac{\alpha x + \log(e^{-\alpha x}+e^{\alpha x})}{2\log(e^{-\alpha x}+e^{\alpha x})} = \frac{1}{2} + \frac{\alpha x}{2\log(e^{-\alpha x}+e^{\alpha x})} = H_s(x)</script><p>注意到这里包括函数，</p>
+<script type="math/tex; mode=display">
+\operatorname{sech}(x) = \frac{2}{e^x + e^{-x}}</script><p>图像对比（这里取$\alpha=2$），</p>
+<p><img src="../images/H-smoothness-1.png" alt></p>
+<p>$\alpha$​​取的值越大，逼近效果越好。该近似$H_s(x)$是关于$(0, \frac{1}{2})$中心对称的，因为$H_s(x) = 1 - H_s(-x)$​，对于$H_s(0) = \frac{1}{2}$。</p>
+<p>一个构造上的反例，考虑<a href="../9831#三种近似形式">函数光滑近似（1）：maximum函数</a>中的结论，</p>
+<script type="math/tex; mode=display">
+\max(x_{1},x_{2},\dots,x_{n}) \approx \frac{\displaystyle \sum_{i=1}^{n}x_{i} e^{\alpha x_{i}}}{\displaystyle \sum_{i=1}^{n}e^{\alpha x_{i}}}, \; \alpha \gt 0</script><p>取$x_1 = -x, x_2 = x$，有</p>
+<script type="math/tex; mode=display">
+\begin{align}
+|x| &= \max\{-x, x \} \newline
+&\approx \frac{x(e^{\alpha x} - e^{-\alpha x})}{e^{\alpha x} + e^{-\alpha x}} \newline
+&= x \tanh(\alpha x)
+\end{align}</script><p>这个结论不能代入到$H(x)=\frac {x+|x|}{2|x|}$构造$H_s(x)$，因为前者在$x = 0$无定义，而$x\tanh(\alpha x)$在$x = 0$时取值也为$0$​。但是如果$|x|$分别使用不同的近似来替代，能够解决这个问题，如</p>
+<script type="math/tex; mode=display">
+H_s(x) = \alpha x \times \frac{1 + \tanh(\alpha x)}{2\ln\left(e^{\alpha x} + e^{-\alpha x}  \right)}</script><p>考虑符号函数的定义，</p>
+<script type="math/tex; mode=display">
+\displaystyle \operatorname {sign}(x) ={\begin{cases}-1&\;{\text{if }}x<0,\\0&\;{\text{if }}x=0,\\1&\;{\text{if }}x>0.\end{cases}}</script><p>如果规定$H(0) = \frac{1}{2}$​​，那么有$H(x) = \frac{1}{2}[1 + \operatorname{sign}(x)]$​​​。​注意到，</p>
+<script type="math/tex; mode=display">
+\operatorname{sign}(x) = \frac{x}{|x|} \approx \frac{x}{1 + |x|}</script><p>去掉绝对符号，</p>
+<script type="math/tex; mode=display">
+\operatorname{sign}(x) = \frac{x}{|x|} \approx \frac{x}{(1 + x^{2} )^{\frac{1}{2}}}</script><p>于是有，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+H(x) 
+&= \frac{1}{2}[1 + \operatorname{sign}(x)] \newline
+&\approx \frac{1}{2}[1 + \frac{x}{(1 + x^{2} )^{\frac{1}{2}}}] 
+\end{align}</script><p>考虑添加一个缩放因子，</p>
+<script type="math/tex; mode=display">
+H_s(x) = \frac{1}{2}\Big[1 + \frac{\alpha x}{\big(1 + \alpha^2 x^{2} \big)^{\frac{1}{2}}} \Big]</script><p>图像对比（这里取$\alpha=1$），</p>
+<p><img src="../images/H-smoothness-2.png" alt></p>
+<p>该近似$H_s(x)$是关于$(0, \frac{1}{2})$中心对称的，因为$H_s(x) = 1 - H_s(-x)$，对于$H_s(0) = \frac{1}{2}$。</p>
+<h2 id="从光滑逼近max函数的角度"><a href="#从光滑逼近max函数的角度" class="headerlink" title="从光滑逼近max函数的角度"></a>从光滑逼近max函数的角度</h2><p>由于，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+H(x) 
+&= \frac {d}{dx}\max\{0, x\}, \; x \ne 0 \newline
+
+\end{align}</script><p>在<a href="../9831">函数光滑近似（1）：maximum函数</a>我们知道，</p>
+<script type="math/tex; mode=display">
+\max(x_{1},\dots,x_{n}) \approx \frac{1}{\alpha} \ln( \sum_{i=1}^{n}e^{\alpha x_{i}}) \;,\; \alpha \gt 0</script><p>取$\alpha=1, x_1 = x, x_2 = 0$，有特例，</p>
+<script type="math/tex; mode=display">
+\max\{0, x\} = \ln(1 + e^x)</script><p>代入到Heaviside step函数的定义中，有</p>
+<script type="math/tex; mode=display">
+\begin{align}
+H(x)
+&= \frac {d}{dx}\max\{0, x\} \newline
+&\approx \frac {d}{dx} \ln(1 + e^x) \newline
+&= \frac{e^x}{1 + e^x} \newline
+&= \frac{1}{1 + e^{-x}} \newline
+&= \sigma(x) \newline
+&= H_s(x)
+\end{align}</script><p>这个过程也可以参数化，结果是$H(x) \approx \sigma(\alpha x)$​​。这也是<a href="../9998">Sigmoid函数导出的另外一个角度</a>中的结论。</p>
+<p>类似的思路，考虑<a href="../9831#三种近似形式">函数光滑近似（1）：maximum函数</a>中的结论，</p>
+<script type="math/tex; mode=display">
+\max(x_{1},x_{2},\dots,x_{n}) \approx \frac{\displaystyle \sum_{i=1}^{n}x_{i} e^{\alpha x_{i}}}{\displaystyle \sum_{i=1}^{n}e^{\alpha x_{i}}}, \; \alpha \gt 0</script><p>取$x_1 = 0, x_2 = x, \alpha=1$​有特例，</p>
+<script type="math/tex; mode=display">
+\max(0, x) \approx \frac{x e^x}{1 + e^x} = x \sigma(x)</script><p>代入到Heaviside step函数的定义中，有</p>
+<script type="math/tex; mode=display">
+\begin{align}
+H(x)
+&= \frac {d}{dx}\max\{0, x\} \newline
+&\approx \frac {d}{dx} x \sigma(x) \newline
+&= \frac{1+e^{-x}+xe^{-x}}{\left(1+e^{-x}\right)^{2}}\newline
+&= H_s(x)
+\end{align}</script><p>以上推导取$\alpha$为一般形式得到$H_s(x)$的带参数形式，</p>
+<script type="math/tex; mode=display">
+H_s(x) = \frac{1+e^{-\alpha x}+xe^{-\alpha x}}{\left(1+e^{-\alpha x}\right)^{2}}</script><p>图像对比（这里取$\alpha=3$​），</p>
+<p><img src="../images/H-smoothness-3.png" alt></p>
+<p>该近似$H_s(x)$是关于$(0, \frac{1}{2})$中心对称的，因为$H_s(x) = 1 - H_s(-x)$，对于$H_s(0) = \frac{1}{2}$。</p>
+<h2 id="从光滑逼近狄拉克函数的角度"><a href="#从光滑逼近狄拉克函数的角度" class="headerlink" title="从光滑逼近狄拉克函数的角度"></a>从光滑逼近狄拉克函数的角度</h2><p>Heaviside step函数还有一种关于狄拉克函数（dirac function）的定义，</p>
+<script type="math/tex; mode=display">
+\displaystyle H(x)=\int _{-\infty }^{x}{\delta (s)}\,ds</script><p>其中狄拉克函数为，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+\delta(x) =\left\{\begin{matrix}
++\infty &\;\;x = 0\\ 
+0 & \;\; x \neq 0
+\end{matrix}\right.
+\end{align}</script><p>要求狄拉克函数满足，</p>
+<script type="math/tex; mode=display">
+\int_{-\infty}^{\infty}\delta(x)dx = 1</script><p>这个函数看起来及其诡异难理解，这怎么能行？我们可以从极限的思路来理解它，假设有分段函数，</p>
+<script type="math/tex; mode=display">
+\tau(x)=\left\{ \begin{array}{c}
+\frac{1}{2l} , &-l \leq x \leq l \newline
+0, & x < -l , x > l
+\end{array}\right.</script><p>于是有，</p>
+<script type="math/tex; mode=display">
+\lim_{l \rightarrow 0} \int_{- \infty}^{+\infty} \tau(x) \; dx = 1</script><p>于是$\delta(x)$的分段式成立。狄拉克函数的逼近形式具有两个特点：</p>
+<ul>
+<li>关于$y$​​轴对称的偶函数，<strong>函数图形是“钟形”曲线</strong></li>
+<li>在$\mathbb{R}$上的积分为$1$</li>
+</ul>
+<p>这两点最容易让人想到的是<strong>概率密度函数</strong>，因为它的积分一定为一。同时满足以上两点的概率密度函数容易让人想到标准正态分布与柯西分布，不过后者有一个“怪异”的性质，均值和方差不存在。</p>
+<p>正态分布概率密度函数逼近，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+\delta_{\sigma}(x) \approx \frac{1}{\sqrt{\pi \sigma^2}}e^{-(x/\sigma)^{2}}
+\end{align}</script><p>$\sigma$不同取值下的可视化，</p>
+<p><img src="../images/delta-approx-func-1.png" alt></p>
+<p>取极限，</p>
+<script type="math/tex; mode=display">
+\lim_{\sigma \rightarrow 0} \frac{1}{\sqrt{\pi \sigma^2}}e^{-(x/\sigma)^{2}} = \delta(x)</script><p>证明，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+\varepsilon 
+&=\lim_{\sigma \to 0} \Big|\int_{-\infty}^{\infty} \delta(x)f(x)\;dx - \int_{-\infty}^{\infty} \frac{1}{\sqrt{\pi \sigma^2}}e^{-(x/\sigma)^{2}}f(x)\;dx  \Big| \newline
+&=  \lim_{\sigma \to 0} \Big|  \int_{-\infty}^{\infty}  \frac{1}{\sqrt{\pi \sigma^2}}e^{-(x/\sigma)^{2}}f(0)\;dx - \int_{-\infty}^{\infty} \frac{1}{\sqrt{\pi \sigma^2}}e^{-(x/\sigma)^{2}}f(x)\;dx  \Big| \newline
+&= \lim_{\sigma \to 0} \Big| \int_{-\infty}^{\infty}  \frac{1}{\sqrt{\pi \sigma^2}}e^{-(x/\sigma)^{2}}\big[f(0) -f(x) \big]\;dx  \Big| \newline
+&\le \lim_{\sigma \to 0}\max |f'(x)| \int_{-\infty}^{\infty} \frac{1}{\sqrt{\pi \sigma^2}}e^{-(x/\sigma)^{2}}|x|\;dx \newline
+&= \lim_{\sigma \to 0} \frac{\sigma}{\sqrt{\pi}} \max |f'(x)| \newline
+&= 0
+\end{align}</script><p>如果对$\delta(x)$求积分，得到阶跃（Heaviside step）函数，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+H(x) 
+&= \int_{-\infty}^{x} \delta(x) \; dx \newline
+&\approx \int_{-\infty}^{x} \frac{1}{\sqrt{\pi \sigma^2}}e^{-(x/\sigma)^{2}} \; dx \newline
+&= \Phi_{\sigma}(x) \newline
+&= \frac {1}{2}\left[1+\operatorname {erf} \left({\frac {x }{\sigma {\sqrt {2}}}}\right)\right]
+\end{align}</script><p>这里$\sigma$控制$\frac{1}{\sqrt{\pi \sigma^2}}e^{-(x/\sigma)^{2}}$逼近$\delta(x)$的程度，也就是相当于控制$\frac {1}{2}\left[1+\operatorname {erf} \left({\frac {x }{\sigma {\sqrt {2}}}}\right)\right]$逼近$H(x)$的程度，，$\sigma$越小，逼近程度越好。</p>
+<p>于是有近似，</p>
+<script type="math/tex; mode=display">
+H_s(x) = \frac {1}{2}\left[1+\operatorname {erf} \left({\frac {x }{\sigma {\sqrt {2}}}}\right)\right]</script><p>图像对比（这里取$\alpha=0.5$​），</p>
+<p><img src="../images/H-smoothness-4.png" alt></p>
+<p>该近似$H_s(x)$是关于$(0, \frac{1}{2})$中心对称的，因为$H_s(x) = 1 - H_s(-x)$，对于$H_s(0) = \frac{1}{2}$。</p>
+<p>类似第，柯西分布（Cauchy distribution）也可以作为狄拉克函数的光滑逼近，</p>
+<script type="math/tex; mode=display">
+\delta_{\gamma}(x) = \frac{1}{\pi\gamma\,\left[1 + \left(\frac{x}{\gamma}\right)^2\right]}</script><p>有极限，</p>
+<script type="math/tex; mode=display">
+\lim_{\gamma \to 0} \delta_{\gamma}(x) = \delta(x)</script><p>于是，</p>
+<script type="math/tex; mode=display">
+H_s(x) = \int_{-\infty}^{x} \delta_{\gamma}(x)\; dx = \frac{1}{2} + \frac{1}{\pi}\arctan(\frac{x}{\gamma})</script><p>有极限，</p>
+<script type="math/tex; mode=display">
+\lim_{\gamma \to 0} H_s(x) = H(x)</script><p>图像对比，</p>
+<p><img src="../images/H-smoothness-4-2.png" alt></p>
+<p>该近似$H_s(x)$是关于$(0, \frac{1}{2})$中心对称的，因为$H_s(x) = 1 - H_s(-x)$，对于$H_s(0) = \frac{1}{2}$​。其实我们还可以从几何直观上获得该光滑逼近。还有一个不那么容易想到的函数满足Heaviside step函数的光滑逼近，</p>
+<script type="math/tex; mode=display">
+H_s(x) = \arctan(x) \in [-\frac{\pi}{2}, \frac{\pi}{2}]</script><p>根据特征变换，</p>
+<script type="math/tex; mode=display">
+x' =a + \frac {x-{\text{min}}(x)}{\text{max}(x)-{\text{min}}(x)} \times (b-a)</script><p>变换到$[0, 1]$区间上，有</p>
+<script type="math/tex; mode=display">
+H_s(x) = \frac{1}{2} + \frac{\arctan(x)}{\pi}</script><p>狄拉克函数的光滑逼近的构造还有很多，如</p>
+<script type="math/tex; mode=display">
+\delta_{\varepsilon}(x) = \varepsilon |x|^{\varepsilon - 1}, \; \varepsilon \to 0</script><p>从概率论角度看，$0$中心对称，取值范围在$(-\infty, +\infty)$​上且离对称轴越近越集中的随机变量的<strong>累积分布函数</strong>$F(x)$都可以用于逼近$H(x)$​​，这个直觉上很好理解。比如以上提及的正态分布与柯西分布满足条件。</p>
+<h2 id="扩展思路"><a href="#扩展思路" class="headerlink" title="扩展思路"></a>扩展思路</h2><p>如果我们去掉条件：Heaviside step函数的光滑逼近$H_s(x)$满足关于点$(0, \frac{1}{2})$中心对称，也就是去掉概率对称性$P(x^+|\theta) = 1 - P(x^-|\theta)$条件，那么Heaviside step函数的光滑逼近就相当于寻找取值区间为$[0, 1]$的“S”型函数。</p>
+<p>有广义的Sigmoid函数，</p>
+<script type="math/tex; mode=display">
+\sigma_{\alpha} = \frac{1}{(1 + e^{-x})^{\alpha}}</script><p>$\alpha$取不同值时的“S”曲线差别，</p>
+<p><img src="../images/general-sigmoid-function.png" alt></p>
+<p>这里这里取$\alpha=1$就得经典的$\sigma(x)$激活函数，可参看过去的文章<a href="../9998">Sigmoid函数导出的另外一个角度</a>。</p>
+<p>类似该思路，对$\tanh(x)$负半轴置0也获得类似逼近，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+H(x) 
+&\approx \begin{cases}
+\tanh(x), & \text{if}\;\; x \ge 0 \\\\
+0, & \text{if} \;\; x \lt 0
+\end{cases} \\
+&= \tanh\left(\max\{0, x  \}  \right) \\
+&\approx \tanh \left(\ln(1 + e^x) \right) \\
+&= H_s(x)
+\end{align}</script><p>$\alpha$取不同值时的“S”曲线差别，</p>
+<p><img src="../images/general-sigmoid-function-2.png" alt></p>
+<p>注意到这里$H_s(0)=0.6$，不再是$(0, \frac{1}{2})$​中心对称。事实上，该逼近与Mish激活函数相关，可见过去文章<a href="../14133">Mish激活函数的设计思路</a>。</p>
+<p>类似地，还有，</p>
+<script type="math/tex; mode=display">
+\sigma(x, \alpha, \beta) = \frac{\alpha + e^x}{\beta + e^x},\quad \beta \gt \alpha</script><p>总之，去掉关于点$(0, \frac{1}{2})$中心对称的约束后，都可以天马行空设计。</p>
+<p>既然Heaviside step函数的光滑逼近就相当于寻找取值区间为$[0, 1]$的“S”型函数，那么该“S”型函数的微分曲线应该是“钟型”曲线，如正态分布。那么找到具体的“钟型”曲线，然后积分就是“S”型函数，通过区间处理获得$H_s(x)$。假设“S”型函数的曲线可以抽象地如下表达，</p>
+<script type="math/tex; mode=display">
+F(x;\alpha, \beta,\mu)</script><p>其中$x \in (-\infty, + \infty)$；$\alpha$是尺度参数，可以理解成是关于$x$的缩放因子，直观来看，像正态分布中的$\sigma$控制分散程度；$\beta$是形状参数，控制S的形状；$\mu$是位置参数，控制$F(0;\alpha, \beta，\mu)$的中心，直观上可以理解成正态分布中的$\mu$，这里一般取$\mu=0$​​。这里我们给出一个具体例子，广义正态分布的累积分布函数，</p>
+<script type="math/tex; mode=display">
+F(x;\alpha, \beta,\mu) = \frac {1}{2}+\operatorname{sign}(x-\mu )\frac {1}{2\Gamma (1/\beta )}\gamma \left(1/\beta ,\left|\frac {x-\mu }{\alpha }\right|^{\beta }\right)</script><p>其中，</p>
+<script type="math/tex; mode=display">
+\gamma \left(1/\beta ,\left|\frac {x-\mu }{\alpha }\right|^{\beta }\right)</script><p>是不完全伽马函数（lower incomplete gamma function），它定义为，</p>
+<script type="math/tex; mode=display">
+\gamma(s,x) = \int_0^x t^{s-1}\,e^{-t}\,{\rm d}t</script><p>与之对应的就是upper incomplete gamma function，</p>
+<script type="math/tex; mode=display">
+\Gamma(s,x) = \int_x^{\infty} t^{s-1}\,e^{-t}\,{\rm d}t</script><p>它们的和就是普通的$\Gamma(x)$，</p>
+<script type="math/tex; mode=display">
+\gamma(s,x) + \Gamma(s,x) = \Gamma(s) = \int_0^{\infty} t^{s-1}\,e^{-t}\,{\rm d}t</script><p>Python实现的难点就是这个函数，Numpy下并没有自带lower incomplete gamma function，实现需要变通一下，具体如下，</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> scipy.special <span class="keyword">import</span> gammainc</span><br><span class="line"><span class="keyword">from</span> scipy.special <span class="keyword">import</span> gamma</span><br><span class="line"><span class="keyword">from</span> scipy.special <span class="keyword">import</span> exp1</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">linc_gamma</span><span class="params">(x, s)</span>:</span></span><br><span class="line">    <span class="string">"""lower incomplete gamma function"""</span></span><br><span class="line">    <span class="keyword">if</span> s == <span class="number">0</span>:</span><br><span class="line">        <span class="keyword">return</span> exp1(x)</span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        <span class="keyword">return</span> gamma(s) * gammainc(s, x)</span><br></pre></td></tr></table></figure>
+<p>我们来编程可视化一下，</p>
+<p><img src="../images/generalized_normal_demo_1.png" alt></p>
+<p>通过这张图体会一下形状参数$\beta$、尺度参数$\alpha$是如何控制“S”型函数曲线的形状。</p>
+<h2 id="实现"><a href="#实现" class="headerlink" title="实现"></a>实现</h2><p>整体可视化：</p>
+<p><img src="../images/Heaviside-step-approximation-total.png" alt></p>
+<p>以上光滑逼近及其可视化：<a href="https://github.com/allenwind/smooth-approximation-function" target="_blank" rel="noopener">https://github.com/allenwind/smooth-approximation-function</a></p>
+<p>可能会根据情况持续更新~</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>以上我们从三个角度出发构造$H(x)$的光滑逼近，并得到一些优良的$H_s(x)$。最后总结一下$H(x)$​​的光滑逼近。</p>
+<p>近似一，</p>
+<script type="math/tex; mode=display">
+H_s(x) = \frac{1}{2} \Big[ 1 + \frac{\alpha x}{\log(e^{-\alpha x}+e^{\alpha x})} \Big]</script><p>近似二，</p>
+<script type="math/tex; mode=display">
+H_s(x) = \frac{1}{2}\Big[1 + \frac{\alpha x}{\big(1 + \alpha^2 x^{2} \big)^{\frac{1}{2}}} \Big]</script><p>近似三，</p>
+<script type="math/tex; mode=display">
+H_s(x) = \frac{1+e^{-\alpha x}+xe^{-\alpha x}}{\left(1+e^{-\alpha x}\right)^{2}}</script><p>近似四，</p>
+<script type="math/tex; mode=display">
+H_s(x) = \frac {1}{2}\left[1+\operatorname {erf} \left({\frac {x }{\sigma {\sqrt {2}}}}\right)\right]</script><p>近似五，</p>
+<script type="math/tex; mode=display">
+H_s(x) =  \frac{1}{2} + \frac{1}{\pi}\arctan(\frac{x}{\gamma})</script><p>近似六，</p>
+<script type="math/tex; mode=display">
+H_s(x) = \frac{1}{(1 + e^{-x})^{\alpha}}</script><p>近似七，</p>
+<script type="math/tex; mode=display">
+H_s(x) = \tanh \left(\ln(1 + e^x) \right)</script><p>于是，根据</p>
+<script type="math/tex; mode=display">
+\operatorname{relu}(x) = x \times H(x) \\
+\operatorname{relu}(x) = \int_{-\infty}^{x} H(x) \; dx</script><p>可以构造更多$\operatorname{relu}(x)$激活函数的光滑逼近。例如，</p>
+<script type="math/tex; mode=display">
+\operatorname{relu}(x) \approx \frac{x}{2} \Big[ 1 + \frac{\alpha x}{\log(e^{-\alpha x}+e^{\alpha x})} \Big]</script><p>本篇是函数光滑逼近的第四篇，以上的内容也讲了这些函数光滑逼近与激活函数、深度学习甚至与某些具体的深度学习Layer的关系，如果再往下写，应该是写$\delta(x)$​函数的光滑逼近及其应用。待续~</p>
+<p>转载请包括本文地址：<a href="../15887">https://allenwind.github.io/blog/15887</a><br>更多文章请参考：<a href="../archives/">https://allenwind.github.io/blog/archives/</a></p>
+</div><div class="tags"><a href="/blog/tags/数学/">数学</a><a href="/blog/tags/逼近/">逼近</a></div><div class="post-nav"><a class="pre" href="/blog/16003/">天马行空：设计自己的激活函数</a><a class="next" href="/blog/15205/">引入参数控制softmax的smooth程度</a></div></div></div></div><div class="pure-u-1-4 hidden_mid_and_down"><div id="sidebar"><div class="widget"><form class="search-form" action="//www.google.com/search" method="get" accept-charset="utf-8" target="_blank"><input type="text" name="q" maxlength="20" placeholder="Search"><input type="hidden" name="sitesearch" value="http://allenwind.github.io/blog"></form></div><div class="widget"><div class="widget-title"><i class="fa fa-folder-o"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/blog/categories/C-C/">C/C++</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Go/">Go</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Java/">Java</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Linux/">Linux</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/NLP/">NLP</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Python/">Python</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/数学/">数学</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/数据库/">数据库</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/数据结构和算法/">数据结构和算法</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/机器学习深度学习/">机器学习深度学习</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/记录/">记录</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-star-o"> 标签</i></div><div class="tagcloud"><a href="/blog/tags/算法/" style="font-size: 15px;">算法</a> <a href="/blog/tags/C/" style="font-size: 15px;">C</a> <a href="/blog/tags/Python/" style="font-size: 15px;">Python</a> <a href="/blog/tags/设计模式/" style="font-size: 15px;">设计模式</a> <a href="/blog/tags/C语言/" style="font-size: 15px;">C语言</a> <a href="/blog/tags/数据库/" style="font-size: 15px;">数据库</a> <a href="/blog/tags/区块链/" style="font-size: 15px;">区块链</a> <a href="/blog/tags/MySQL/" style="font-size: 15px;">MySQL</a> <a href="/blog/tags/分布式/" style="font-size: 15px;">分布式</a> <a href="/blog/tags/ACID/" style="font-size: 15px;">ACID</a> <a href="/blog/tags/sudo/" style="font-size: 15px;">sudo</a> <a href="/blog/tags/Docker/" style="font-size: 15px;">Docker</a> <a href="/blog/tags/SQL/" style="font-size: 15px;">SQL</a> <a href="/blog/tags/NoSQL/" style="font-size: 15px;">NoSQL</a> <a href="/blog/tags/git/" style="font-size: 15px;">git</a> <a href="/blog/tags/Linux/" style="font-size: 15px;">Linux</a> <a href="/blog/tags/Git/" style="font-size: 15px;">Git</a> <a href="/blog/tags/命令行/" style="font-size: 15px;">命令行</a> <a href="/blog/tags/Systemd/" style="font-size: 15px;">Systemd</a> <a href="/blog/tags/Tensorflow/" style="font-size: 15px;">Tensorflow</a> <a href="/blog/tags/gcc/" style="font-size: 15px;">gcc</a> <a href="/blog/tags/网络/" style="font-size: 15px;">网络</a> <a href="/blog/tags/操作系统/" style="font-size: 15px;">操作系统</a> <a href="/blog/tags/正则表达式/" style="font-size: 15px;">正则表达式</a> <a href="/blog/tags/记录/" style="font-size: 15px;">记录</a> <a href="/blog/tags/数据结构/" style="font-size: 15px;">数据结构</a> <a href="/blog/tags/Go/" style="font-size: 15px;">Go</a> <a href="/blog/tags/go/" style="font-size: 15px;">go</a> <a href="/blog/tags/LRU/" style="font-size: 15px;">LRU</a> <a href="/blog/tags/ARC/" style="font-size: 15px;">ARC</a> <a href="/blog/tags/Java/" style="font-size: 15px;">Java</a> <a href="/blog/tags/搜索引擎/" style="font-size: 15px;">搜索引擎</a> <a href="/blog/tags/剑指Offer/" style="font-size: 15px;">剑指Offer</a> <a href="/blog/tags/函数式/" style="font-size: 15px;">函数式</a> <a href="/blog/tags/Stack/" style="font-size: 15px;">Stack</a> <a href="/blog/tags/并发编程/" style="font-size: 15px;">并发编程</a> <a href="/blog/tags/网络编程/" style="font-size: 15px;">网络编程</a> <a href="/blog/tags/HTTP/" style="font-size: 15px;">HTTP</a> <a href="/blog/tags/并发/" style="font-size: 15px;">并发</a> <a href="/blog/tags/装饰器/" style="font-size: 15px;">装饰器</a> <a href="/blog/tags/Redis/" style="font-size: 15px;">Redis</a> <a href="/blog/tags/数学/" style="font-size: 15px;">数学</a> <a href="/blog/tags/时间序列/" style="font-size: 15px;">时间序列</a> <a href="/blog/tags/投资/" style="font-size: 15px;">投资</a> <a href="/blog/tags/概率/" style="font-size: 15px;">概率</a> <a href="/blog/tags/统计/" style="font-size: 15px;">统计</a> <a href="/blog/tags/信息论/" style="font-size: 15px;">信息论</a> <a href="/blog/tags/度量/" style="font-size: 15px;">度量</a> <a href="/blog/tags/机器学习/" style="font-size: 15px;">机器学习</a> <a href="/blog/tags/贝叶斯/" style="font-size: 15px;">贝叶斯</a> <a href="/blog/tags/最小二乘法/" style="font-size: 15px;">最小二乘法</a> <a href="/blog/tags/分布/" style="font-size: 15px;">分布</a> <a href="/blog/tags/深度学习/" style="font-size: 15px;">深度学习</a> <a href="/blog/tags/变分推断/" style="font-size: 15px;">变分推断</a> <a href="/blog/tags/随机/" style="font-size: 15px;">随机</a> <a href="/blog/tags/不等式/" style="font-size: 15px;">不等式</a> <a href="/blog/tags/采样/" style="font-size: 15px;">采样</a> <a href="/blog/tags/光滑/" style="font-size: 15px;">光滑</a> <a href="/blog/tags/逼近/" style="font-size: 15px;">逼近</a> <a href="/blog/tags/矩阵/" style="font-size: 15px;">矩阵</a> <a href="/blog/tags/交叉验证/" style="font-size: 15px;">交叉验证</a> <a href="/blog/tags/特征工程/" style="font-size: 15px;">特征工程</a> <a href="/blog/tags/集成学习/" style="font-size: 15px;">集成学习</a> <a href="/blog/tags/分类/" style="font-size: 15px;">分类</a> <a href="/blog/tags/证明/" style="font-size: 15px;">证明</a> <a href="/blog/tags/损失函数/" style="font-size: 15px;">损失函数</a> <a href="/blog/tags/回归/" style="font-size: 15px;">回归</a> <a href="/blog/tags/正则化/" style="font-size: 15px;">正则化</a> <a href="/blog/tags/词向量/" style="font-size: 15px;">词向量</a> <a href="/blog/tags/NLP/" style="font-size: 15px;">NLP</a> <a href="/blog/tags/信息/" style="font-size: 15px;">信息</a> <a href="/blog/tags/Embedding/" style="font-size: 15px;">Embedding</a> <a href="/blog/tags/神经网络/" style="font-size: 15px;">神经网络</a> <a href="/blog/tags/Transformer/" style="font-size: 15px;">Transformer</a> <a href="/blog/tags/Attention/" style="font-size: 15px;">Attention</a> <a href="/blog/tags/对抗训练/" style="font-size: 15px;">对抗训练</a> <a href="/blog/tags/文本分类/" style="font-size: 15px;">文本分类</a> <a href="/blog/tags/分词/" style="font-size: 15px;">分词</a> <a href="/blog/tags/并行/" style="font-size: 15px;">并行</a> <a href="/blog/tags/NER/" style="font-size: 15px;">NER</a> <a href="/blog/tags/概率图/" style="font-size: 15px;">概率图</a> <a href="/blog/tags/HMM/" style="font-size: 15px;">HMM</a> <a href="/blog/tags/图/" style="font-size: 15px;">图</a> <a href="/blog/tags/可视化/" style="font-size: 15px;">可视化</a> <a href="/blog/tags/RNN/" style="font-size: 15px;">RNN</a> <a href="/blog/tags/LSTM/" style="font-size: 15px;">LSTM</a> <a href="/blog/tags/梯度/" style="font-size: 15px;">梯度</a> <a href="/blog/tags/注意力/" style="font-size: 15px;">注意力</a> <a href="/blog/tags/序列编码/" style="font-size: 15px;">序列编码</a> <a href="/blog/tags/磁盘故障/" style="font-size: 15px;">磁盘故障</a> <a href="/blog/tags/BERT/" style="font-size: 15px;">BERT</a> <a href="/blog/tags/CNN/" style="font-size: 15px;">CNN</a> <a href="/blog/tags/卷积/" style="font-size: 15px;">卷积</a> <a href="/blog/tags/优化/" style="font-size: 15px;">优化</a> <a href="/blog/tags/调参/" style="font-size: 15px;">调参</a> <a href="/blog/tags/Flask/" style="font-size: 15px;">Flask</a> <a href="/blog/tags/web/" style="font-size: 15px;">web</a> <a href="/blog/tags/socket/" style="font-size: 15px;">socket</a> <a href="/blog/tags/安全/" style="font-size: 15px;">安全</a> <a href="/blog/tags/协程/" style="font-size: 15px;">协程</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-file-o"> 最近文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/blog/16003/">天马行空：设计自己的激活函数</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/15887/">函数光滑近似（4）：Heaviside step函数及其应用</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/15205/">引入参数控制softmax的smooth程度</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/15110/">分析与拓展：多分类模型的输出为什么使用softmax？</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14990/">一种基于光滑逼近的正态分布采样法</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14721/">GELU由来：从狄拉克函数到GELU激活函数</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14465/">Lp范数的上下界分析</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14441/">logsumexp函数分析</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14133/">分析Mish激活函数的设计思路</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/13899/">阿尔法经济学：Shiller模型介绍</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-external-link"> 友情链接</i></div><ul></ul><a href="https://github.com/allenwind" title="My GitHub" target="_blank">My GitHub</a><ul></ul><a href="http://www.arxiv-sanity.com/" title="arxiv-sanity" target="_blank">arxiv-sanity</a><ul></ul><a href="https://arxiv.org/" title="arxiv.org" target="_blank">arxiv.org</a></div></div></div><div class="pure-u-1 pure-u-md-3-4"><div id="footer">Copyright © 2021 <a href="/blog/." rel="nofollow">Mr.Feng Blog.</a> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a><a rel="nofollow" target="_blank" href="https://github.com/tufu9441/maupassant-hexo"> Theme</a> by<a rel="nofollow" target="_blank" href="https://github.com/pagecho"> Cho.</a></div></div></div><a class="show" id="rocket" href="#top"></a><script type="text/javascript" src="/blog/js/totop.js?v=0.0.0" async></script><script type="text/javascript" src="//lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js" async></script><script type="text/javascript" src="/blog/js/fancybox.js?v=0.0.0" async></script><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css"><script type="text/x-mathjax-config">MathJax.Hub.Config({
+  tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}
+  });
+</script><script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-MML-AM_CHTML" async></script><script type="text/javascript" src="/blog/js/codeblock-resizer.js?v=0.0.0"></script><script type="text/javascript" src="/blog/js/smartresize.js?v=0.0.0"></script></div></body></html>

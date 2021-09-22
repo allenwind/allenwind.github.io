@@ -1,0 +1,298 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.9.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description" content="你好，世界！"><title>NER任务的深度总结 | Mr.Feng Blog</title><link rel="stylesheet" type="text/css" href="/blog/css/style.css?v=0.0.0"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/normalize/8.0.1/normalize.min.css"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/pure/1.0.0/pure-min.css"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/pure/1.0.0/grids-responsive-min.css"><link rel="stylesheet" href="//lib.baomitu.com/font-awesome/4.7.0/css/font-awesome.min.css"><script type="text/javascript" src="//lib.baomitu.com/jquery/3.4.0/jquery.min.js"></script><link rel="icon" mask sizes="any" href="/blog/favicon.ico"><link rel="Shortcut Icon" type="image/x-icon" href="/blog/favicon.ico"><link rel="apple-touch-icon" href="/blog/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/blog/apple-touch-icon.png"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">NER任务的深度总结</h1><a id="logo" href="/blog/.">Mr.Feng Blog</a><p class="description">NLP、深度学习、机器学习、Python、Go</p></div><div id="nav-menu"><a class="current" href="/blog/."><i class="fa fa-home"> 首页</i></a><a href="/blog/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/blog/about/"><i class="fa fa-user"> 关于</i></a></div></div><div class="pure-g" id="layout"><div class="pure-u-1 pure-u-md-3-4"><div class="content_container"><div class="post"><h1 class="post-title">NER任务的深度总结</h1><div class="post-meta">Mar 1, 2021<span> | </span><span class="category"><a href="/blog/categories/NLP/">NLP</a></span></div><div class="clear"><div class="toc-article" id="toc"><div class="toc-title">文章目录</div><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#NER及其难点"><span class="toc-number">1.</span> <span class="toc-text">NER及其难点</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#NER"><span class="toc-number">1.1.</span> <span class="toc-text">NER</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#难点"><span class="toc-number">1.2.</span> <span class="toc-text">难点</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#基本架构和思路分解"><span class="toc-number">2.</span> <span class="toc-text">基本架构和思路分解</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#标签集说明和对比"><span class="toc-number">3.</span> <span class="toc-text">标签集说明和对比</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#BIO-amp-BIOES-amp-BMESO"><span class="toc-number">3.1.</span> <span class="toc-text">BIO &amp; BIOES &amp; BMESO</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#互相转换"><span class="toc-number">3.2.</span> <span class="toc-text">互相转换</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#实体提取"><span class="toc-number">3.3.</span> <span class="toc-text">实体提取</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#BIO-vs-BIOES"><span class="toc-number">3.4.</span> <span class="toc-text">BIO .vs. BIOES</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#评估指标"><span class="toc-number">4.</span> <span class="toc-text">评估指标</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#NER任务中的编码器"><span class="toc-number">5.</span> <span class="toc-text">NER任务中的编码器</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#CNN-based"><span class="toc-number">5.1.</span> <span class="toc-text">CNN-based</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#RNN-based"><span class="toc-number">5.2.</span> <span class="toc-text">RNN-based</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Transformer"><span class="toc-number">5.3.</span> <span class="toc-text">Transformer</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#预训练模型（PTMs）"><span class="toc-number">5.4.</span> <span class="toc-text">预训练模型（PTMs）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#编码器对比"><span class="toc-number">5.5.</span> <span class="toc-text">编码器对比</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#NER任务的解码方式"><span class="toc-number">6.</span> <span class="toc-text">NER任务的解码方式</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#逐位置softmax-viterbi"><span class="toc-number">6.1.</span> <span class="toc-text">逐位置softmax + viterbi</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#MEMM"><span class="toc-number">6.2.</span> <span class="toc-text">MEMM</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#CRF及其优化"><span class="toc-number">6.3.</span> <span class="toc-text">CRF及其优化</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#解码方式对比"><span class="toc-number">6.4.</span> <span class="toc-text">解码方式对比</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#NER特征融合-词汇增强"><span class="toc-number">7.</span> <span class="toc-text">NER特征融合/词汇增强</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#char-amp-char-ngrams"><span class="toc-number">7.1.</span> <span class="toc-text">char &amp; char-ngrams</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#hybrid-embedding"><span class="toc-number">7.2.</span> <span class="toc-text">hybrid embedding</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#glyph-embedding"><span class="toc-number">7.3.</span> <span class="toc-text">glyph embedding</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#融入词汇信息"><span class="toc-number">7.4.</span> <span class="toc-text">融入词汇信息</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#其他Tricks"><span class="toc-number">8.</span> <span class="toc-text">其他Tricks</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#总结"><span class="toc-number">9.</span> <span class="toc-text">总结</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#参考"><span class="toc-number">10.</span> <span class="toc-text">参考</span></a></li></ol></div></div><div class="post-content"><p>总结一下NER任务，包括思路分解、标签集说明、评估指标、编码器、解码方式等等。</p>
+<a id="more"></a>
+<p>NER是信息抽取（IE）中最常见的任务甚至可以说是核心任务，直观上可以理解为“基于实体的中文分词”，在过去的文章<a href="../8707/">NLP任务：序列标注</a>、<a href="../13551">序列标注：从HMM、MEMM到CRF</a>中已经介绍过序列标注任务，该任务包括三个常见的子任务：</p>
+<ul>
+<li>分词（中文分词，CWS）可参看旧文<a href="../8269/">中文分词详解：从传统方法到深度学习方法</a></li>
+<li>命名实体识别（NER），HMM解决NER任务可参看<a href="../8750/">序列标注之NER、CWS经典模型HMM实现</a></li>
+<li>词性标注（POS），关注词在词法上的类型和行为规则</li>
+</ul>
+<p>其中NER任务是序列标注中应用价值最大的任务。这方面的内容在过去的文章中都有介绍和简单的展开，但是不系统。今天在这篇文章中详细总结NER的相关内容，涵盖NER现状、标注集、评估指标、解码、编码、特征融合、数据增强、工程落地等等内容。</p>
+<h2 id="NER及其难点"><a href="#NER及其难点" class="headerlink" title="NER及其难点"></a>NER及其难点</h2><p>命名实体识别，简称 NER（Named Entity Recognition），是 NLP 序列标注中常见的任务。NER 作为基础工具可以用于信息提取、问答系统、句法分析、机器翻译等任务。</p>
+<p><strong>实体</strong>：实体（entity）是一个概念（concept）的实例。可以类比思考，就像一个类（class）至于实例（instance）。比如说，编程语言是一个概念，即一个实体类型，那么 Python 则是实体。有比如，人物是一个实体类型，那么 Geoffrey Hinton 则是实体。一个句子中常见的实体包括⼈名、地名、机构名、专有名词（如股票名称、术语等）等等。</p>
+<p>常见的实体类型如下：</p>
+<ul>
+<li>人名</li>
+<li>地名，如城市名、国家名称等</li>
+<li>组织机构名</li>
+<li>时间，如日期、时刻、时段</li>
+<li>数字表达，如百分比、股价等</li>
+</ul>
+<p><strong>实体识别</strong>：实体识别要做的事情是，给定一句子（词序列），识别其中的实体类型。</p>
+<h3 id="NER"><a href="#NER" class="headerlink" title="NER"></a>NER</h3><p>NER任务的目标是从给定的文本中抽取出实体部分，并对该部分进行实体类型分类。因此，NER实际上同时完成两件事情：</p>
+<ul>
+<li>实体抽取</li>
+<li>实体类型的识别</li>
+</ul>
+<p>所谓序列标注就是，在给定某一个随机序列的情况下，求另一个随机序列的概率分布的概率图模型</p>
+<script type="math/tex; mode=display">
+\hat{y}_{1:T} = \arg\max{f(\psi(x,y),\theta)}</script><p>$x$为句子序列，$y$为标注序列。$\arg\max$ 对应解码过程，若是序列，需要使用动态规划算法，若是分类，则使用穷举法即可。NER作为序列标注的示意图，</p>
+<p><img src="../images/BIOES-BIO-demo-1.png" alt></p>
+<p>上图输入$x = \text{我爱北京天安门}$​，在BIO标签集下，输出为$y = \text{OOBIBII}$​；在BIOES标签集下输出为$y = \text{OOBEBIE}$。​</p>
+<p>其他序列标注任务有：</p>
+<ul>
+<li>中文分词，cws</li>
+<li>命名实体识别，ner</li>
+<li>词性标注，pos</li>
+<li>语义角色标注， srl</li>
+</ul>
+<h3 id="难点"><a href="#难点" class="headerlink" title="难点"></a>难点</h3><p>NER难点在于实体的多样性、歧义、实体的复杂性、监督数据的缺失、同中文非常一样的边界难确定问题。总的来说，NER的难点大致归为三大类：</p>
+<ul>
+<li>实体的多样性</li>
+<li>实体的复杂性</li>
+<li>歧义问题</li>
+<li>边界难确定</li>
+<li>监督数据的缺失</li>
+</ul>
+<p><strong>实体的多样性</strong>：现实生活中的实体非常丰富。即便是有限的实体集合，通过一定的规则组合（如拼接、嵌套、简并命名、多语言）也可以构造出更多的实体，如此递归下去，灵活构建的实体的数量近乎无穷。此外，即便是同一个实体，也面临类别模糊的情况，如中国长城可以指一个地方也可以指股票投资标的。</p>
+<p><strong>实体的复杂性</strong>：非连续性实体、嵌套实体、多语言实体。对于实体嵌套，如ABCD是一个实体，其中BC也是一个实体。</p>
+<p><strong>边界难确定</strong>：NER也常常面临对新词边界把我模糊的问题，这也是实体错分问题的常见来源。</p>
+<p><strong>歧义问题</strong>：如同分词一样，NER也面临歧义的问题。比如“乒乓球拍卖完了”，可以是“乒乓球/拍卖/完/了”，也可以是“乒乓球拍/卖/完/了”</p>
+<p><strong>监督数据的缺失</strong>：NER的监督数据非常缺失。从开源数据来看，中文NER带标注数据并不丰富。一方面是标注的数据量不大，另外一方面是标注的粒度不够细致。</p>
+<p>有，一下实体或概念：<code>北京紫禁城影业公司 赵朴初 全国人大环资委 四库文献中心 长沙市东区人武部 南非金巢文化事业有限公司</code>，从模型的角度讲，这个任务都具有强模型所难的倾向，强迫模型学习人类社会中的依靠人脑想象力构建的对象。从小到具体的物件到大到像国家这样的抽象概念，你说哪一点不是强模型所难？</p>
+<h2 id="基本架构和思路分解"><a href="#基本架构和思路分解" class="headerlink" title="基本架构和思路分解"></a>基本架构和思路分解</h2><p>和分类、匹配任务一样，NER问题的解决流程也可以层次化分解，不同层次关注不同的部分，</p>
+<p><img src="../images/ner-diag.png" alt></p>
+<p>自下而上具体可以分为：</p>
+<ul>
+<li>输入层处理，包括数据增强、char、bi-char、字词混合等等</li>
+<li>Embedding层，包括如何融入词汇信息、如果融入更多特征</li>
+<li>编码层，CNN、RNN、Transformer、预训练模型等等</li>
+<li>标签解码层，常见有softmax、CRF、MEMM、RNN、指针网络</li>
+<li>标签有关的处理，如使用的标签集、实体抽取规则</li>
+</ul>
+<p>对于token-level的NER任务来说，重点应该在输入层处理、Embedding以及标签有关的处理，而不是encoder和label decoder。在深度学习之前，NER还有基于规则的方法（现在也很常用）、基于特征设计的机器学习方法，本文还是专注于讲深度学习中的NER。</p>
+<h2 id="标签集说明和对比"><a href="#标签集说明和对比" class="headerlink" title="标签集说明和对比"></a>标签集说明和对比</h2><p>现阶段，解决NER问题最常见的方法是基于逐字标注。</p>
+<p>不过需要注意，NER并不完全是序列标注，就像<a href="../8269/#词典分词及其相关策略">词典分词方法</a>一样，NER也可以使用实体词典完成实体的识别。</p>
+<h3 id="BIO-amp-BIOES-amp-BMESO"><a href="#BIO-amp-BIOES-amp-BMESO" class="headerlink" title="BIO &amp; BIOES &amp; BMESO"></a>BIO &amp; BIOES &amp; BMESO</h3><p><code>BIO</code>与<code>BIOES</code>是NER任务中最常用的标签集，有时候也会遇到<code>BMESO</code>，其实就是<code>BIOES</code>中<code>I -&gt; M</code></p>
+<p>BIOES 释义如下：</p>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th>BIOES</th>
+<th>解释</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>B</td>
+<td>Begin，表示实体的开始</td>
+</tr>
+<tr>
+<td>O</td>
+<td>Other（Outside），表示其他，用于实体无关字符</td>
+</tr>
+<tr>
+<td>E</td>
+<td>End，表示实体的结尾</td>
+</tr>
+<tr>
+<td>S</td>
+<td>Single，表示单个字符</td>
+</tr>
+<tr>
+<td>I（M）</td>
+<td>Intermediate，表示中间，有时也使用median（M）</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>一个例子：</p>
+<blockquote>
+<p>小明   在     北京大学   的    燕园   看了  中国男篮      的一场比赛</p>
+<p>PER              ORG                 LOC               ORG</p>
+</blockquote>
+<p>BIO是BIOES的化简版本，把S转换为B，把E转换为I。为丰富标签信息，甚至可以扩展<code>BIOES</code>标签集，如<code>BI1I2...InOES</code>标签集，其中<code>I1</code>表示实体的中间部分第一个词，<code>In</code>表示实体的中间部分的第n个词。</p>
+<p>BIOES、BIO标注对比图，</p>
+<p><img src="../images/BIOES-BIO-demo-1.png" alt></p>
+<p>有了标签集合后，就可以把文本逐字标注，然后转换为one-hot的形式（可以label smooth处理），输入监督模型进行训练。</p>
+<h3 id="互相转换"><a href="#互相转换" class="headerlink" title="互相转换"></a>互相转换</h3><p>BIO转BIOES，</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">bio2iobes</span><span class="params">(tags)</span>:</span></span><br><span class="line">    <span class="comment"># BIO标签转IOBES标签</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">split_spans</span><span class="params">(tags)</span>:</span></span><br><span class="line">        buf = []</span><br><span class="line">        <span class="keyword">for</span> tag <span class="keyword">in</span> tags:</span><br><span class="line">            <span class="keyword">if</span> tag == <span class="string">"O"</span> <span class="keyword">or</span> tag.startswith(<span class="string">"B"</span>):</span><br><span class="line">                <span class="keyword">if</span> buf:</span><br><span class="line">                    <span class="keyword">yield</span> buf</span><br><span class="line">                buf = [tag]</span><br><span class="line">            <span class="keyword">else</span>:</span><br><span class="line">                <span class="comment"># tag.startswith("I")</span></span><br><span class="line">                buf.append(tag)</span><br><span class="line">        <span class="keyword">if</span> buf:</span><br><span class="line">            <span class="keyword">yield</span> buf</span><br><span class="line"></span><br><span class="line">    ntags = []</span><br><span class="line">    <span class="keyword">for</span> span <span class="keyword">in</span> split_spans(tags):</span><br><span class="line">        tag = span[<span class="number">0</span>]</span><br><span class="line">        <span class="keyword">if</span> len(span) == <span class="number">1</span>:</span><br><span class="line">            <span class="keyword">if</span> tag == <span class="string">"O"</span>:</span><br><span class="line">                ntags.append(tag)</span><br><span class="line">            <span class="keyword">else</span>:</span><br><span class="line">                tag = <span class="string">"S"</span> + tag[<span class="number">1</span>:]</span><br><span class="line">                ntags.append(tag)</span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            btag = <span class="string">"B"</span> + tag[<span class="number">1</span>:]</span><br><span class="line">            itag = <span class="string">"I"</span> + tag[<span class="number">1</span>:]</span><br><span class="line">            etag = <span class="string">"E"</span> + tag[<span class="number">1</span>:]</span><br><span class="line">            span_tags = [btag] + [itag] * (len(span) - <span class="number">2</span>) + [etag]</span><br><span class="line">            ntags.extend(span_tags)</span><br><span class="line">    <span class="keyword">return</span> ntags</span><br></pre></td></tr></table></figure>
+<p>BIOES转BIO，</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">iobes2bio</span><span class="params">(tags)</span>:</span></span><br><span class="line">    <span class="comment"># IOBES标签转BIO标签</span></span><br><span class="line">    ntags = []</span><br><span class="line">    <span class="keyword">for</span> tag <span class="keyword">in</span> tags:</span><br><span class="line">        <span class="keyword">if</span> tag == <span class="string">"O"</span>:</span><br><span class="line">            ntags.append(tag)</span><br><span class="line">            <span class="keyword">continue</span></span><br><span class="line">        tag, label = tag.split(<span class="string">"-"</span>)</span><br><span class="line">        <span class="keyword">if</span> tag == <span class="string">"E"</span>:</span><br><span class="line">            tag = <span class="string">"I"</span></span><br><span class="line">        <span class="keyword">if</span> tag == <span class="string">"S"</span>:</span><br><span class="line">            tag = <span class="string">"B"</span></span><br><span class="line">        tag = tag + <span class="string">"-"</span> + label</span><br><span class="line">        ntags.append(tag)</span><br><span class="line">    <span class="keyword">return</span> ntags</span><br></pre></td></tr></table></figure>
+<h3 id="实体提取"><a href="#实体提取" class="headerlink" title="实体提取"></a>实体提取</h3><p>从标签中提取实体，</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">find_entities</span><span class="params">(text, tags, withO=False)</span>:</span></span><br><span class="line">    <span class="comment"># 根据标签提取文本中的实体</span></span><br><span class="line">    <span class="comment"># 适合BIO和BIOES标签</span></span><br><span class="line">    <span class="comment"># withO是否返回O标签内容</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">segment_by_tags</span><span class="params">(text, tags)</span>:</span></span><br><span class="line">        buf = <span class="string">""</span></span><br><span class="line">        <span class="keyword">for</span> tag, char <span class="keyword">in</span> zip(tags, text):</span><br><span class="line">            <span class="keyword">if</span> tag == <span class="string">"O"</span>:</span><br><span class="line">                label = tag</span><br><span class="line">            <span class="keyword">else</span>:</span><br><span class="line">                tag, label = tag.split(<span class="string">"-"</span>)</span><br><span class="line">            <span class="keyword">if</span> tag == <span class="string">"B"</span> <span class="keyword">or</span> tag == <span class="string">"S"</span>:</span><br><span class="line">                <span class="keyword">if</span> buf:</span><br><span class="line">                    <span class="keyword">yield</span> buf, plabel</span><br><span class="line">                buf = char</span><br><span class="line">                plabel = label</span><br><span class="line">            <span class="keyword">elif</span> tag == <span class="string">"I"</span> <span class="keyword">or</span> tag == <span class="string">"E"</span>:</span><br><span class="line">                buf += char</span><br><span class="line">            <span class="keyword">elif</span> withO <span class="keyword">and</span> tag == <span class="string">"O"</span>:</span><br><span class="line">                <span class="comment"># tag == "O"</span></span><br><span class="line">                <span class="keyword">if</span> buf <span class="keyword">and</span> plabel != <span class="string">"O"</span>:</span><br><span class="line">                    <span class="keyword">yield</span> buf, plabel</span><br><span class="line">                    buf = <span class="string">""</span></span><br><span class="line">                buf += char</span><br><span class="line">                plabel = label</span><br><span class="line">        <span class="keyword">if</span> buf:</span><br><span class="line">            <span class="keyword">yield</span> buf, plabel</span><br><span class="line">    <span class="keyword">return</span> list(segment_by_tags(text, tags))</span><br></pre></td></tr></table></figure>
+<p>这个实现兼容<code>BIO</code>与<code>BIOES</code>标签集，<code>withO=True</code>返回非实体部分，以便还原完整的句子。此外，考虑到预测标签本身的内部不一致性，还可以定义更好的抽取规则，例如考虑合并同实体类型的连续实体。这些都要具体数据集具体情况具体处理。工程落地时，有时候会结合实体词典</p>
+<h3 id="BIO-vs-BIOES"><a href="#BIO-vs-BIOES" class="headerlink" title="BIO .vs. BIOES"></a>BIO .vs. BIOES</h3><p>BIO、BIOES选择哪个标签集更好呢？<code>BIOES</code>标签集比<code>BIO</code>有更大的状态空间，如果使用CRF作为标签约束和解码层，那么前者训练和推断速度稍微慢于后者。如果是直接使用softmax，相当于每个时间步的分类数不同，但是差别不大。</p>
+<h2 id="评估指标"><a href="#评估指标" class="headerlink" title="评估指标"></a>评估指标</h2><p>在获得标签序列提取出实体后，还需要评估模型的性能。NER任务常使用的三个指标是P、R、$F_{1}$，</p>
+<ul>
+<li>precision</li>
+<li>recall</li>
+<li>$F_{1}$</li>
+</ul>
+<p>A表示正确的<strong>实体及其所在文本中的位置</strong>（通常是<code>(entity,label,start,end）</code>这样的形式）集合，B表示预测的实体及其所在文本中的集合，即</p>
+<script type="math/tex; mode=display">
+A = TP \cup FN  \\
+B = TP \cap FP</script><p>需要强调，计算评估指标不能直接使用实体的集合，比如考虑一个句子里有两个相同的实体（同名同标签）但是位置不同，模型无论是只识别其中之一还是都识别出来，求集合后的结果都一样，这样是不准确的，无法更准确评估模型。</p>
+<p>precision的计算，</p>
+<script type="math/tex; mode=display">
+p = \frac{ | A \cap B| }{|B| }</script><p>recall的计算，</p>
+<script type="math/tex; mode=display">
+r = \frac{|A \cap B|}{|A|}</script><p>$F_1$计算，</p>
+<script type="math/tex; mode=display">
+F_1 = \frac{2}{\frac{1}{p} + \frac{1}{r} }</script><p>以上的评估方法意味着NER存在三类错误：</p>
+<ul>
+<li>实体边界正确但是类别错误</li>
+<li>实体边界错误但类别正确</li>
+<li>实体边界错误且类别错误</li>
+</ul>
+<p>实践中发现，<strong>实体边界错误但类别正确是最常见的bad case类型</strong>，因此NER任务引入词汇信息对性能提升往往很显著。有些评估方法也对以上错误引入“松弛”，如实体边界错误但类别正确，能够容忍一定程度的边界错误，如分词没有正确的情况。</p>
+<h2 id="NER任务中的编码器"><a href="#NER任务中的编码器" class="headerlink" title="NER任务中的编码器"></a>NER任务中的编码器</h2><p>在深度学习之前，序列标注任务如NER、分词等等，通过规则模板，依赖于人工编写规则，词典匹配等，再就是使用简单的HMM、CRF、MEMM等浅层模型，这类图模型可以参考过去的文章：<a href="../13551">序列标注：从HMM、MEMM到CRF</a>。</p>
+<p>到深度学习时代，有了强大的特征提取架构CNN、LSTM、Transformer等，CRF作为序列约束的标注器称为主流，形成了<strong>特征提取+CRF</strong>这样的模型范式，至于选择RNN-based还是CNN-based就看工程需求和“个人喜好”。因此这里简单梳理标注输出端的理解。</p>
+<p>编码器要做的事情是对于输入$\boldsymbol{x} = [\boldsymbol{x}_{1}, \dots, \boldsymbol{x}_{n}]$，编码成具有分布式语义特性的向量序列，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+\boldsymbol{h} 
+&= [\boldsymbol{h}_{1}, \dots, \boldsymbol{h}_{n}] \newline
+&= \operatorname{encoder}([\boldsymbol{x}_{1}, \dots, \boldsymbol{x}_{n}])
+\end{align}</script><p>在机器学习时代，常见的方法是直接逐字符使用分类器，如SVM、决策树等等。而在深度学习时代，则是CNN、RNN、预训练模型。在NER中，这些模型的输出可以理解为每个token或char属于每个类别的分数，可以作为CRF或softmax的输出。</p>
+<h3 id="CNN-based"><a href="#CNN-based" class="headerlink" title="CNN-based"></a>CNN-based</h3><p>使用 CNN 架构相比于 LSTM，具有良好的并行能力，加快训练和推断的速度，通过一定的技巧能够让 CNN 处理长距离依赖问题。</p>
+<p><strong>IDCNN-CRF</strong>，膨胀卷积通过在卷积核注入空洞来增加感受野，不做池化，不损失信息的情况下，增大了感受野，让每个卷积的输出包括更大范围的信息，说白了就是让模型看到更大的范围。膨胀卷积卷积在过去的文章<a href="../7890/">深入理解CNN及其网络架构设计</a>。</p>
+<h3 id="RNN-based"><a href="#RNN-based" class="headerlink" title="RNN-based"></a>RNN-based</h3><p>Bi-LSTM已经是做NER的标配encoder。Bi-LSTM比LSTM好是因为它对语料双向编码，更好适配NER的边界和方向性特点。</p>
+<h3 id="Transformer"><a href="#Transformer" class="headerlink" title="Transformer"></a>Transformer</h3><p>这里的Transformer是指Transformer-encoder。Transformer直接应用的效果并不好，也就是说Transformer从头训练起做NER任务，原因是：Transformer本身是无偏置的架构，NER数据集往往较小，模型容易过拟合。</p>
+<p>总之，语义、语法类任务，最好不要从头训练Transformer，而是使用预训练好的模型。</p>
+<h3 id="预训练模型（PTMs）"><a href="#预训练模型（PTMs）" class="headerlink" title="预训练模型（PTMs）"></a>预训练模型（PTMs）</h3><p>预训练模型如BERT。NER中一般有三种常用的组合：</p>
+<ul>
+<li>BERT + softmax</li>
+<li>BERT + CRF</li>
+<li>BERT + BiLSTM + CRF</li>
+</ul>
+<p>前两种都是很常规的做法，第三中则是把BERT当做Embedding层，获得的token特征后使用BiLSTM + CRF完成NER任务。</p>
+<p>使用预训练模型做NER还需要注意一个细节，NER数据的标签通常是char-level标注，而BERT类模型的最小单位是token，char与token有时候并不一一对应，这时候我们需要维护它们之间的mapping。</p>
+<h3 id="编码器对比"><a href="#编码器对比" class="headerlink" title="编码器对比"></a>编码器对比</h3><p>NER 是 NLP 序列标注中非常基本但重要的任务，以上我们提到 NER 任务的三种模型：</p>
+<ul>
+<li>LSTM-based + CRF</li>
+<li>CNN-based + CRF</li>
+<li>BERT-based + CRF</li>
+</ul>
+<p>它们的共同点是特征提取（使用 LSTM、CNN、BERT）加 CRF 做序列标注，一般不会直接在Transformer上从头训练。详细的实现代码见 <a href="https://github.com/allenwind/text-sequence-labeling" target="_blank" rel="noopener">text-sequence-labeling</a>。后期我也会继续分享序列标注这方面的研究。</p>
+<h2 id="NER任务的解码方式"><a href="#NER任务的解码方式" class="headerlink" title="NER任务的解码方式"></a>NER任务的解码方式</h2><p>假设编码层已经学习到特征$\boldsymbol{h} = [\boldsymbol{h}_{1}, \dots, \boldsymbol{h}_{n}]$，解码负责根据学习到的特征预测每个位置的标签，即判别式，</p>
+<script type="math/tex; mode=display">
+p(y_{1}, \dots, y_{n} | \boldsymbol{h})</script><p>值得注意的是，在机器学习时代，HMM是直接对联合概率分布建模，而MEMM、CRF是直接对以上判别式建模。</p>
+<h3 id="逐位置softmax-viterbi"><a href="#逐位置softmax-viterbi" class="headerlink" title="逐位置softmax + viterbi"></a>逐位置softmax + viterbi</h3><p>逐位置softmax即逐个位置进行标签分类，不考虑相邻标签间的约束。当编码器本身很强大（如BERT）那么softmax可能足够。此外，在解码时，softmax输出的scores可以配合viterbi解码进行，解码过程中使用的状态转移矩阵可以来自监督数据的先验统计。不过需要注意，viterbi解码过程并非实时，即需要遍历所有时间步后才能获得最优路径。假设$\boldsymbol{H} = [\boldsymbol{h}_{1}, \dots, \boldsymbol{h}_{n}]$是输入序列经过模型如LSTM神经网络编码后的输出，推导如下，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+P(y_{1}, y_{2}, \dots, y_{n} | \boldsymbol{H}) 
+&= P(y_{1}|\boldsymbol{H})P(y_{2}|y_{1} ,\boldsymbol{H})\cdots P(y_{n}|y1,y_{2},\dots,y_{n-1},\boldsymbol{H}) \\
+&= P(y_{1}|\boldsymbol{H}) \cdots P(y_{n}|\boldsymbol{H}) \\
+&= P(y_{1}|\boldsymbol{h}_{1}) \cdots P(y_{n}|\boldsymbol{h}_{n})
+\end{align}</script><p>于是有，</p>
+<script type="math/tex; mode=display">
+\hat{y}_{i} = \arg \max_{i} P(y_{i}|\boldsymbol{h}_{i})</script><p>于是，当前时间步的标签只由当前隐状态$h_{i}$​决定，该隐状态可以是模型CNN、BiLSTM编码得到。这种方法训练和推断效率都非常高，但欠缺对标签间约束的考虑。这会导致相邻标签出现“MB”的情况，这显然是不合理的。</p>
+<p>这里最致命的问题还是softmax存在标签序列的不一致性。例如<code>BIOES</code>标签集，softmax可能解码到<code>B-&gt;O-&gt;I-E</code>的情况，而实际上B后面不能是O。</p>
+<h3 id="MEMM"><a href="#MEMM" class="headerlink" title="MEMM"></a>MEMM</h3><p>MEMM或Bi-MEMM在深度学习时代可能比较少见，但是却是机器学习时代序列标注任务中最常用的模型之一，和HMM、CRF并为概率图中的三驾马车。HMM两个基本假设：</p>
+<ul>
+<li>观察值之间严格独立，观察独立性假设</li>
+<li>状态转移过程中，当前状态仅依赖于前一个状态（一阶马尔科夫模型）</li>
+</ul>
+<p>HMM的缺点是解码时不考虑上下文特征，在考虑输出上下文特征的任务中，表现并不是最好。为解决这个问题，引入最大熵隐马模型（MEMM），它考虑相邻位置状态的依赖关系，同时去掉第一个基本假设，即观察独立性假设，并直接通过判别模型建模，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+P(y_1,y_2,\dots,y_n|\boldsymbol{x})
+&= P(y_1|\boldsymbol{x})P(y_2|\boldsymbol{x},y_1)\dots P(y_n|\boldsymbol{x},y_{n-1}) \newline
+&= \prod_{i=1}^{n} P(y_{i}|y_{i-1},\boldsymbol{x})
+\end{align}</script><p>其中$y(y_1|y_0, \boldsymbol{x})=p(y_1|\boldsymbol{x})$。主要到$P(y_{i}|y_{i-1},\boldsymbol{x})$，MEMM在考虑标签$y_i$与$y_{y-1}$的约束外，还可以整个上下文$\boldsymbol{x}$。</p>
+<p><img src="../images/MEMM-BIOES-demo-1.png" alt></p>
+<p>从最近的论文看，MEMM和Bi-MEMM很少被使用，似乎有过时的迹象。从模型上看，尽管MEMM考虑整个观察序列，但是存在标注偏置（label-bias）问题。导致这个问题的原因是局部归一化，隐状态（标注）倾向于转移到后续转移状态更少的状态上，以此提高整体的后验概率。解决方法是在全局上进行归一化的CRF。</p>
+<h3 id="CRF及其优化"><a href="#CRF及其优化" class="headerlink" title="CRF及其优化"></a>CRF及其优化</h3><p>CRF模型（线性链）可以简单表示为，</p>
+<script type="math/tex; mode=display">
+P(y_1,\dots,y_n|x_1,\dots,x_n) = \frac{1}{Z(\boldsymbol{x})}\exp\left(
+\sum_{i=1}^{n}\Big[t(y_{i-1},y_{i})+h(y_{i};\boldsymbol{x})\Big]\right)</script><p>其中，$t(y_{i-1},y_{i})$是CRF自带的参数矩阵，用于约束标签的转移；而，$h(y_{i};\boldsymbol{x})$​是上游模型学习的，如CNN、LSTM、BERT，相当于自动完成特征工程，是CRF Layer的输入。</p>
+<p><img src="../images/CRF-BIOES-demo-1.png" alt></p>
+<p>当使用CRF作为标签解码时，面临两套标签系统：BIO、BIOES，选择前者CRF的参数矩阵大小为$3\times3$，比后者更少。</p>
+<p>对于预训练模型，fine-tune的时候学习率较小，而CRF的参数却是随机初始化，进而导致训练中两者的学习率不匹配，这种情况应该要为CRF层设置更大的学习率。</p>
+<p>另外还需要注意，CRF的参数矩阵尽管起到约束标签转移关系的作用，但是并不是HMM中的状态转移矩阵那样具有显式语义，因此训练获得的参数矩阵无法分离开训练模型单独使用。</p>
+<h3 id="解码方式对比"><a href="#解码方式对比" class="headerlink" title="解码方式对比"></a>解码方式对比</h3><p>以上总结了常见的解码方法，下表是整体的对比</p>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th>编码方法/对比点</th>
+<th>优点</th>
+<th>缺点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>基于规则/模板</td>
+<td>快速快</td>
+<td>不通用，只针对规则性强的实体，如日期</td>
+</tr>
+<tr>
+<td>逐位置softmax</td>
+<td>训练和推断速度非常快</td>
+<td>softmax容易导致标签序列不一致性问题；</td>
+</tr>
+<tr>
+<td>逐位置softmax + viterbi</td>
+<td>viterbi解码融入状态转移先验信息，性能优于softmax</td>
+<td>推断速度次于softmax，viterbi解码过程并非实时</td>
+</tr>
+<tr>
+<td>MEMM或Bi-MEMM</td>
+<td>某些情况下可以作为CRF的替代，由于不涉及全局归一化，训练阶段比CRF快</td>
+<td>MEMM存在标签偏置问题，即倾向于转移到可转状态更少的状态上；</td>
+</tr>
+<tr>
+<td>RNN</td>
+<td>/</td>
+<td>RNN作为解码只能学习到标签的局部约束</td>
+</tr>
+<tr>
+<td>CRF</td>
+<td>现阶段标配做法</td>
+<td>全局归一化需要递归计算导致训练慢；无法处理体嵌套情况。</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>NER任务的优化点常常并不在于编码器以及解码方式上，而是输入特征以及Embedding的特征融合和词汇增强上。</p>
+<h2 id="NER特征融合-词汇增强"><a href="#NER特征融合-词汇增强" class="headerlink" title="NER特征融合/词汇增强"></a>NER特征融合/词汇增强</h2><p>NER中一类最常见的识别错误就是实体的边界切分错误但是类别是正确的，这类错误往往是因为词汇信息不足而引起的，因此引入更多的字词信息、词汇特征能够缓解这个问题。常见的方案是：</p>
+<ul>
+<li><p>字词混合</p>
+</li>
+<li><p>字形特征</p>
+</li>
+<li>模型上融入词汇信息</li>
+</ul>
+<p>实践中，word-level在中文NER任务没有明显的作用，甚至起到反作用，主要原因是<strong>分词错误</strong>。中文NER问题很大程度上取决于分词的效果，比如实体边界和单词的边界在中文NER问题中经常是一样的。在分词中造成的错误会影响到NER的结果。基于字向量的模型能够避免上述问题，但因为单纯采用字向量，导致拆开了很多并不应该拆开的词语，从而丢失了它们本身的内在信息。</p>
+<p>然而，对于NER任务来说，词汇信息非常重要，有助于确定实体的边界。词典信息融入到深度学习模型是一个非常有价值的优化方向。那么应该如何融入词汇信息。大致可以分为两种思路：</p>
+<ul>
+<li>在Embedding层融入，最直接的方法就是上述提到的hybrid embedding，分词后以字为基准对齐，但是仍然没有避免分词错误引入的噪声</li>
+<li>在模型层融入，如改进LSTM、CNN，甚至引入GCN</li>
+</ul>
+<h3 id="char-amp-char-ngrams"><a href="#char-amp-char-ngrams" class="headerlink" title="char &amp; char-ngrams"></a>char &amp; char-ngrams</h3><p>单纯的char Embedding可以很好处理OOV问题，char-ngrams最常用的是bi-grams，间接引入字词边界信息，其混合示意图如下，</p>
+<p><img src="../images/hybrid-bi-ngrams-demo-1.png" alt></p>
+<p>分词错误</p>
+<h3 id="hybrid-embedding"><a href="#hybrid-embedding" class="headerlink" title="hybrid embedding"></a>hybrid embedding</h3><p>中文NER任务只用在word-level效果往往不佳，分词错误带来大量的噪声，而单纯的char-level又确实词汇信息，那么char-word hybrid embedding是常见的解决方案，混合思路如下，</p>
+<p><img src="../images/hybrid-embedding-1.png" alt></p>
+<p>这里，word-level 最大的问题是能否分词正确，分词不好，反而影响原来NER性能。</p>
+<p>在NLU任务中，字词混合见过去的文章<a href="../10560">Embedding之字词混合的两种对齐方案</a>。</p>
+<h3 id="glyph-embedding"><a href="#glyph-embedding" class="headerlink" title="glyph embedding"></a>glyph embedding</h3><p>另外一种方式是把字形信息融入到Embedding中，不过汉字多数是形声字，难确保有通用性。</p>
+<h3 id="融入词汇信息"><a href="#融入词汇信息" class="headerlink" title="融入词汇信息"></a>融入词汇信息</h3><p>在模型层融入词汇信息可以参考的论文：</p>
+<ul>
+<li>Chinese NER Using Lattice LSTM</li>
+<li>Simplify the Usage of Lexicon in Chinese NER</li>
+<li>CNN-Based Chinese NER with Lexicon Rethinking</li>
+<li>FLAT: Chinese NER Using Flat-Lattice Transformer</li>
+</ul>
+<h2 id="其他Tricks"><a href="#其他Tricks" class="headerlink" title="其他Tricks"></a>其他Tricks</h2><p>NER与多任务训练结合、NER中引入对抗训练、序列标注之NER通过loss缓解类别不平衡、NER数据增强。</p>
+<p><strong>NER数据增强</strong>：NER往往面临小数据问题，工程上，并不是直接使用非常fanny的few-short模型或方法，而是想办法获得更多的标注数据，如半自动化标注方法或数据增强。中文NER简单数据非常少，数据增强在NER任务中显得非常有价值。最直接的方法是，如果有实体词典存在，可以使用同类型的实体对样本进行变换，如果有同义词词典，则进行同义词替换。更多的做法是参考NLU任务中sentence-level的数据增强方法。</p>
+<p><strong>关注数据本身</strong>：如果发现线上线下效果差别很大，除了模型本身的问题外，可能还要考虑特征一致性的问题。在实践中，线上线下特征一致性，训练集测试集一致性很重要。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>早在深度学习之前，NER任务常见的方法包括基于规则模板、词典和基于特征工程的浅层监督模型，这些方法在工程落地上远未过时。例如，基于实体词典的方法可以快速召回实体。对于实体词典匹配方法来说，NER可以作为实体词典的更新策略。还有可以使用正则匹配，像网址、电话号码、邮箱地址等等，具有强规则性的实体可以直接使用正则表达式提取。</p>
+<p>从工程落地上看，NER往往作为底层任务（如O2O搜索中的实体识别，需要在毫秒级的时间内完成推断），因此对性能要求较高，于是简单且模型性能好便成了NER的落地难点。此外，NER的另外一个难点是实体数量在具体场景下是动态变化的，例如微博热词等，这对提高precision和recall造成很大的挑战。</p>
+<p>对于NER任务，一般选定编码器和标签解码方法后，重点的优化应该在如下红色部分：</p>
+<p><img src="../images/ner-diag-2.png" alt></p>
+<p>在序列标注中，中文分词任务（CWS）着重点在句子中词汇之间的边界，而词性标则关注中文分词中被分出边界的词在词法上的类型和行为规则，而命名实体识别关注的是命名实体的边界，其含糊性比中文分词要大，粒度上比中文分词要粗。因此，可以说NER是NLP序列标注任务中最有趣的任务，期待更多的脑洞和具有落地价值的研究。</p>
+<p>除 NLP 外，序列标注的应用也很广，比如时间序列中，如异常检查、磁盘故障预测。这些问题的解决可以借鉴 NLP 中的处理方法，同时，NLP 在解决相关问题时，也可以借鉴 NLP 之外的方法。</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p>[1] <a href="https://arxiv.org/abs/1508.01991" target="_blank" rel="noopener">Bidirectional LSTM-CRF models for sequence tagging</a></p>
+<p>[2] <a href="https://arxiv.org/abs/1812.09449" target="_blank" rel="noopener">A Survey on Deep Learning for Named Entity Recognition</a></p>
+<p>[3] <a href="https://nndl.github.io/" target="_blank" rel="noopener">https://nndl.github.io/</a></p>
+<p>[4] 《统计学习方法》</p>
+<p>[5] <a href="https://arxiv.org/abs/1910.11470" target="_blank" rel="noopener">A Survey on Recent Advances in Named Entity Recognition from Deep Learning models</a></p>
+<p>[6] 《统计自然语言处理》</p>
+<p>[7] Multilingual Named Entity Recognition Using Pretrained Embeddings, Attention Mechanism and NCRF</p>
+<p>转载请包括本文地址：<a href="../13588">https://allenwind.github.io/blog/13588</a><br>更多文章请参考：<a href="../archives/">https://allenwind.github.io/blog/archives/</a></p>
+</div><div class="tags"><a href="/blog/tags/Python/">Python</a><a href="/blog/tags/NLP/">NLP</a><a href="/blog/tags/NER/">NER</a><a href="/blog/tags/概率图/">概率图</a></div><div class="post-nav"><a class="pre" href="/blog/13658/">形形色色的Sigmoid（S型）函数</a><a class="next" href="/blog/13551/">序列标注：从HMM、MEMM到CRF</a></div></div></div></div><div class="pure-u-1-4 hidden_mid_and_down"><div id="sidebar"><div class="widget"><form class="search-form" action="//www.google.com/search" method="get" accept-charset="utf-8" target="_blank"><input type="text" name="q" maxlength="20" placeholder="Search"><input type="hidden" name="sitesearch" value="http://allenwind.github.io/blog"></form></div><div class="widget"><div class="widget-title"><i class="fa fa-folder-o"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/blog/categories/C-C/">C/C++</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Go/">Go</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Java/">Java</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Linux/">Linux</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/NLP/">NLP</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Python/">Python</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/数学/">数学</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/数据库/">数据库</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/数据结构和算法/">数据结构和算法</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/机器学习深度学习/">机器学习深度学习</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/记录/">记录</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-star-o"> 标签</i></div><div class="tagcloud"><a href="/blog/tags/算法/" style="font-size: 15px;">算法</a> <a href="/blog/tags/C/" style="font-size: 15px;">C</a> <a href="/blog/tags/Python/" style="font-size: 15px;">Python</a> <a href="/blog/tags/设计模式/" style="font-size: 15px;">设计模式</a> <a href="/blog/tags/C语言/" style="font-size: 15px;">C语言</a> <a href="/blog/tags/数据库/" style="font-size: 15px;">数据库</a> <a href="/blog/tags/区块链/" style="font-size: 15px;">区块链</a> <a href="/blog/tags/MySQL/" style="font-size: 15px;">MySQL</a> <a href="/blog/tags/分布式/" style="font-size: 15px;">分布式</a> <a href="/blog/tags/ACID/" style="font-size: 15px;">ACID</a> <a href="/blog/tags/sudo/" style="font-size: 15px;">sudo</a> <a href="/blog/tags/Docker/" style="font-size: 15px;">Docker</a> <a href="/blog/tags/SQL/" style="font-size: 15px;">SQL</a> <a href="/blog/tags/NoSQL/" style="font-size: 15px;">NoSQL</a> <a href="/blog/tags/git/" style="font-size: 15px;">git</a> <a href="/blog/tags/Linux/" style="font-size: 15px;">Linux</a> <a href="/blog/tags/Git/" style="font-size: 15px;">Git</a> <a href="/blog/tags/命令行/" style="font-size: 15px;">命令行</a> <a href="/blog/tags/Systemd/" style="font-size: 15px;">Systemd</a> <a href="/blog/tags/Tensorflow/" style="font-size: 15px;">Tensorflow</a> <a href="/blog/tags/gcc/" style="font-size: 15px;">gcc</a> <a href="/blog/tags/网络/" style="font-size: 15px;">网络</a> <a href="/blog/tags/操作系统/" style="font-size: 15px;">操作系统</a> <a href="/blog/tags/正则表达式/" style="font-size: 15px;">正则表达式</a> <a href="/blog/tags/记录/" style="font-size: 15px;">记录</a> <a href="/blog/tags/数据结构/" style="font-size: 15px;">数据结构</a> <a href="/blog/tags/Go/" style="font-size: 15px;">Go</a> <a href="/blog/tags/go/" style="font-size: 15px;">go</a> <a href="/blog/tags/LRU/" style="font-size: 15px;">LRU</a> <a href="/blog/tags/ARC/" style="font-size: 15px;">ARC</a> <a href="/blog/tags/Java/" style="font-size: 15px;">Java</a> <a href="/blog/tags/搜索引擎/" style="font-size: 15px;">搜索引擎</a> <a href="/blog/tags/剑指Offer/" style="font-size: 15px;">剑指Offer</a> <a href="/blog/tags/函数式/" style="font-size: 15px;">函数式</a> <a href="/blog/tags/Stack/" style="font-size: 15px;">Stack</a> <a href="/blog/tags/并发编程/" style="font-size: 15px;">并发编程</a> <a href="/blog/tags/网络编程/" style="font-size: 15px;">网络编程</a> <a href="/blog/tags/HTTP/" style="font-size: 15px;">HTTP</a> <a href="/blog/tags/并发/" style="font-size: 15px;">并发</a> <a href="/blog/tags/装饰器/" style="font-size: 15px;">装饰器</a> <a href="/blog/tags/Redis/" style="font-size: 15px;">Redis</a> <a href="/blog/tags/数学/" style="font-size: 15px;">数学</a> <a href="/blog/tags/时间序列/" style="font-size: 15px;">时间序列</a> <a href="/blog/tags/投资/" style="font-size: 15px;">投资</a> <a href="/blog/tags/概率/" style="font-size: 15px;">概率</a> <a href="/blog/tags/统计/" style="font-size: 15px;">统计</a> <a href="/blog/tags/信息论/" style="font-size: 15px;">信息论</a> <a href="/blog/tags/度量/" style="font-size: 15px;">度量</a> <a href="/blog/tags/机器学习/" style="font-size: 15px;">机器学习</a> <a href="/blog/tags/贝叶斯/" style="font-size: 15px;">贝叶斯</a> <a href="/blog/tags/最小二乘法/" style="font-size: 15px;">最小二乘法</a> <a href="/blog/tags/分布/" style="font-size: 15px;">分布</a> <a href="/blog/tags/深度学习/" style="font-size: 15px;">深度学习</a> <a href="/blog/tags/变分推断/" style="font-size: 15px;">变分推断</a> <a href="/blog/tags/随机/" style="font-size: 15px;">随机</a> <a href="/blog/tags/不等式/" style="font-size: 15px;">不等式</a> <a href="/blog/tags/采样/" style="font-size: 15px;">采样</a> <a href="/blog/tags/光滑/" style="font-size: 15px;">光滑</a> <a href="/blog/tags/逼近/" style="font-size: 15px;">逼近</a> <a href="/blog/tags/矩阵/" style="font-size: 15px;">矩阵</a> <a href="/blog/tags/交叉验证/" style="font-size: 15px;">交叉验证</a> <a href="/blog/tags/特征工程/" style="font-size: 15px;">特征工程</a> <a href="/blog/tags/集成学习/" style="font-size: 15px;">集成学习</a> <a href="/blog/tags/分类/" style="font-size: 15px;">分类</a> <a href="/blog/tags/证明/" style="font-size: 15px;">证明</a> <a href="/blog/tags/损失函数/" style="font-size: 15px;">损失函数</a> <a href="/blog/tags/回归/" style="font-size: 15px;">回归</a> <a href="/blog/tags/正则化/" style="font-size: 15px;">正则化</a> <a href="/blog/tags/词向量/" style="font-size: 15px;">词向量</a> <a href="/blog/tags/NLP/" style="font-size: 15px;">NLP</a> <a href="/blog/tags/信息/" style="font-size: 15px;">信息</a> <a href="/blog/tags/Embedding/" style="font-size: 15px;">Embedding</a> <a href="/blog/tags/神经网络/" style="font-size: 15px;">神经网络</a> <a href="/blog/tags/Transformer/" style="font-size: 15px;">Transformer</a> <a href="/blog/tags/Attention/" style="font-size: 15px;">Attention</a> <a href="/blog/tags/对抗训练/" style="font-size: 15px;">对抗训练</a> <a href="/blog/tags/文本分类/" style="font-size: 15px;">文本分类</a> <a href="/blog/tags/分词/" style="font-size: 15px;">分词</a> <a href="/blog/tags/并行/" style="font-size: 15px;">并行</a> <a href="/blog/tags/NER/" style="font-size: 15px;">NER</a> <a href="/blog/tags/概率图/" style="font-size: 15px;">概率图</a> <a href="/blog/tags/HMM/" style="font-size: 15px;">HMM</a> <a href="/blog/tags/图/" style="font-size: 15px;">图</a> <a href="/blog/tags/可视化/" style="font-size: 15px;">可视化</a> <a href="/blog/tags/RNN/" style="font-size: 15px;">RNN</a> <a href="/blog/tags/LSTM/" style="font-size: 15px;">LSTM</a> <a href="/blog/tags/梯度/" style="font-size: 15px;">梯度</a> <a href="/blog/tags/注意力/" style="font-size: 15px;">注意力</a> <a href="/blog/tags/序列编码/" style="font-size: 15px;">序列编码</a> <a href="/blog/tags/磁盘故障/" style="font-size: 15px;">磁盘故障</a> <a href="/blog/tags/BERT/" style="font-size: 15px;">BERT</a> <a href="/blog/tags/CNN/" style="font-size: 15px;">CNN</a> <a href="/blog/tags/卷积/" style="font-size: 15px;">卷积</a> <a href="/blog/tags/优化/" style="font-size: 15px;">优化</a> <a href="/blog/tags/调参/" style="font-size: 15px;">调参</a> <a href="/blog/tags/Flask/" style="font-size: 15px;">Flask</a> <a href="/blog/tags/web/" style="font-size: 15px;">web</a> <a href="/blog/tags/socket/" style="font-size: 15px;">socket</a> <a href="/blog/tags/安全/" style="font-size: 15px;">安全</a> <a href="/blog/tags/协程/" style="font-size: 15px;">协程</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-file-o"> 最近文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/blog/16003/">天马行空：设计自己的激活函数</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/15887/">函数光滑近似（4）：Heaviside step函数及其应用</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/15205/">引入参数控制softmax的smooth程度</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/15110/">分析与拓展：多分类模型的输出为什么使用softmax？</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14990/">一种基于光滑逼近的正态分布采样法</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14721/">GELU由来：从狄拉克函数到GELU激活函数</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14465/">Lp范数的上下界分析</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14441/">logsumexp函数分析</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14133/">分析Mish激活函数的设计思路</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/13899/">阿尔法经济学：Shiller模型介绍</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-external-link"> 友情链接</i></div><ul></ul><a href="https://github.com/allenwind" title="My GitHub" target="_blank">My GitHub</a><ul></ul><a href="http://www.arxiv-sanity.com/" title="arxiv-sanity" target="_blank">arxiv-sanity</a><ul></ul><a href="https://arxiv.org/" title="arxiv.org" target="_blank">arxiv.org</a></div></div></div><div class="pure-u-1 pure-u-md-3-4"><div id="footer">Copyright © 2021 <a href="/blog/." rel="nofollow">Mr.Feng Blog.</a> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a><a rel="nofollow" target="_blank" href="https://github.com/tufu9441/maupassant-hexo"> Theme</a> by<a rel="nofollow" target="_blank" href="https://github.com/pagecho"> Cho.</a></div></div></div><a class="show" id="rocket" href="#top"></a><script type="text/javascript" src="/blog/js/totop.js?v=0.0.0" async></script><script type="text/javascript" src="//lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js" async></script><script type="text/javascript" src="/blog/js/fancybox.js?v=0.0.0" async></script><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css"><script type="text/x-mathjax-config">MathJax.Hub.Config({
+  tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}
+  });
+</script><script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-MML-AM_CHTML" async></script><script type="text/javascript" src="/blog/js/codeblock-resizer.js?v=0.0.0"></script><script type="text/javascript" src="/blog/js/smartresize.js?v=0.0.0"></script></div></body></html>

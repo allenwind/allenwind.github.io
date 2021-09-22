@@ -1,0 +1,165 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.9.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description" content="你好，世界！"><title>序列标注：从HMM、MEMM到CRF | Mr.Feng Blog</title><link rel="stylesheet" type="text/css" href="/blog/css/style.css?v=0.0.0"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/normalize/8.0.1/normalize.min.css"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/pure/1.0.0/pure-min.css"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/pure/1.0.0/grids-responsive-min.css"><link rel="stylesheet" href="//lib.baomitu.com/font-awesome/4.7.0/css/font-awesome.min.css"><script type="text/javascript" src="//lib.baomitu.com/jquery/3.4.0/jquery.min.js"></script><link rel="icon" mask sizes="any" href="/blog/favicon.ico"><link rel="Shortcut Icon" type="image/x-icon" href="/blog/favicon.ico"><link rel="apple-touch-icon" href="/blog/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/blog/apple-touch-icon.png"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">序列标注：从HMM、MEMM到CRF</h1><a id="logo" href="/blog/.">Mr.Feng Blog</a><p class="description">NLP、深度学习、机器学习、Python、Go</p></div><div id="nav-menu"><a class="current" href="/blog/."><i class="fa fa-home"> 首页</i></a><a href="/blog/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/blog/about/"><i class="fa fa-user"> 关于</i></a></div></div><div class="pure-g" id="layout"><div class="pure-u-1 pure-u-md-3-4"><div class="content_container"><div class="post"><h1 class="post-title">序列标注：从HMM、MEMM到CRF</h1><div class="post-meta">Feb 27, 2021<span> | </span><span class="category"><a href="/blog/categories/NLP/">NLP</a></span></div><div class="clear"><div class="toc-article" id="toc"><div class="toc-title">文章目录</div><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#序列标注"><span class="toc-number">1.</span> <span class="toc-text">序列标注</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#最大熵模型（MEM）"><span class="toc-number">2.</span> <span class="toc-text">最大熵模型（MEM）</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#HMM"><span class="toc-number">3.</span> <span class="toc-text">HMM</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#MEMM"><span class="toc-number">4.</span> <span class="toc-text">MEMM</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#CRF"><span class="toc-number">5.</span> <span class="toc-text">CRF</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#解码"><span class="toc-number">6.</span> <span class="toc-text">解码</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#三者对比"><span class="toc-number">7.</span> <span class="toc-text">三者对比</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#总结"><span class="toc-number">8.</span> <span class="toc-text">总结</span></a></li></ol></div></div><div class="post-content"><p>本文从序列标注的角度讲述三个经典的模型：HMM、MEMM（最大熵马尔可夫模型）和CRF，这三个模型都用于解决序列标注问题，其中CRF结合当前的深度学习模型在信息抽取和序列标注任务上已经取得巨大的成功。本文把最大熵模型、HMM、MEMM、CRF串起来讲一讲。</p>
+<a id="more"></a>
+<p>HMM、MEMM（最大熵马尔可夫模型）和CRF在过去的文章中讲述过：</p>
+<ul>
+<li><a href="../7661">概率图模型系列（2）：最大熵原理和最大熵模型</a></li>
+<li><a href="../7681">概率图模型系列（3）：HMM</a></li>
+<li><a href="../7694">概率图模型系列（4）：MEMM</a></li>
+<li><a href="../7707">概率图模型系列（5）：CRF</a></li>
+<li><a href="../8750">序列标注之NER、CWS经典模型HMM实现</a></li>
+<li><a href="../8269">中文分词详解：从词典匹配到深度学习方法</a></li>
+<li><a href="../13527/">CRF的简洁实现</a></li>
+</ul>
+<p>其实在过去的很多文章中都提及过图模型和序列标注任务，不过都没有综合对比且写得比较分散，今天打算串起来从序列标注（具体任务为中文分词）的角度统一梳理一下这三个经典的概率图模型。</p>
+<h2 id="序列标注"><a href="#序列标注" class="headerlink" title="序列标注"></a>序列标注</h2><p>序列标注要完成的事情是为观察序列中的每个观察状态标上一个状态。例如中文分词，短句：<code>我爱北京天安门</code>，从中文分词任务来看，正确的标注为<code>SSBEBME</code>。有了这个标注序列，<code>我爱北京天安门</code>就可以完成分词，即<code>我/爱/北京/天安门</code>。</p>
+<p>这里的<code>{B,M,E,S}</code>的意义如下列表，</p>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th>BEMS</th>
+<th>解释</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>B</td>
+<td>Begin，表示词开始</td>
+</tr>
+<tr>
+<td>M</td>
+<td>Middle(Intermediate)，表示词中间</td>
+</tr>
+<tr>
+<td>E</td>
+<td>End，表示词结尾</td>
+</tr>
+<tr>
+<td>S</td>
+<td>Single，表示词为单个字符</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>序列标注常见的任务包括：命名实体识别（NER）、词性标注（POS）、中文分词（CWS）。下面的讲述均使用中文分词作为例子，状态集为<code>{B,M,E,S}</code>。</p>
+<script type="math/tex; mode=display">
+(y_{1}, y_{2}, \dots ,y_{n}) \leftarrow (x_{1}, x_{2}, \dots, x_{n})</script><p>以BMES标注集为例的序列标注和解码，</p>
+<p><img src="../images/BMES-demo-1.png" alt></p>
+<p>用数学表示，</p>
+<script type="math/tex; mode=display">
+P(y_1,y_2,\dots,y_n|\boldsymbol{x})</script><p>MEMM、CRF都是对上式引入一定假设后的优化，而HMM则直接对联合分布建模，</p>
+<script type="math/tex; mode=display">
+P(y_1,y_2,\dots,y_n,\boldsymbol{x})</script><p>然后都可以利用某种打分函数的指数形式（最大熵原理）来表示该分布。</p>
+<h2 id="最大熵模型（MEM）"><a href="#最大熵模型（MEM）" class="headerlink" title="最大熵模型（MEM）"></a>最大熵模型（MEM）</h2><p>因此有带约束优化问题，</p>
+<script type="math/tex; mode=display">
+\begin{align} 
+\max_{p \in \mathbb{P}} H[p]
+&=-\sum_x\sum_y \tilde{p}(x)p(y|x)\log p(y|x) \newline
+\operatorname{s.t.} \; 
+&
+\begin{cases}
+E_{\tilde{p}}(f_i) - E_{p}(f_i) = 0 ,\; i=1, \dots, m \newline
+\newline
+\displaystyle \sum_y p(y|x) = 1
+\end{cases}
+\end{align}</script><p>通过拉格朗日函数容易解得，</p>
+<script type="math/tex; mode=display">
+p(y|x) = \frac{1}{Z(x)} \exp\Big[ \sum_{i=1}^{m} \lambda_i f_i(x, y) \Big] \\
+Z(x) = \sum_y \exp\Big[ \sum_{i=1}^{m} \lambda_i f_i(x, y) \Big]</script><p>因此，如果一个模型具有这种形式，我们就认为其是最大熵相关的模型。</p>
+<h2 id="HMM"><a href="#HMM" class="headerlink" title="HMM"></a>HMM</h2><p>由于HMM有<strong>观察独立性假设</strong>，即某个时刻的观察状态只取决于该时刻的隐状态（即标注），换成序列标注的语境来说就是，当前的<code>BMES</code>取值只有上一个时刻的标注决定。换句话说，该过程的当前值就包含了对其未来做预测所需的全部信息。比如对标签B之后取什么标签，和B之前的标签没有关系，完全由当前的B标签决定。</p>
+<p>BMES分词示意图，</p>
+<p><img src="../images/HMM-BMES-demo-1.png" alt></p>
+<p>标注的状态转移约束，</p>
+<script type="math/tex; mode=display">
+P(y_{t}|y_{1}, \dots, y_{t-1}) = P(y_{t}|y_{t-1})</script><p>观察状态值取决与当前时刻的隐状态，</p>
+<script type="math/tex; mode=display">
+P(x_{t}|x_{1},\dots,x_{n},y_{1},\dots,y_{n}) = P(x_{t}|y_{t})</script><p>因此，HMM只考虑两点：</p>
+<ul>
+<li>隐状态的状态转移约束</li>
+<li>观察状态只由当前时刻的隐状态决定</li>
+</ul>
+<p>当然，对于很多NLP任务来说，这两点约束缺失很多重要的信息，例如中文分词来说，这样的约束对于现实场景内说是不够的，但是也极大地化简建模的复杂性。基于这两点，HMM的联合概率分布为，</p>
+<script type="math/tex; mode=display">
+P(x, y) = \prod_{i=1}^{n} P(x_i|y_i)P(y_i|y_{i-1})</script><p>其中$P(y_1|y_{0}) = P(y_1)$为初始状态分布，$P(x_i|y_i)$称为<strong>发射概率</strong>，所有可能组成观察矩阵，$P(y_i|y_{i-1})$​称为<strong>转移概率</strong>，所有的可能组成状态转移矩阵。于是有，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+\hat{y} 
+&= \arg \max_{y} P(y|x) \newline
+&= \arg \max_{y} \frac{P(x, y)}{P(x)} \newline
+&= \arg \max_{y} P(x, y) \newline
+&= \arg \max_{y} \prod_{i=1}^{n} P(x_i|y_i)P(y_i|y_{i-1}) \newline
+&= \arg \max_{y} \sum_{i=1}^{n} \Big(\log P(x_i|y_i) + \log P(y_i|y_{i-1})   \Big)
+\end{align}</script><p>这里$x = (x_1, x_2, \dots, x_n),y=(y_1, y_2, \dots, y_n)$​。​于是，最优解码不光是$P(x_i|y_i)$的最大值，还要考虑$P(y_i|y_{i-1})$​​。</p>
+<p>其中，$P(y_i|y_{i-1})$​​表示相邻两个标签间的转移概率，比如，</p>
+<script type="math/tex; mode=display">
+P(B_{t}|M_{t-1})</script><p>表示时间步$t-1$标签为$M$转移到时间步$t$标签为$B$的概率，当然正确的标注下这样的标签转移是不存在的。这里还需要注意一个边界条件，就是$P(y_1|y_{0})$表示初始状态分布。</p>
+<p>而，$P(x_i|y_i)$​​表示标签概率分布，对于给定的时间步$i$​​，$x$​​的取值是固定的，比如观察变量“北”，但是其对应的标签是有不同的概率，一般HMM、CRF、CNN、RNN或者Dense+softmax网络都可以计算。比如“北”字，</p>
+<script type="math/tex; mode=display">
+P(\text{北} | y_i) = \begin{cases}
+P(\text{北} | B) \\
+P(\text{北} | M) \\ 
+P(\text{北} | E) \\
+P(\text{北} | S) \\ 
+\end{cases}</script><p>类似地，“京”字，</p>
+<script type="math/tex; mode=display">
+P(\text{京} | y_i) = \begin{cases}
+P(\text{京} | B) \\
+P(\text{京} | M) \\ 
+P(\text{京} | E) \\
+P(\text{京} | S) \\ 
+\end{cases}</script><p>综合上述，那么沿着所有时间步前进，上式就构成篱笆（Lattice）网络的有向无环图（DAG）。如下图所示，</p>
+<p><img src="../images/viterbi-BMES-demo-1.png" alt></p>
+<p>于是求解$\hat{y} = \arg \max_{y} P(y|x)$​就成了篱笆（Lattice）网络上的最大概率路径或最短路问题。它的计算复杂度是$O(T\cdot N^2)$​，$T$​是时间步数，$N$​是状态数量。</p>
+<p>上图路径长度为7，每个时间步有4种可选择的状态，因此路径总共有$4^7$种。对于更一般的情况，路径长度为$l$，每个时间步状态数量为$n$，那么所有路径组合有$n^l$​种。直接枚举所有路径搜索是不可能的。</p>
+<p>最短路中有一个简单朴素的特性：如果$(i_1, \dots, i_j, \dots, i_n)$是所有路径中的最短路，那么任意$i_j$切分出的两段分路径$(i_1, \dots, i_j)$和$(i_j, \dots, i_n)$都是这两段路径的端点所构成的所有可能路径中最优的，否则如果还有更优的分路径，就会有比原来更短的路径，这与一开始的最优路径假设相悖。这个特性用来排除在前行搜索最优路径时把不符合以上特性的分路径过滤掉。</p>
+<p>维特比算法的核心思想是过滤掉不符合最短路思想的路径。</p>
+<p>状态转移矩阵参数估计，$a_{ij} = P(i_{t+1} = q_{j}|i_{t}=q_{i})$</p>
+<script type="math/tex; mode=display">
+\hat{a}_{ij} = \frac{A_{ij}}{\displaystyle \sum_{j=1}^{N} A_{ij}}</script><p>其中$i,j$取值均在$[1, N]$范围内。</p>
+<p>观察矩阵的参数估计，</p>
+<script type="math/tex; mode=display">
+\hat{b}_{j(k)} = \frac{B_{jk}}{\displaystyle \sum_{k=1}^{M} B_{jk}}</script><p>其中$j \in [1, N], k \in [1, M]$，通常在实现的时候使用稀疏形式，如字典来存储参数。</p>
+<h2 id="MEMM"><a href="#MEMM" class="headerlink" title="MEMM"></a>MEMM</h2><p>在序列标注问题中，如中文分词，隐状态（即标注）不仅和前一时刻的隐状态有关，还和下一时刻的隐状态、当前观察状态以及当前观察状态的上下文相关。如中文分词中，一个字应该标注成<code>{B,M,E,S}</code>中的哪一个标注，不仅和其前一个字的标注有关，还依赖上下文中的其他字。</p>
+<p>为解决上述问题，MEMM去掉HMM中的观察独立性假设，把整个观察序列（中文句子）纳入考虑，即，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+P(y_1,y_2,\dots,y_n|\boldsymbol{x})
+&= P(y_1|\boldsymbol{x})P(y_2|\boldsymbol{x},y_1)\dots P(y_n|\boldsymbol{x},y_{n-1}) \newline
+&= \prod_{i=1}^{n} P(y_{i}|y_{i-1},\boldsymbol{x})
+\end{align}</script><p><img src="../images/MEMM-BMES-demo-1.png" alt></p>
+<p>其中$y(y_1|y_0, \boldsymbol{x})=p(y_1|\boldsymbol{x})$。主要到$P(y_{i}|y_{i-1},\boldsymbol{x})$，MEMM在考虑标签$y_i$与$y_{y-1}$的约束外，还考虑整个上下文$\boldsymbol{x}$。对于$P(y_{i}|y_{i-1},\boldsymbol{x})$，根据最大熵原理，可以写成指数的形式，于是有，</p>
+<script type="math/tex; mode=display">
+P(y_k|\boldsymbol{x},y_{k-1})
+=\frac{e^{g(y_{k-1},y_k)+f(y_k;\boldsymbol{x})}}{\sum\limits_{y_k}e^{g(y_{k-1},y_k)+f(y_k;\boldsymbol{x})}}</script><p>这里$g(y_{k-1},y_k)$​表示相邻标签约束的分值，所有可能的组合构成一个$m\times m$的状态矩阵，$m$为状态数量。$f(y_k;\boldsymbol{x})$表示上下文$\boldsymbol{x}$下输出为$y_k$​​的分值。分母需要枚举所有可能的状态转移。</p>
+<p>直观来看，MEMM就是对每个时间步单独归一化，于是在整个序列上，MEMM可以表示为（这里把边界也纳入到一般式内），</p>
+<script type="math/tex; mode=display">
+P(y_1,y_2,\dots,y_n|\boldsymbol{x}) = \prod_{i=1}^{n} \frac{e^{g(y_{k-1},y_k)+f(y_k;\boldsymbol{x})}}{\sum\limits_{y_k}e^{g(y_{k-1},y_k)+f(y_k;\boldsymbol{x})}}</script><p>这里$g(y_0, y_1) = 0$，以保证边界一致。可以看到，<strong>MEMM是每个时间步对状态进行归一化</strong>。这种归一化称为称为<strong>局部归一化</strong>，因为它不是面向全序列，这也给MEMM带来一定的问题。</p>
+<p>从模型上看，尽管MEMM考虑整个观察序列，但是存在标注偏置（label-bias）问题。导致这个问题的原因是局部归一化，隐状态（标注）倾向于转移到后续转移状态更少的状态上，以此提高整体的后验概率。</p>
+<p>以上的介绍是比较偷懒的，更详细的分析见<a href="../7694">概率图模型系列（4）：MEMM</a>。</p>
+<h2 id="CRF"><a href="#CRF" class="headerlink" title="CRF"></a>CRF</h2><p>CRF是判别模型，直接对$P(y_{1}, y_{2}, \dots ,y_{n} |\boldsymbol{x})$建模，</p>
+<p><img src="../images/CRF-BMES-demo-1.png" alt></p>
+<p>注意上图箭头并不是概率图中的变量关系，CRF是马尔科夫网络，而是说明它们的约束。</p>
+<p>为解决MEMM局部归一化导致的问题，CRF进行全局归一化，即，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+P(y_{1 \cdots n} | x_{1 \cdots n}) 
+&= \frac{1}{Z(y_{1 \cdots n})} \prod_{i=1}^{n} \exp(F(y_i,y_{i-1},x_{1 \cdots n})) \newline
+&= \frac{1}{Z(\boldsymbol{x})}\exp\left(
+\sum_{i=1}^{n}\Big[t(y_{i-1},y_{i})+h(y_{i};\boldsymbol{x})\Big]\right)
+\end{align}</script><p>这里的关键是$Z(y_{1 \cdots n})$归一化因子在全局范围上进行归一化，递归地枚举整个隐状态序列。不过这个计算涉及到递归处理，训练比MEMM慢。</p>
+<h2 id="解码"><a href="#解码" class="headerlink" title="解码"></a>解码</h2><p>HMM、MEMM、CRF均可以使用viterbi解码。</p>
+<p>以“我爱北京天安门”的分词为例，用过去在HMM文章中的图片表示，</p>
+<p><img src="../images/viterbi-BMES-demo-1.png" alt></p>
+<p>viterbi算法做的事情就是在以上Lattice风格的DAG中搜索最优路径。</p>
+<h2 id="三者对比"><a href="#三者对比" class="headerlink" title="三者对比"></a>三者对比</h2><p><strong>HMM</strong>是有向图生成模型，模型本身引入两个限制较大的假设：（1）齐次马尔可夫性假设（2）观察独立性假设。这两个假设换成中文分词语境来说就是，在隐状态集为<code>{B,M,E,S}</code>下，当前标注的取值取决于前一时间步的标注，而当前时刻的观察值（中文字）只由当前时间步的标注决定。显然，这样的约束导致模型忽视上下文特征表达能力不够。</p>
+<p><strong>MEMM</strong>有向图判别模型，去掉HMM的观察独立性假设，把整个观察序列纳入考虑，因此比HMM有更强的表达能力。但是，MEMM局部归一化导致标注偏置，即状态更倾向转向具有较少状态转移的状态。</p>
+<p><img src="../images/HMM-MEMM-CRF-demo-1.png" alt></p>
+<p><strong>CRF</strong>是无向图判别模型，使用全局归一化解决MEMM的标注偏置问题。但是全局归一化涉及<strong>递归计算</strong>，导致模型复杂且参数训练过程慢。</p>
+<p>根据以上的分析思路，这下就可以理解为什么CRF往往比HMM、MEMM效果更好，因为这个原因，在深度学习时代更多的是使用Encoder+CRF的形式来解决标注问题。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>本文讲述了三个经典的模型：HMM、MEMM（最大熵马尔可夫模型）和CRF。从HMM开始讲述，考虑到其观察状态独立性假设，带来的单一语义表达问题，引入MEMM在建模时考虑整个观察序列，然而局部归一化导致MEMM存在标注偏置问题。CRF则直接在全局范围上进行归一化，获得最好的性能。</p>
+<p>到了深度学习时代，HMM、MEMM似乎已经很少被提及，在序列标注、信息抽取任务中，只剩下CRF发光发热。不知道随着技术的发展，CRF是否能继续香下去~</p>
+<p>转载请包括本文地址：<a href="../13551">https://allenwind.github.io/blog/13551</a><br>更多文章请参考：<a href="../archives/">https://allenwind.github.io/blog/archives/</a></p>
+</div><div class="tags"><a href="/blog/tags/分词/">分词</a><a href="/blog/tags/概率图/">概率图</a></div><div class="post-nav"><a class="pre" href="/blog/13588/">NER任务的深度总结</a><a class="next" href="/blog/13527/">CRF的简洁实现</a></div></div></div></div><div class="pure-u-1-4 hidden_mid_and_down"><div id="sidebar"><div class="widget"><form class="search-form" action="//www.google.com/search" method="get" accept-charset="utf-8" target="_blank"><input type="text" name="q" maxlength="20" placeholder="Search"><input type="hidden" name="sitesearch" value="http://allenwind.github.io/blog"></form></div><div class="widget"><div class="widget-title"><i class="fa fa-folder-o"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/blog/categories/C-C/">C/C++</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Go/">Go</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Java/">Java</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Linux/">Linux</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/NLP/">NLP</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Python/">Python</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/数学/">数学</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/数据库/">数据库</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/数据结构和算法/">数据结构和算法</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/机器学习深度学习/">机器学习深度学习</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/记录/">记录</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-star-o"> 标签</i></div><div class="tagcloud"><a href="/blog/tags/算法/" style="font-size: 15px;">算法</a> <a href="/blog/tags/C/" style="font-size: 15px;">C</a> <a href="/blog/tags/Python/" style="font-size: 15px;">Python</a> <a href="/blog/tags/设计模式/" style="font-size: 15px;">设计模式</a> <a href="/blog/tags/C语言/" style="font-size: 15px;">C语言</a> <a href="/blog/tags/数据库/" style="font-size: 15px;">数据库</a> <a href="/blog/tags/区块链/" style="font-size: 15px;">区块链</a> <a href="/blog/tags/MySQL/" style="font-size: 15px;">MySQL</a> <a href="/blog/tags/分布式/" style="font-size: 15px;">分布式</a> <a href="/blog/tags/ACID/" style="font-size: 15px;">ACID</a> <a href="/blog/tags/sudo/" style="font-size: 15px;">sudo</a> <a href="/blog/tags/Docker/" style="font-size: 15px;">Docker</a> <a href="/blog/tags/SQL/" style="font-size: 15px;">SQL</a> <a href="/blog/tags/NoSQL/" style="font-size: 15px;">NoSQL</a> <a href="/blog/tags/git/" style="font-size: 15px;">git</a> <a href="/blog/tags/Linux/" style="font-size: 15px;">Linux</a> <a href="/blog/tags/Git/" style="font-size: 15px;">Git</a> <a href="/blog/tags/命令行/" style="font-size: 15px;">命令行</a> <a href="/blog/tags/Systemd/" style="font-size: 15px;">Systemd</a> <a href="/blog/tags/Tensorflow/" style="font-size: 15px;">Tensorflow</a> <a href="/blog/tags/gcc/" style="font-size: 15px;">gcc</a> <a href="/blog/tags/网络/" style="font-size: 15px;">网络</a> <a href="/blog/tags/操作系统/" style="font-size: 15px;">操作系统</a> <a href="/blog/tags/正则表达式/" style="font-size: 15px;">正则表达式</a> <a href="/blog/tags/记录/" style="font-size: 15px;">记录</a> <a href="/blog/tags/数据结构/" style="font-size: 15px;">数据结构</a> <a href="/blog/tags/Go/" style="font-size: 15px;">Go</a> <a href="/blog/tags/go/" style="font-size: 15px;">go</a> <a href="/blog/tags/LRU/" style="font-size: 15px;">LRU</a> <a href="/blog/tags/ARC/" style="font-size: 15px;">ARC</a> <a href="/blog/tags/Java/" style="font-size: 15px;">Java</a> <a href="/blog/tags/搜索引擎/" style="font-size: 15px;">搜索引擎</a> <a href="/blog/tags/剑指Offer/" style="font-size: 15px;">剑指Offer</a> <a href="/blog/tags/函数式/" style="font-size: 15px;">函数式</a> <a href="/blog/tags/Stack/" style="font-size: 15px;">Stack</a> <a href="/blog/tags/并发编程/" style="font-size: 15px;">并发编程</a> <a href="/blog/tags/网络编程/" style="font-size: 15px;">网络编程</a> <a href="/blog/tags/HTTP/" style="font-size: 15px;">HTTP</a> <a href="/blog/tags/并发/" style="font-size: 15px;">并发</a> <a href="/blog/tags/装饰器/" style="font-size: 15px;">装饰器</a> <a href="/blog/tags/Redis/" style="font-size: 15px;">Redis</a> <a href="/blog/tags/数学/" style="font-size: 15px;">数学</a> <a href="/blog/tags/时间序列/" style="font-size: 15px;">时间序列</a> <a href="/blog/tags/投资/" style="font-size: 15px;">投资</a> <a href="/blog/tags/概率/" style="font-size: 15px;">概率</a> <a href="/blog/tags/统计/" style="font-size: 15px;">统计</a> <a href="/blog/tags/信息论/" style="font-size: 15px;">信息论</a> <a href="/blog/tags/度量/" style="font-size: 15px;">度量</a> <a href="/blog/tags/机器学习/" style="font-size: 15px;">机器学习</a> <a href="/blog/tags/贝叶斯/" style="font-size: 15px;">贝叶斯</a> <a href="/blog/tags/最小二乘法/" style="font-size: 15px;">最小二乘法</a> <a href="/blog/tags/分布/" style="font-size: 15px;">分布</a> <a href="/blog/tags/深度学习/" style="font-size: 15px;">深度学习</a> <a href="/blog/tags/变分推断/" style="font-size: 15px;">变分推断</a> <a href="/blog/tags/随机/" style="font-size: 15px;">随机</a> <a href="/blog/tags/不等式/" style="font-size: 15px;">不等式</a> <a href="/blog/tags/采样/" style="font-size: 15px;">采样</a> <a href="/blog/tags/光滑/" style="font-size: 15px;">光滑</a> <a href="/blog/tags/逼近/" style="font-size: 15px;">逼近</a> <a href="/blog/tags/矩阵/" style="font-size: 15px;">矩阵</a> <a href="/blog/tags/交叉验证/" style="font-size: 15px;">交叉验证</a> <a href="/blog/tags/特征工程/" style="font-size: 15px;">特征工程</a> <a href="/blog/tags/集成学习/" style="font-size: 15px;">集成学习</a> <a href="/blog/tags/分类/" style="font-size: 15px;">分类</a> <a href="/blog/tags/证明/" style="font-size: 15px;">证明</a> <a href="/blog/tags/损失函数/" style="font-size: 15px;">损失函数</a> <a href="/blog/tags/回归/" style="font-size: 15px;">回归</a> <a href="/blog/tags/正则化/" style="font-size: 15px;">正则化</a> <a href="/blog/tags/词向量/" style="font-size: 15px;">词向量</a> <a href="/blog/tags/NLP/" style="font-size: 15px;">NLP</a> <a href="/blog/tags/信息/" style="font-size: 15px;">信息</a> <a href="/blog/tags/Embedding/" style="font-size: 15px;">Embedding</a> <a href="/blog/tags/神经网络/" style="font-size: 15px;">神经网络</a> <a href="/blog/tags/Transformer/" style="font-size: 15px;">Transformer</a> <a href="/blog/tags/Attention/" style="font-size: 15px;">Attention</a> <a href="/blog/tags/对抗训练/" style="font-size: 15px;">对抗训练</a> <a href="/blog/tags/文本分类/" style="font-size: 15px;">文本分类</a> <a href="/blog/tags/分词/" style="font-size: 15px;">分词</a> <a href="/blog/tags/并行/" style="font-size: 15px;">并行</a> <a href="/blog/tags/NER/" style="font-size: 15px;">NER</a> <a href="/blog/tags/概率图/" style="font-size: 15px;">概率图</a> <a href="/blog/tags/HMM/" style="font-size: 15px;">HMM</a> <a href="/blog/tags/图/" style="font-size: 15px;">图</a> <a href="/blog/tags/可视化/" style="font-size: 15px;">可视化</a> <a href="/blog/tags/RNN/" style="font-size: 15px;">RNN</a> <a href="/blog/tags/LSTM/" style="font-size: 15px;">LSTM</a> <a href="/blog/tags/梯度/" style="font-size: 15px;">梯度</a> <a href="/blog/tags/注意力/" style="font-size: 15px;">注意力</a> <a href="/blog/tags/序列编码/" style="font-size: 15px;">序列编码</a> <a href="/blog/tags/磁盘故障/" style="font-size: 15px;">磁盘故障</a> <a href="/blog/tags/BERT/" style="font-size: 15px;">BERT</a> <a href="/blog/tags/CNN/" style="font-size: 15px;">CNN</a> <a href="/blog/tags/卷积/" style="font-size: 15px;">卷积</a> <a href="/blog/tags/优化/" style="font-size: 15px;">优化</a> <a href="/blog/tags/调参/" style="font-size: 15px;">调参</a> <a href="/blog/tags/Flask/" style="font-size: 15px;">Flask</a> <a href="/blog/tags/web/" style="font-size: 15px;">web</a> <a href="/blog/tags/socket/" style="font-size: 15px;">socket</a> <a href="/blog/tags/安全/" style="font-size: 15px;">安全</a> <a href="/blog/tags/协程/" style="font-size: 15px;">协程</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-file-o"> 最近文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/blog/16003/">天马行空：设计自己的激活函数</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/15887/">函数光滑近似（4）：Heaviside step函数及其应用</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/15205/">引入参数控制softmax的smooth程度</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/15110/">分析与拓展：多分类模型的输出为什么使用softmax？</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14990/">一种基于光滑逼近的正态分布采样法</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14721/">GELU由来：从狄拉克函数到GELU激活函数</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14465/">Lp范数的上下界分析</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14441/">logsumexp函数分析</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14133/">分析Mish激活函数的设计思路</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/13899/">阿尔法经济学：Shiller模型介绍</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-external-link"> 友情链接</i></div><ul></ul><a href="https://github.com/allenwind" title="My GitHub" target="_blank">My GitHub</a><ul></ul><a href="http://www.arxiv-sanity.com/" title="arxiv-sanity" target="_blank">arxiv-sanity</a><ul></ul><a href="https://arxiv.org/" title="arxiv.org" target="_blank">arxiv.org</a></div></div></div><div class="pure-u-1 pure-u-md-3-4"><div id="footer">Copyright © 2021 <a href="/blog/." rel="nofollow">Mr.Feng Blog.</a> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a><a rel="nofollow" target="_blank" href="https://github.com/tufu9441/maupassant-hexo"> Theme</a> by<a rel="nofollow" target="_blank" href="https://github.com/pagecho"> Cho.</a></div></div></div><a class="show" id="rocket" href="#top"></a><script type="text/javascript" src="/blog/js/totop.js?v=0.0.0" async></script><script type="text/javascript" src="//lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js" async></script><script type="text/javascript" src="/blog/js/fancybox.js?v=0.0.0" async></script><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css"><script type="text/x-mathjax-config">MathJax.Hub.Config({
+  tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}
+  });
+</script><script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-MML-AM_CHTML" async></script><script type="text/javascript" src="/blog/js/codeblock-resizer.js?v=0.0.0"></script><script type="text/javascript" src="/blog/js/smartresize.js?v=0.0.0"></script></div></body></html>

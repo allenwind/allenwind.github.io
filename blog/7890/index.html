@@ -1,0 +1,143 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.9.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description" content="你好，世界！"><title>深入理解CNN及其网络架构设计 | Mr.Feng Blog</title><link rel="stylesheet" type="text/css" href="/blog/css/style.css?v=0.0.0"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/normalize/8.0.1/normalize.min.css"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/pure/1.0.0/pure-min.css"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/pure/1.0.0/grids-responsive-min.css"><link rel="stylesheet" href="//lib.baomitu.com/font-awesome/4.7.0/css/font-awesome.min.css"><script type="text/javascript" src="//lib.baomitu.com/jquery/3.4.0/jquery.min.js"></script><link rel="icon" mask sizes="any" href="/blog/favicon.ico"><link rel="Shortcut Icon" type="image/x-icon" href="/blog/favicon.ico"><link rel="apple-touch-icon" href="/blog/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/blog/apple-touch-icon.png"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">深入理解CNN及其网络架构设计</h1><a id="logo" href="/blog/.">Mr.Feng Blog</a><p class="description">NLP、深度学习、机器学习、Python、Go</p></div><div id="nav-menu"><a class="current" href="/blog/."><i class="fa fa-home"> 首页</i></a><a href="/blog/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/blog/about/"><i class="fa fa-user"> 关于</i></a></div></div><div class="pure-g" id="layout"><div class="pure-u-1 pure-u-md-3-4"><div class="content_container"><div class="post"><h1 class="post-title">深入理解CNN及其网络架构设计</h1><div class="post-meta">Nov 27, 2018<span> | </span><span class="category"><a href="/blog/categories/机器学习深度学习/">机器学习深度学习</a></span></div><div class="clear"><div class="toc-article" id="toc"><div class="toc-title">文章目录</div><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#普通卷积"><span class="toc-number">1.</span> <span class="toc-text">普通卷积</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#参数说明"><span class="toc-number">1.1.</span> <span class="toc-text">参数说明</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#输出尺寸计算"><span class="toc-number">1.2.</span> <span class="toc-text">输出尺寸计算</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#卷积核大小"><span class="toc-number">1.3.</span> <span class="toc-text">卷积核大小</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#转置卷积"><span class="toc-number">2.</span> <span class="toc-text">转置卷积</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#膨胀卷积"><span class="toc-number">3.</span> <span class="toc-text">膨胀卷积</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#门卷积"><span class="toc-number">4.</span> <span class="toc-text">门卷积</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#残差结构及其推广"><span class="toc-number">5.</span> <span class="toc-text">残差结构及其推广</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#ResNet"><span class="toc-number">5.1.</span> <span class="toc-text">ResNet</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Highway-Networks"><span class="toc-number">5.2.</span> <span class="toc-text">Highway Networks</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#DenseNet"><span class="toc-number">5.3.</span> <span class="toc-text">DenseNet</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#池化层"><span class="toc-number">6.</span> <span class="toc-text">池化层</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#非参数化池化"><span class="toc-number">6.1.</span> <span class="toc-text">非参数化池化</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#参数化池化"><span class="toc-number">6.2.</span> <span class="toc-text">参数化池化</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#位置信息"><span class="toc-number">7.</span> <span class="toc-text">位置信息</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#CNN在文本上的应用"><span class="toc-number">8.</span> <span class="toc-text">CNN在文本上的应用</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#总结"><span class="toc-number">9.</span> <span class="toc-text">总结</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#参考"><span class="toc-number">10.</span> <span class="toc-text">参考</span></a></li></ol></div></div><div class="post-content"><p>尽管RNN是了不起的设计，但是在实践中，CNN更受青睐，尤其是计算力不够的情况。</p>
+<a id="more"></a>
+<p>在最初学习神经网络时，大家都可能做过MNIST分类任务，使用的模型就是多层感知机（又称为前馈神经网络、全链接网络），然后也得到很好的性能，其实主要是数据集简单。然而，在复杂的任务中，多层感知机存在两个问题：</p>
+<ol>
+<li>参数太多</li>
+<li>难以提取局部不变性特征</li>
+</ol>
+<p>为解决这两个问题，引入卷积神经网络（Convolutional Neural Network， CNN或ConvNet），一种具有局部连接、权重共享等特性的深层前馈神经网络。说白了就是使用卷积运算来替代Dense网络中的矩阵乘法运算。</p>
+<p>CNN具有如下三种特点：</p>
+<ol>
+<li>局部链接（相邻两层的神经元只在指定窗口内存在链接）</li>
+<li>权重共享（滤波器对于指定层的所有的神经元都是相同 ）</li>
+<li>汇聚（起下采样、降维作用）</li>
+</ol>
+<h2 id="普通卷积"><a href="#普通卷积" class="headerlink" title="普通卷积"></a>普通卷积</h2><p>设滤波器长度（大小）为$m$，权重为$[w_1, \dots, w_m]$，它和一个序列类型数据，如时间序列$\boldsymbol{x} = [x_{1}, \dots, x_{n}]$的卷积为，</p>
+<script type="math/tex; mode=display">
+y_{t}=\sum_{k=1}^{m} w_{k} \cdot x_{t-k+1}</script><p>其中$t = 1,2,3,…,n$，$y_{t}$为卷积后的结果。可以看到，卷积运算就是对序列从左到右按固定大小的滑动窗口相乘后求和，和数学中的卷积不同的是计算结果不需要反转，因此也称为互相关（cross-correlation）运算。</p>
+<p>类似地，给定一个图像$\boldsymbol{X} \in \mathbb{R}^{M \times N}$，和滤波器大小为$\boldsymbol{X} \in \mathbb{R}^{m \times n}$，那么卷积结果为，</p>
+<script type="math/tex; mode=display">
+y_{i j}=\sum_{u=1}^{m} \sum_{v=1}^{n} w_{u v} \cdot x_{i-u+1, j-v+1}</script><p>通常情况下，$m \lt M,n \lt N$​。</p>
+<p>它们的互相关为，</p>
+<script type="math/tex; mode=display">
+y_{i j}=\sum_{u=1}^{m} \sum_{v=1}^{n} w_{u v} \cdot x_{i+u-1, j+v-1}</script><p>CNN 可以说是和我们人类处理视觉问题的过程十分相似，从左到右，由上到下去扫描视野中的内容，然后聚焦。</p>
+<p>二维卷积示意图，</p>
+<p><img src="../images/conv2d-demo-1.png" alt></p>
+<h3 id="参数说明"><a href="#参数说明" class="headerlink" title="参数说明"></a>参数说明</h3><p><strong>filters</strong>：滤波器数量，一个滤波器指一个权重独立的卷积核。</p>
+<p><strong>kernel_size</strong>：卷积核大小，一般是奇数组合，如（3,5）方便取整。</p>
+<p><strong>strides</strong>：步长，每次滑动窗口移动的大小，可以成倍减少输出维度。</p>
+<p><strong>data_format</strong>：channels_last (default) or channels_first。</p>
+<p><strong>padding</strong>：”valid”：不处理、不允许超过边界；”causal”：不让看到右边数据；”same”：填充边界使得输出和原理大小一致。</p>
+<p><strong>dilation_rate</strong>：卷积核膨胀率。</p>
+<p>目前的卷积神经网络一般由卷积层、汇聚层（Pooling）和全连接层交叉堆叠而成 。</p>
+<h3 id="输出尺寸计算"><a href="#输出尺寸计算" class="headerlink" title="输出尺寸计算"></a>输出尺寸计算</h3><p>假设输入样本为$n \times n \times 3$，卷积核为$f \times f$，步长为$s$，padding为$p$，那么卷积后输出的尺寸为：</p>
+<script type="math/tex; mode=display">
+m = \lfloor \frac{n + 2p - f}{s}  \rfloor + 1</script><p>注意到是向下取整结果。</p>
+<h3 id="卷积核大小"><a href="#卷积核大小" class="headerlink" title="卷积核大小"></a>卷积核大小</h3><p>卷积核的大小一般是一般是奇数组合，其关乎模型的感受野和模型参数量。在相同感受野情况下，卷积核大小越大，模型的参数就越多，反之则越小。</p>
+<p>对于$1 \times 1$的卷积核则比较特殊，在不改变感受野的情况下，起到对数据的降维或升维作用，即channel的大小的改变。无论是对数据的降维或升维，得到的新输出的每个channel的信息都来自上一层所有channel信息的组合，因此$1 \times 1$的卷积可以让各个channel的信息互相交互。$1 \times 1$卷积本身也是可学习参数，因此模型的复杂度增加，如果该卷积核还配合激活函数使用，可以提升模型的非线性特性，增强拟合能力。</p>
+<p>因此，总结来说，$1\times1$卷积作用大致有三点：</p>
+<ul>
+<li>对数据的降维或升维</li>
+<li>增加非线性（激活函数的存在）</li>
+<li>促进跨channel信息的交互</li>
+</ul>
+<h2 id="转置卷积"><a href="#转置卷积" class="headerlink" title="转置卷积"></a>转置卷积</h2><p>转置卷积也称为反卷积（Deconvolution）   ，可以实现低纬特征到高纬特征的转换。</p>
+<p>考虑普通卷积情况。假设有一个5维的向量$\boldsymbol{x}$，在卷积核$\boldsymbol{w} = [w_1, w_2, w_3]^{\top}$的操作下，获得的3维向量可以表示为，</p>
+<script type="math/tex; mode=display">
+\boldsymbol{y} = \boldsymbol{w} \otimes \boldsymbol{x} = \left[\begin{array}{ccccc}
+w_{1} & w_{2} & w_{3} & 0 & 0 \\
+0 & w_{1} & w_{2} & w_{3} & 0 \\
+0 & 0 & w_{1} & w_{2} & w_{3}
+\end{array}\right] \boldsymbol{x}</script><p>我们另这个矩阵为，</p>
+<script type="math/tex; mode=display">
+\boldsymbol{C} = 
+\left[\begin{array}{ccccc}
+w_{1} & w_{2} & w_{3} & 0 & 0 \\
+0 & w_{1} & w_{2} & w_{3} & 0 \\
+0 & 0 & w_{1} & w_{2} & w_{3}
+\end{array}\right]</script><p>这是一个稀疏矩阵。而转置卷积则是矩阵$\boldsymbol{C}$​​的转置的卷积，</p>
+<script type="math/tex; mode=display">
+\boldsymbol{x} = \boldsymbol{C}^{\top} \boldsymbol{y} = \left[\begin{array}{ccc}
+w_{1} & 0 & 0 \\
+w_{2} & w_{1} & 0 \\
+w_{3} & w_{2} & w_{1} \\
+0 & w_{3} & w_{2} \\
+0 & 0 & w_{3}
+\end{array}\right] \boldsymbol{y}</script><p>因此可以看到，转置卷积实现低纬特征到高纬特征的转换。通常，转置卷积用在生成任务上。</p>
+<h2 id="膨胀卷积"><a href="#膨胀卷积" class="headerlink" title="膨胀卷积"></a>膨胀卷积</h2><p>膨胀卷积也称为空洞卷积，在卷积核中插入空洞以扩大感受野而又不增加参数。其卷积过程可以用下图描述，</p>
+<p><img src="../images/dilated-causla-cnn-layers.png" alt></p>
+<p>膨胀大小一般依次取$r=1, 2, 4, 8, 16, \dots$，通过层堆叠且每层按指数扩大膨胀率来获得长距离依赖。取 dilated rate 为 $2^{n}$​，n 为层数。膨胀卷积适合处理长序列，如传感器的多维时间序列、长文本等等。</p>
+<h2 id="门卷积"><a href="#门卷积" class="headerlink" title="门卷积"></a>门卷积</h2><p>这里可以对比下LSTM中的门机制，</p>
+<script type="math/tex; mode=display">
+\boldsymbol{z} = \tanh(\boldsymbol{X}\boldsymbol{W}_{1} + \boldsymbol{b}_{1}) \otimes \sigma(\boldsymbol{X}\boldsymbol{W}_{2} + \boldsymbol{b}_{2})</script><p>像LSTM模型一样，可以给卷积一个Gate，控制信息的流通</p>
+<script type="math/tex; mode=display">
+\boldsymbol{Y} = \operatorname{Conv}_{1}(\boldsymbol{X}) \otimes \sigma(\operatorname{Conv}_2(\boldsymbol{X}))</script><p>注意上式是两个卷积，超参数一致但不共享权重。这种门机制早在RNN上就存在，只不过把它迁移到CNN上。</p>
+<p>当然不止是CNN可以这么做，其他的网络结构也可以，即，</p>
+<script type="math/tex; mode=display">
+\boldsymbol{Y} = f_{\boldsymbol{W}_{1}}(\boldsymbol{X}) \otimes \sigma(f_{\boldsymbol{W}_{2}}(\boldsymbol{X}))</script><p>Gated ConvNet 来自论文 <a href="https://arxiv.org/abs/1705.03122" target="_blank" rel="noopener">Convolutional Sequence to Sequence Learning</a>。</p>
+<h2 id="残差结构及其推广"><a href="#残差结构及其推广" class="headerlink" title="残差结构及其推广"></a>残差结构及其推广</h2><p>众所周知，残差网络在CNN中相对流行，并有很多扩展。</p>
+<h3 id="ResNet"><a href="#ResNet" class="headerlink" title="ResNet"></a>ResNet</h3><script type="math/tex; mode=display">
+\boldsymbol{Y} = \boldsymbol{X} + f(\boldsymbol{X})</script><p><img src="../images/ResidualDilatedGatedConv1D.png" alt></p>
+<p>如果层$f$使用$\operatorname{relu}(x)$激活函数，那么负数取值会失活，这时通过叠加原来$f$的输入$x$避免神经元进入失活状态，从而解决梯度消失问题。</p>
+<p>结合以上门卷积，我们有残差门卷积，这也是很自然得到的结构，</p>
+<script type="math/tex; mode=display">
+\boldsymbol{Y} =\boldsymbol{X} + \operatorname{Conv}_{1}(\boldsymbol{X}) \otimes \sigma(\operatorname{Conv}_2(\boldsymbol{X}))</script><p>不过要注意两者的维度要一致，如果不一致可以通过一定的形状变换技巧处理为一致。注意到，假如$\sigma(\operatorname{Conv}_2(\boldsymbol{X})) \rightarrow 0$上述结构依旧有信息往下游流动，确保信息没有丢失。因此残差结构不仅仅解决梯度消失问题。</p>
+<p>论文<a href="https://arxiv.org/pdf/1609.03499.pdf" target="_blank" rel="noopener">WAVENET: A GENERATIVE MODEL FOR RAW AUDIO</a>中，把残差结构、膨胀卷积结合起来在生成模型中获得很好的效果。</p>
+<p>以上结构推广开来，有Highway Networks。</p>
+<h3 id="Highway-Networks"><a href="#Highway-Networks" class="headerlink" title="Highway Networks"></a>Highway Networks</h3><p>Highway Networks 的结构，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+\boldsymbol{y} = 
+H(\boldsymbol{x}, \boldsymbol{W_{H}})\cdot T(\boldsymbol{x},\boldsymbol{W_{T}})+
+\boldsymbol{x} \cdot (1-T(\boldsymbol{x}, \boldsymbol{W_{T}}))
+\end{align}</script><p>需要注意以上变量的形状一致。$T$为transform门，可以理解为把信息$x$分为量部分，它们的比例分别是$T(\boldsymbol{x},\boldsymbol{W_{T}})$和$1-T(\boldsymbol{x},\boldsymbol{W_{T}})$，前以部分用于$H(\boldsymbol{x}, \boldsymbol{W_{H}})$，后一部分不加处理保留。可以看到，残差结构为其特例。如果另$T(\boldsymbol{x}, \boldsymbol{W_{T}})=\sigma(\operatorname{Conv}_2(\boldsymbol{X}),H(\boldsymbol{x}, \boldsymbol{W_{H}})=\operatorname{Conv}_{1}(\boldsymbol{X})$，那么有，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+\boldsymbol{y} = 
+\operatorname{Conv}_1(\boldsymbol{X})\cdot \sigma(\operatorname{Conv}_2(\boldsymbol{X}))+
+\boldsymbol{x} \cdot (1-\sigma(\operatorname{Conv}_2(\boldsymbol{X})))
+\end{align}</script><p>这不就是我们熟悉的形式！</p>
+<h3 id="DenseNet"><a href="#DenseNet" class="headerlink" title="DenseNet"></a>DenseNet</h3><p><a href="https://arxiv.org/abs/1608.06993" target="_blank" rel="noopener">DenseNet</a>把所有层以前馈形式连接，从而起到特征重用的可能。DenseNet的缺点是内容不友好。</p>
+<h2 id="池化层"><a href="#池化层" class="headerlink" title="池化层"></a>池化层</h2><p>我一般把池化层分为两大类：</p>
+<ul>
+<li>非参数化池化</li>
+<li>参数化池化</li>
+</ul>
+<h3 id="非参数化池化"><a href="#非参数化池化" class="headerlink" title="非参数化池化"></a>非参数化池化</h3><p>非参数化池化包括SumPooling、AveragePooling、MaxPooling、GlobalAveragePooling、GlobalMaxPooling。在NLP、时间序列等序列类型数据中，考虑序列非定长，池化的时候需要Mask处理。</p>
+<h3 id="参数化池化"><a href="#参数化池化" class="headerlink" title="参数化池化"></a>参数化池化</h3><p>在处理序列数据时，直接使用SumPooling、AveragePooling、MaxPooling、GlobalAveragePooling、GlobalMaxPooling都有点粗暴，容易带来噪声。考虑到池化的目的是汇聚信息（保留关键信息，去掉次要信息，因此也可以理解为特殊的采样方式），这个过程也可以参数化。如何参数化？答案在论文<a href="https://arxiv.org/pdf/1409.0473.pdf" target="_blank" rel="noopener">Neural machine translation by jointly learning to align and translate</a>中，其提到一种加权平均向量序列来获得背景向量的方法，当然这只是基本思路或者说是启发，那么如何计算加权平均的权重呢？很简单，既然是神经网络，那就让权重也自己学习出来就好了。假设有向量序列，注意是向量序列，即每个元素也是向量，</p>
+<script type="math/tex; mode=display">
+\boldsymbol{x} = [\boldsymbol{x}_{1},\dots,\boldsymbol{x}_{n}]</script><p>考虑到不定长的情况存在，如在传感器的多维时序中，不同样本的长度是不一样的。计算权重直接用两个全连接网络，</p>
+<script type="math/tex; mode=display">
+[\alpha_{1}, \dots, \alpha_{n}] = \operatorname{softmax}(\boldsymbol{w}^{\mathsf{T}}\tanh(\boldsymbol{Wx}))</script><p>然后加权平均，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+\operatorname{pool}(\boldsymbol{x}) 
+&= \sum_{i=1}^{n} \alpha_{i}\boldsymbol{x}_{i} \\
+&= \operatorname{softmax}(\boldsymbol{w}^{\mathsf{T}}\tanh(\boldsymbol{Wx})) \boldsymbol{x}
+\end{align}</script><p>如果序列是不定长，处理好掩码问题。我们可以认为，这也是注意力机制的一种，不过没有query，也就是没有主动聚焦的信息点，因此可以把以上方法理解为一种参数化的显著性注意力。为提高信息的整合能力，毕竟把序列变为向量，或多或少会丢失信息。此池化方法甚至可以多头化，即类似于<a href="https://arxiv.org/abs/1706.03762" target="_blank" rel="noopener">Attention Is All You Need</a>中提到的多头注意力，不过要注意过拟合问题。</p>
+<p>需要注意，无论那种Pooling操作，如果数据是时间序列，那么结果肯定是导致位置信息丢失。那么，参数化池化的好处是能够根据下游任务筛选信息。</p>
+<p>在CV中，常见的Pooling还有ROI Pooling（Region of Interest），最早是在论文<a href>Fast R-CNN</a>中提出，用于把相关区域抽出出来。</p>
+<p>如果是文本序列的池化，相关的方法还有很多，后期有空再分享。</p>
+<h2 id="位置信息"><a href="#位置信息" class="headerlink" title="位置信息"></a>位置信息</h2><p>论文<a href="https://arxiv.org/pdf/1705.03122.pdf" target="_blank" rel="noopener">Convolutional Sequence to Sequence Learning</a>在用CNN处理Seq2Seq问题提及Position Embeddings，为向量序列提供位置信息，比较CNN并不能像RNN一样，天然地把位置信息融入到编码序列中。因此，如果使用CNN架构，可以使用Position Embeddings强化位置的概念。</p>
+<p>有趣的是，同样是解决Seq2Seq问题的论文<a href="https://arxiv.org/pdf/1706.03762.pdf" target="_blank" rel="noopener">Attention Is All You Need</a>，提到一种基于Sin、Cos的位置信息的编码方法，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+PE_{pos, 2i} = \sin(\frac{pos}{10000^{\frac{2i}{d}}}) \\
+PE_{pos, 2i+1} = \cos(\frac{pos}{10000^{\frac{2i}{d}}})
+\end{align}</script><p>有了位置向量后，同一个字或词由于其位置不同，那么其向量也是不同。那么，至于Seq2Seq问题，是纯Attention方案好还是CNN+Attention方案好呢？答案交给时间吧。</p>
+<p>此外，还可以使用可学习的位置Embedding，即</p>
+<script type="math/tex; mode=display">
+\widetilde{\boldsymbol{x}}_{i} = \boldsymbol{x}_{i} + \operatorname{Embedding}(i)</script><p>加强CNN的位置感。从另外一个角度看，这种方式增加模型的参数和非线性，加强模型的拟合能力。以上论文提到，通过参数学习的 position embedding 的效果和采用固定的 position embedding 相差无几，不过后者计算量更少。</p>
+<h2 id="CNN在文本上的应用"><a href="#CNN在文本上的应用" class="headerlink" title="CNN在文本上的应用"></a>CNN在文本上的应用</h2><p>CNN、TextCNN、VDCNN、RCNN、DPCNN、DGCNN等模型，后期再展开。在序列建模中，CNN比RNN的优势是并行训练。事实上，CNN在解决NLP问题已经成为标配。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>本文我们讲述了普通卷积、膨胀卷积、门卷积、残差结构以及这些结构的组合等常用CNN网络架构。还包括参数化的池化层以及增强CNN位置感的PositionEmbedding，这些都是CNN模型的应用技巧。</p>
+<p>Wide &amp; Deep融入网络中的深层特征与浅层特征，能够更好地权衡泛化风险与特征挖掘的问题，这也是CNN网络中常见的一种架构之一。此外，还有分组卷积（GroupCNN）、深度可分离卷积等架构，后期有需要再深入。</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p>[1] <a href="https://arxiv.org/pdf/1612.08083.pdf" target="_blank" rel="noopener">Language Modeling with Gated Convolutional Networks</a></p>
+<p>[2] <a href="https://arxiv.org/pdf/1609.03499.pdf" target="_blank" rel="noopener">WAVENET: A GENERATIVE MODEL FOR RAW AUDIO</a></p>
+<p>[3] <a href="https://arxiv.org/pdf/1409.0473.pdf" target="_blank" rel="noopener">Neural machine translation by jointly learning to align and translate</a></p>
+<p>[4] <a href="https://arxiv.org/pdf/1505.00387" target="_blank" rel="noopener">Highway Networks</a></p>
+<p>[5] <a href="http://colah.github.io/posts/2015-08-Understanding-LSTMs/" target="_blank" rel="noopener">http://colah.github.io/posts/2015-08-Understanding-LSTMs/</a></p>
+<p>[6] <a href="https://arxiv.org/abs/1608.06993" target="_blank" rel="noopener">Densely Connected Convolutional Networks</a></p>
+</div><div class="tags"><a href="/blog/tags/CNN/">CNN</a><a href="/blog/tags/卷积/">卷积</a></div><div class="post-nav"><a class="pre" href="/blog/8103/">简述语义匹配的发展</a><a class="next" href="/blog/7832/">深度学习中的参数初始化及其数学分析</a></div></div></div></div><div class="pure-u-1-4 hidden_mid_and_down"><div id="sidebar"><div class="widget"><form class="search-form" action="//www.google.com/search" method="get" accept-charset="utf-8" target="_blank"><input type="text" name="q" maxlength="20" placeholder="Search"><input type="hidden" name="sitesearch" value="http://allenwind.github.io/blog"></form></div><div class="widget"><div class="widget-title"><i class="fa fa-folder-o"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/blog/categories/C-C/">C/C++</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Go/">Go</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Java/">Java</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Linux/">Linux</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/NLP/">NLP</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Python/">Python</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/数学/">数学</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/数据库/">数据库</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/数据结构和算法/">数据结构和算法</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/机器学习深度学习/">机器学习深度学习</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/记录/">记录</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-star-o"> 标签</i></div><div class="tagcloud"><a href="/blog/tags/算法/" style="font-size: 15px;">算法</a> <a href="/blog/tags/C/" style="font-size: 15px;">C</a> <a href="/blog/tags/Python/" style="font-size: 15px;">Python</a> <a href="/blog/tags/设计模式/" style="font-size: 15px;">设计模式</a> <a href="/blog/tags/C语言/" style="font-size: 15px;">C语言</a> <a href="/blog/tags/数据库/" style="font-size: 15px;">数据库</a> <a href="/blog/tags/区块链/" style="font-size: 15px;">区块链</a> <a href="/blog/tags/MySQL/" style="font-size: 15px;">MySQL</a> <a href="/blog/tags/分布式/" style="font-size: 15px;">分布式</a> <a href="/blog/tags/ACID/" style="font-size: 15px;">ACID</a> <a href="/blog/tags/sudo/" style="font-size: 15px;">sudo</a> <a href="/blog/tags/Docker/" style="font-size: 15px;">Docker</a> <a href="/blog/tags/SQL/" style="font-size: 15px;">SQL</a> <a href="/blog/tags/NoSQL/" style="font-size: 15px;">NoSQL</a> <a href="/blog/tags/git/" style="font-size: 15px;">git</a> <a href="/blog/tags/Linux/" style="font-size: 15px;">Linux</a> <a href="/blog/tags/Git/" style="font-size: 15px;">Git</a> <a href="/blog/tags/命令行/" style="font-size: 15px;">命令行</a> <a href="/blog/tags/Systemd/" style="font-size: 15px;">Systemd</a> <a href="/blog/tags/Tensorflow/" style="font-size: 15px;">Tensorflow</a> <a href="/blog/tags/gcc/" style="font-size: 15px;">gcc</a> <a href="/blog/tags/网络/" style="font-size: 15px;">网络</a> <a href="/blog/tags/操作系统/" style="font-size: 15px;">操作系统</a> <a href="/blog/tags/正则表达式/" style="font-size: 15px;">正则表达式</a> <a href="/blog/tags/记录/" style="font-size: 15px;">记录</a> <a href="/blog/tags/数据结构/" style="font-size: 15px;">数据结构</a> <a href="/blog/tags/Go/" style="font-size: 15px;">Go</a> <a href="/blog/tags/go/" style="font-size: 15px;">go</a> <a href="/blog/tags/LRU/" style="font-size: 15px;">LRU</a> <a href="/blog/tags/ARC/" style="font-size: 15px;">ARC</a> <a href="/blog/tags/Java/" style="font-size: 15px;">Java</a> <a href="/blog/tags/搜索引擎/" style="font-size: 15px;">搜索引擎</a> <a href="/blog/tags/剑指Offer/" style="font-size: 15px;">剑指Offer</a> <a href="/blog/tags/函数式/" style="font-size: 15px;">函数式</a> <a href="/blog/tags/Stack/" style="font-size: 15px;">Stack</a> <a href="/blog/tags/并发编程/" style="font-size: 15px;">并发编程</a> <a href="/blog/tags/网络编程/" style="font-size: 15px;">网络编程</a> <a href="/blog/tags/HTTP/" style="font-size: 15px;">HTTP</a> <a href="/blog/tags/并发/" style="font-size: 15px;">并发</a> <a href="/blog/tags/装饰器/" style="font-size: 15px;">装饰器</a> <a href="/blog/tags/Redis/" style="font-size: 15px;">Redis</a> <a href="/blog/tags/数学/" style="font-size: 15px;">数学</a> <a href="/blog/tags/时间序列/" style="font-size: 15px;">时间序列</a> <a href="/blog/tags/投资/" style="font-size: 15px;">投资</a> <a href="/blog/tags/概率/" style="font-size: 15px;">概率</a> <a href="/blog/tags/统计/" style="font-size: 15px;">统计</a> <a href="/blog/tags/信息论/" style="font-size: 15px;">信息论</a> <a href="/blog/tags/度量/" style="font-size: 15px;">度量</a> <a href="/blog/tags/机器学习/" style="font-size: 15px;">机器学习</a> <a href="/blog/tags/贝叶斯/" style="font-size: 15px;">贝叶斯</a> <a href="/blog/tags/最小二乘法/" style="font-size: 15px;">最小二乘法</a> <a href="/blog/tags/分布/" style="font-size: 15px;">分布</a> <a href="/blog/tags/深度学习/" style="font-size: 15px;">深度学习</a> <a href="/blog/tags/变分推断/" style="font-size: 15px;">变分推断</a> <a href="/blog/tags/随机/" style="font-size: 15px;">随机</a> <a href="/blog/tags/不等式/" style="font-size: 15px;">不等式</a> <a href="/blog/tags/采样/" style="font-size: 15px;">采样</a> <a href="/blog/tags/光滑/" style="font-size: 15px;">光滑</a> <a href="/blog/tags/逼近/" style="font-size: 15px;">逼近</a> <a href="/blog/tags/矩阵/" style="font-size: 15px;">矩阵</a> <a href="/blog/tags/交叉验证/" style="font-size: 15px;">交叉验证</a> <a href="/blog/tags/特征工程/" style="font-size: 15px;">特征工程</a> <a href="/blog/tags/集成学习/" style="font-size: 15px;">集成学习</a> <a href="/blog/tags/分类/" style="font-size: 15px;">分类</a> <a href="/blog/tags/证明/" style="font-size: 15px;">证明</a> <a href="/blog/tags/损失函数/" style="font-size: 15px;">损失函数</a> <a href="/blog/tags/回归/" style="font-size: 15px;">回归</a> <a href="/blog/tags/正则化/" style="font-size: 15px;">正则化</a> <a href="/blog/tags/词向量/" style="font-size: 15px;">词向量</a> <a href="/blog/tags/NLP/" style="font-size: 15px;">NLP</a> <a href="/blog/tags/信息/" style="font-size: 15px;">信息</a> <a href="/blog/tags/Embedding/" style="font-size: 15px;">Embedding</a> <a href="/blog/tags/神经网络/" style="font-size: 15px;">神经网络</a> <a href="/blog/tags/Transformer/" style="font-size: 15px;">Transformer</a> <a href="/blog/tags/Attention/" style="font-size: 15px;">Attention</a> <a href="/blog/tags/对抗训练/" style="font-size: 15px;">对抗训练</a> <a href="/blog/tags/文本分类/" style="font-size: 15px;">文本分类</a> <a href="/blog/tags/分词/" style="font-size: 15px;">分词</a> <a href="/blog/tags/并行/" style="font-size: 15px;">并行</a> <a href="/blog/tags/NER/" style="font-size: 15px;">NER</a> <a href="/blog/tags/概率图/" style="font-size: 15px;">概率图</a> <a href="/blog/tags/HMM/" style="font-size: 15px;">HMM</a> <a href="/blog/tags/图/" style="font-size: 15px;">图</a> <a href="/blog/tags/可视化/" style="font-size: 15px;">可视化</a> <a href="/blog/tags/RNN/" style="font-size: 15px;">RNN</a> <a href="/blog/tags/LSTM/" style="font-size: 15px;">LSTM</a> <a href="/blog/tags/梯度/" style="font-size: 15px;">梯度</a> <a href="/blog/tags/注意力/" style="font-size: 15px;">注意力</a> <a href="/blog/tags/序列编码/" style="font-size: 15px;">序列编码</a> <a href="/blog/tags/磁盘故障/" style="font-size: 15px;">磁盘故障</a> <a href="/blog/tags/BERT/" style="font-size: 15px;">BERT</a> <a href="/blog/tags/CNN/" style="font-size: 15px;">CNN</a> <a href="/blog/tags/卷积/" style="font-size: 15px;">卷积</a> <a href="/blog/tags/优化/" style="font-size: 15px;">优化</a> <a href="/blog/tags/调参/" style="font-size: 15px;">调参</a> <a href="/blog/tags/Flask/" style="font-size: 15px;">Flask</a> <a href="/blog/tags/web/" style="font-size: 15px;">web</a> <a href="/blog/tags/socket/" style="font-size: 15px;">socket</a> <a href="/blog/tags/安全/" style="font-size: 15px;">安全</a> <a href="/blog/tags/协程/" style="font-size: 15px;">协程</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-file-o"> 最近文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/blog/16003/">天马行空：设计自己的激活函数</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/15887/">函数光滑近似（4）：Heaviside step函数及其应用</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/15205/">引入参数控制softmax的smooth程度</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/15110/">分析与拓展：多分类模型的输出为什么使用softmax？</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14990/">一种基于光滑逼近的正态分布采样法</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14721/">GELU由来：从狄拉克函数到GELU激活函数</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14465/">Lp范数的上下界分析</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14441/">logsumexp函数分析</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14133/">分析Mish激活函数的设计思路</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/13899/">阿尔法经济学：Shiller模型介绍</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-external-link"> 友情链接</i></div><ul></ul><a href="https://github.com/allenwind" title="My GitHub" target="_blank">My GitHub</a><ul></ul><a href="http://www.arxiv-sanity.com/" title="arxiv-sanity" target="_blank">arxiv-sanity</a><ul></ul><a href="https://arxiv.org/" title="arxiv.org" target="_blank">arxiv.org</a></div></div></div><div class="pure-u-1 pure-u-md-3-4"><div id="footer">Copyright © 2021 <a href="/blog/." rel="nofollow">Mr.Feng Blog.</a> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a><a rel="nofollow" target="_blank" href="https://github.com/tufu9441/maupassant-hexo"> Theme</a> by<a rel="nofollow" target="_blank" href="https://github.com/pagecho"> Cho.</a></div></div></div><a class="show" id="rocket" href="#top"></a><script type="text/javascript" src="/blog/js/totop.js?v=0.0.0" async></script><script type="text/javascript" src="//lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js" async></script><script type="text/javascript" src="/blog/js/fancybox.js?v=0.0.0" async></script><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css"><script type="text/x-mathjax-config">MathJax.Hub.Config({
+  tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}
+  });
+</script><script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-MML-AM_CHTML" async></script><script type="text/javascript" src="/blog/js/codeblock-resizer.js?v=0.0.0"></script><script type="text/javascript" src="/blog/js/smartresize.js?v=0.0.0"></script></div></body></html>

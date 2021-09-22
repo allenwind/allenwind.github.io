@@ -1,0 +1,155 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.9.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description" content="你好，世界！"><title>Transformer中Position Embedding的原理与思考 | Mr.Feng Blog</title><link rel="stylesheet" type="text/css" href="/blog/css/style.css?v=0.0.0"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/normalize/8.0.1/normalize.min.css"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/pure/1.0.0/pure-min.css"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/pure/1.0.0/grids-responsive-min.css"><link rel="stylesheet" href="//lib.baomitu.com/font-awesome/4.7.0/css/font-awesome.min.css"><script type="text/javascript" src="//lib.baomitu.com/jquery/3.4.0/jquery.min.js"></script><link rel="icon" mask sizes="any" href="/blog/favicon.ico"><link rel="Shortcut Icon" type="image/x-icon" href="/blog/favicon.ico"><link rel="apple-touch-icon" href="/blog/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/blog/apple-touch-icon.png"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">Transformer中Position Embedding的原理与思考</h1><a id="logo" href="/blog/.">Mr.Feng Blog</a><p class="description">NLP、深度学习、机器学习、Python、Go</p></div><div id="nav-menu"><a class="current" href="/blog/."><i class="fa fa-home"> 首页</i></a><a href="/blog/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/blog/about/"><i class="fa fa-user"> 关于</i></a></div></div><div class="pure-g" id="layout"><div class="pure-u-1 pure-u-md-3-4"><div class="content_container"><div class="post"><h1 class="post-title">Transformer中Position Embedding的原理与思考</h1><div class="post-meta">Mar 31, 2020<span> | </span><span class="category"><a href="/blog/categories/NLP/">NLP</a></span></div><div class="clear"><div class="toc-article" id="toc"><div class="toc-title">文章目录</div><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Attention的问题"><span class="toc-number">1.</span> <span class="toc-text">Attention的问题</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#位置敏感"><span class="toc-number">2.</span> <span class="toc-text">位置敏感</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#CNN和RNN的位置信息"><span class="toc-number">3.</span> <span class="toc-text">CNN和RNN的位置信息</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#绝对位置编码"><span class="toc-number">4.</span> <span class="toc-text">绝对位置编码</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#可训练的绝对位置编码"><span class="toc-number">4.1.</span> <span class="toc-text">可训练的绝对位置编码</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#sincos绝对位置编码"><span class="toc-number">4.2.</span> <span class="toc-text">sincos绝对位置编码</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#疑问和思考"><span class="toc-number">4.3.</span> <span class="toc-text">疑问和思考</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#相对位置编码"><span class="toc-number">5.</span> <span class="toc-text">相对位置编码</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#总结"><span class="toc-number">6.</span> <span class="toc-text">总结</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#参考"><span class="toc-number">7.</span> <span class="toc-text">参考</span></a></li></ol></div></div><div class="post-content"><p>Transformer模型所依赖的Attention本身不具备像RNN一样的天生的对序列位置编码能力，需要借助所谓的Position Embedding来解决位置信息问题。本文总结常见的Position Embedding方案。</p>
+<a id="more"></a>
+<p>印象中，位置编码这个话题，影响中好像是在Google的论文以及Facebook的论文开始关注这个话题。下面我们先来回顾Google最先提出的Self Attention。</p>
+<h2 id="Attention的问题"><a href="#Attention的问题" class="headerlink" title="Attention的问题"></a>Attention的问题</h2><p>Google 的这篇论文中看到一条挺“吓人”的公式，</p>
+<script type="math/tex; mode=display">
+\operatorname{Attention}(\boldsymbol{Q},\boldsymbol{K},\boldsymbol{V}) =
+ \operatorname{softmax}\left(\frac{\boldsymbol{Q}\boldsymbol{K}^{\top}}{\sqrt{d_k}}\right)\boldsymbol{V}</script><p>由于无法区分token的位置，在Embedding上叠加一个关于位置的Embedding。为什么要这样设计？从模型角度看，可以理解成是模型<strong>去偏置</strong>的设计方法（CNN对数据的局部性假设，RNN对数据的递归生成假设），即Attention不对文本位置等相关信息做任何假设，让模型的某个模块自己去学习。从这点出发，也可以理解，为什么Transformer的训练往往需要很大的数据集。</p>
+<p>Attention层本身不具备区分位置的能力，解决方案：</p>
+<ul>
+<li>提供绝对位置编码，位置信息由给定位置$i$​决定并融入到$\text{token}_i$向量中</li>
+<li>提供相对位置编码，位置信息由$|i-j|$决定，改变Attention结构使其分辨token间的相对位置</li>
+</ul>
+<p>在此之前，我们首先聊聊什么是位置敏感模型？</p>
+<h2 id="位置敏感"><a href="#位置敏感" class="headerlink" title="位置敏感"></a>位置敏感</h2><p>对于模型$f$，如果更好序列的位置后，模型的输出和原来的不同，即</p>
+<script type="math/tex; mode=display">
+f(x_{1}, \dots, x_{i}, x_{j}, \dots, x_{n}) \ne f(x_{1}, \dots,x_{j}, x_{i},  \dots, x_{n})</script><p>那么可以称模型$f$是位置敏感的，像RNN、CNN都是位置敏感。而Attention不是，试设想有序列$[x_{1}, \dots, x_{n}]$，无论其元素的顺序如何改变，输入Attention后并作GlobalMaxPooling所获得的词向量都是一样的。这意味着在分类模型下，shuffle一个句子中的元素，不改变模型的分类结果。这说明，在没有位置信息的情况下Attention、Transformer本质上是一个BOW模型。</p>
+<h2 id="CNN和RNN的位置信息"><a href="#CNN和RNN的位置信息" class="headerlink" title="CNN和RNN的位置信息"></a>CNN和RNN的位置信息</h2><p>RNN本身是递归计算，</p>
+<script type="math/tex; mode=display">
+h_{t} = f(x_{t},h_{t-1})</script><p>如果输入序列的原来的顺序，隐向量序列就改变了。因此递归计算本身就包括位置信息。</p>
+<p>CNN做滑动窗口计算，卷积核为3的情况下</p>
+<script type="math/tex; mode=display">
+h_{t} = f(x_{t-1}, x_{t}, x_{t+1})</script><p>我们都知道词向量本身不具备位置信息，序列自身的位置信息的运用需要特定的模型，如RNN。如果模型本身并不具备序列的位置信息处理能力，那么有什么解决办法？解决方案就是引入位置信息。位置信息又可以分为相对位置编码、绝对位置编码。后者是为输入添加位置信息，前者是在Attention基础上改进，使其具有分别不同token位置差别的能力。</p>
+<p>可以理解，CNN、RNN都具有相对位置信息编码的能力，在NLU任务中，我个人的实验是在这些模型中添加绝对位置信息编码有少许提升。从另外一个角度来说，既然CNN、RNN具有学习位置信息的能力，那么在Attention模块下游接上CNN、RNN，模型则能获得学习位置信息的能力。不过如果选择RNN，Attention天生的并行性就因为递归计算而弱化，得不偿失。</p>
+<p>我们先从绝对位置编码出发。</p>
+<h2 id="绝对位置编码"><a href="#绝对位置编码" class="headerlink" title="绝对位置编码"></a>绝对位置编码</h2><p>假设有词向量序列，其第$i$个为$\boldsymbol{x}_i$，绝对位置编码为一个依赖$i$的函数，其添加所对应位置的词向量上，即</p>
+<script type="math/tex; mode=display">
+\widetilde{\boldsymbol{x}}_{i} = \boldsymbol{x}_{i} + \boldsymbol{p}_{i}</script><p>直观点看，</p>
+<p><img src="../images/position-embedding-demom-1.png" alt></p>
+<p>如果调换了token的位置，该位置的输出由于位置信息的存在就发生改变了，这样Attention就有了间接分辨不同token位置的能力。这样获得的词向量序列就具有位置信息。$\widetilde{\boldsymbol{x}}_{i}$成了新的token序列，输入到Attention模块中，</p>
+<script type="math/tex; mode=display">
+f(x_{1}, \dots, x_{i}, x_{j}, \dots, x_{n}) \ne 
+f(\widetilde{x}_{1}, \dots,\widetilde{x}_{j}, \widetilde{x}_{i},  \dots, \widetilde{x}_{n})</script><p>那么这个$\widetilde{\boldsymbol{x}}_{i}$有哪些计算方法呢？</p>
+<h3 id="可训练的绝对位置编码"><a href="#可训练的绝对位置编码" class="headerlink" title="可训练的绝对位置编码"></a>可训练的绝对位置编码</h3><p>既然万物皆Embedding，那么位置也能Embedding，一种最直接的做法就是对位置编号$i$也使用Embedding，即</p>
+<script type="math/tex; mode=display">
+\widetilde{\boldsymbol{x}}_{i} = \boldsymbol{x}_{i} + \operatorname{Embedding}(i)</script><p>印象中最早是在Facebook的论文<a href="https://arxiv.org/abs/1705.03122" target="_blank" rel="noopener">Convolutional Sequence to Sequence Learning</a>中提出，这种位置编码只能支持有限长度的文本，因为训练Embedding是需要指定input_dim，那么可支持文本的最长长度就固定下来了。可训练的绝对位置编码对于不同的位置$i$​是随机初始化，如同token对应的Embedding一样，因此获得的位置编码本身没有显式的语义。</p>
+<p>尽管在 Facebook 的  <a href="https://arxiv.org/pdf/1705.03122.pdf" target="_blank" rel="noopener">Convolutional Sequence to Sequence Learning</a> 以 CNN 为主，Attention 为辅解决 seq2seq 问题，但Google 则是使用纯 Attention 解决 seq2seq 问题。两者均使用可训练的绝对位置编码得到很好的效果。这说明，位置Embedding在CNN、Attention中都有一定的作用。</p>
+<h3 id="sincos绝对位置编码"><a href="#sincos绝对位置编码" class="headerlink" title="sincos绝对位置编码"></a>sincos绝对位置编码</h3><p>在论文<a href="https://arxiv.org/abs/1706.03762" target="_blank" rel="noopener">Attention Is All You Need</a>提到基于三角函数的绝对位置编码。</p>
+<p>Attention 模型并不能捕捉序列的顺序信息，是对位置不敏感（position-insensitive）的模型，也就是说，如果我们把序列打乱，通过模型获得的结果还是一样的。</p>
+<script type="math/tex; mode=display">
+\widetilde{\boldsymbol{x}}_{i} = \boldsymbol{x}_{i} + \boldsymbol{p}_{i}</script><p>其中$\boldsymbol{p}_{i}$为，</p>
+<script type="math/tex; mode=display">
+\begin{aligned}
+&\boldsymbol{p}_{k,2i}=\sin\Big(k/10000^{2i/d}\Big)\\ 
+&\boldsymbol{p}_{k, 2i+1}=\cos\Big(k/10000^{2i/d}\Big) 
+\end{aligned}</script><p>因为三角函数间可以互相表示，因此可以统一表示为，</p>
+<script type="math/tex; mode=display">
+PE_{p,i} = \sin \Big(\frac{p}{10000^{\frac{2i}{d}}}+
+\frac{\pi}{4}[1+(-1)^{i+1}] \Big)</script><p>sincos绝对位置编码的优势是可以对任意位置$p$编码，没有长度约束。</p>
+<p>Google的论文对这两种位置编码都试验，证明没有明显的差别。论文提到，通过参数学习的 position embedding 的效果和采用固定的 position embedding 相差无几，不过后者计算量更少。</p>
+<p>在我看来，这是放弃 RNN 进行序列编码必然遇到的问题。我们可以可视化位置编码来直观感受，绘图可视化，</p>
+<p><img src="../images/sin-cos-positon-embedding.png" alt></p>
+<p>换个风格再次感受一下，</p>
+<p><img src="../images/sin-cos-position-encoding.png" alt></p>
+<p>Google 提出的 Position Embedding 有一个有趣的性质，位置 $p+k$ 可以由位置 $p$ 线性表示。这里用到高中的三角函数公式，可参考<a href="[https://zh.wikipedia.org/wiki/%E4%B8%89%E8%A7%92%E5%87%BD%E6%95%B0#%E4%B8%89%E8%A7%92%E6%81%92%E7%AD%89%E5%BC%8F](https://zh.wikipedia.org/wiki/三角函数#三角恒等式">这里</a>)。</p>
+<p>正弦余弦公式，</p>
+<script type="math/tex; mode=display">
+\begin{array}{l}
+\sin (\alpha+\beta)=\sin \alpha \cdot \cos \beta+\cos \alpha \cdot \sin \beta \\
+\cos (\alpha+\beta)=\cos \alpha \cdot \cos \beta-\sin \alpha \cdot \sin \beta
+\end{array}</script><p>也就是说位置$\alpha + \beta$的向量可以表示成位置$\alpha$和位置$\beta$​的向量组合，这体现出位置的相对性。</p>
+<p>代入到 Position Embedding 中，为化简表达，另 $\omega_{i}=\frac{1}{1000^{2i/d_{pos}}}$，</p>
+<script type="math/tex; mode=display">
+\begin{array}{l}
+PE_{2i}(p+k)=\sin(\omega_{i}(p+k))= \sin(\omega_i p) \cos(\omega_i k) + \cos(\omega_i p) \sin(\omega_i k) \\
+PE_{2i+1}(p+k)=\cos(\omega_{i}(p+k))= \cos(\omega_i p) \cos(\omega_i k) - \sin(\omega_i p) \sin(\omega_i k)
+\end{array}</script><p>于是可以整理成矩阵形式，</p>
+<script type="math/tex; mode=display">
+\left[\begin{array}{c}
+P E_{2 i}(p + k) \\
+P E_{2 i+1}(p + k)
+\end{array}\right]=\left[\begin{array}{cc}
+\cos(\omega_i k) & \sin(\omega_i k) \\
+-\sin(\omega_i k) & \cos(\omega_i k)
+\end{array}\right] \times\left[\begin{array}{c}
+P E_{2 i}(p) \\
+P E_{2 i+1}(p)
+\end{array}\right]</script><p>因此位置$PE(p + k)$是可以被$PE(p)$​线性表示，以便模型更好地学习位置关系。</p>
+<p>根据三角关系，也容易证明，</p>
+<script type="math/tex; mode=display">
+PE(p+k)PE(p) = PE(p-k)PE(p)</script><p>这就是说明sincos绝对位置编码无法区分前后关系，而文本的方向性在很多任务中都很重要，因此也能理解为什么BERT等Transformer模型不使用该位置编码。</p>
+<h3 id="疑问和思考"><a href="#疑问和思考" class="headerlink" title="疑问和思考"></a>疑问和思考</h3><p>相加可以理解成普通的数值平均，</p>
+<script type="math/tex; mode=display">
+\widetilde{\boldsymbol{x}}_{i} = \frac{\boldsymbol{x}_{i} + \boldsymbol{p}_{i}}{2}</script><p>去掉分母也可以，下游网络会把这个<code>scale</code>学习回来，例如直接添加LayerNormalization模块。类别思考，相加也可以，向量拼接也可以吧？是的，这也是一种扩展思路。</p>
+<p>既然数值平均可以，那么几何平均如何。几何平均的计算如下，</p>
+<script type="math/tex; mode=display">
+\displaystyle \left(\prod _{i=1}^{n}x_{i}\right)^{\frac {1}{n}}={\sqrt[{n}]{x_{1}x_{2}\cdots x_{n}}}</script><p>于是有，</p>
+<script type="math/tex; mode=display">
+\widetilde{\boldsymbol{x}}_{i} = \sqrt{\boldsymbol{x}_{i} \otimes \boldsymbol{p}_{i}}</script><p>甚至我们可以连开方都可以去掉，这样也可以避免$\boldsymbol{x}_{i} \otimes \boldsymbol{p}_{i}$有负元素的情况，</p>
+<script type="math/tex; mode=display">
+\widetilde{\boldsymbol{x}}_{i} = \boldsymbol{x}_{i} \otimes \boldsymbol{p}_{i}</script><p>也就是说相乘，逐位置相乘。当然，这里是我自己推想的，并没有做实验验证。对于下游网络来说，本质就是拟合上游数据，既然逐位置求和可行，那么逐位置相乘也是很自然的类比。</p>
+<p>不管可训练的绝对位置编码，或者是sincos绝对位置编码，还是逐位置相乘绝对位置编码，都是直接叠加到token对应的向量上，这类位置编码的好处是“即插即用”，不会对原来Attention模块进行干预。</p>
+<h2 id="相对位置编码"><a href="#相对位置编码" class="headerlink" title="相对位置编码"></a>相对位置编码</h2><p>相对位置编码则不像绝对位置编码一样直观，需要把Attention模块纳入考虑。所谓的相对位置就是对于两个$\text{token}_i, \text{token}_j$，其位置关系需要二元$(i,j)$来决定转变为由$|i-j|$来决定。而二元关系体现在Attention模块内部，因此现展开Attention模块内部计算来看，尝试能否找到把二元关系$(i,j)$转变为由$|i-j|$。</p>
+<p>Google最初的Attention模块中，对于位置$i$​，Attention模型的输出为，</p>
+<script type="math/tex; mode=display">
+e_{i j}=\frac{\left(x_{i} W^{Q}\right)\left(x_{j} W^{K}\right)^{T}}{\sqrt{d_{z}}} \\
+\alpha_{ij} = \operatorname{softmax}(e_{ij}) \\
+z_i = \sum_{j=1}^{n}\alpha_{ij}\big(x_j W^V  \big)</script><p>这里softmax是对$j$​​​维度进行归一化。其位置信息叠加到$x_i$​​向量内，因此</p>
+<script type="math/tex; mode=display">
+e_{i j}=\frac{\left[(x_{i} + p_{i}) W^{Q}\right]\left[(x_{j} + p_j) W^{K}\right]^{T}}{\sqrt{d_{z}}}</script><p>于是$e_{ij}$的位置信息有二元结构$(i,j)$决定，如何改为由$|i-j|$决定呢？可以看到二元结构$(i,j)$就体现在$x_i, p_j$上。</p>
+<p>为引入相对位置，即把二元关系$(i,j)$转变为由$|i-j|$，在论文<a href="https://arxiv.org/pdf/1803.02155.pdf" target="_blank" rel="noopener">Self-Attention with Relative Position Representations</a>对Attention模型做修改，称为Relation-aware Self-Attention，它做如下修改，</p>
+<script type="math/tex; mode=display">
+e_{i j}=\frac{x_{i} W^{Q}\left(x_{j} W^{K}+{ \color{red} a_{i j}^{K}}\right)^{T}}{\sqrt{d_{z}}} \\
+\alpha_{ij} = \operatorname{softmax}(e_{ij}) \\
+z_i = \sum_{j=1}^{n}\alpha_{ij}\Big(x_j W^V  +{ \color{red} a_{ij}^{V} } \Big)</script><p>引入这两个向量$a_{i j}^{K}$和$a_{i j}^{V}$（红色数学符号）是为了让Attention模型获得相对位置感知。此时还没有体会到位置的相对性，关键就是解决$a_{i j}^{K}$​和$a_{i j}^{V}$​的取值问题，论文的做法是提供$P_V,P_K$​两个矩阵，用于位置的取值检索，有</p>
+<script type="math/tex; mode=display">
+a_{i j}^{K} = P_K[r],\quad r = \operatorname{clip}(i-j, p_{\text{min}}, p_{\text{max}}) \\
+a_{i j}^{V} = P_V[r],\quad r = \operatorname{clip}(i-j, p_{\text{min}}, p_{\text{max}})</script><p>这里$P_K[r]$​​指矩阵$P_K$​​的第$r$​​行，由于$r = \operatorname{clip}(i-j, p_{\text{min}}, p_{\text{max}})$​​​，因此只要$P_K$​​​矩阵的大小有限即可表达任意长度$|i-j|$​​的相对位置。同理，对于矩阵$P_V$。</p>
+<p>此外还有比较知名的相对位置编码：</p>
+<ul>
+<li>Transformer-XL的位置编码</li>
+<li>T5位置编码</li>
+<li>位置编码</li>
+</ul>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>以上我们总结了常见的位置编码方法，总结如下表</p>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th>位置编码</th>
+<th>内容</th>
+<th>优点</th>
+<th>缺点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>绝对位置编码</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>相对位置编码</td>
+<td></td>
+<td>处理任意长度文本；</td>
+<td>对Attention模型往往是入侵式；</td>
+</tr>
+<tr>
+<td>CNN &amp; RNN</td>
+<td></td>
+<td>RNN天然具有处理位置关系的能力；CNN的局部性能够处理局部位置关系。</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>实践中发现CNN模型中加入Position Embedding能够加强模型的位置感，有一定的提升。Position Embedding对文本分类有用吗？</p>
+<p>除了以上位置编码外，学术界的研究还有很多，如Complex 位置编码，引入复数，不过没有深入研究过。</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p>[1] <a href="https://arxiv.org/abs/1803.02155" target="_blank" rel="noopener">Self-Attention with Relative Position Representations</a></p>
+<p>[2] <a href="https://arxiv.org/abs/1705.03122" target="_blank" rel="noopener">Convolutional Sequence to Sequence Learning</a></p>
+<p>[3] <a href="https://arxiv.org/abs/1706.03762" target="_blank" rel="noopener">Attention Is All You Need</a></p>
+<p>转载请包括本文地址：<a href="../11574/">https://allenwind.github.io/blog/11574/</a><br>更多文章请参考：<a href="../archives/">https://allenwind.github.io/blog/archives/</a></p>
+</div><div class="tags"><a href="/blog/tags/Embedding/">Embedding</a><a href="/blog/tags/Transformer/">Transformer</a><a href="/blog/tags/Attention/">Attention</a></div><div class="post-nav"><a class="pre" href="/blog/11637/">备份你的Linux系统</a><a class="next" href="/blog/11548/">Python之通过装饰器来计算代码段执行时间</a></div></div></div></div><div class="pure-u-1-4 hidden_mid_and_down"><div id="sidebar"><div class="widget"><form class="search-form" action="//www.google.com/search" method="get" accept-charset="utf-8" target="_blank"><input type="text" name="q" maxlength="20" placeholder="Search"><input type="hidden" name="sitesearch" value="http://allenwind.github.io/blog"></form></div><div class="widget"><div class="widget-title"><i class="fa fa-folder-o"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/blog/categories/C-C/">C/C++</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Go/">Go</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Java/">Java</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Linux/">Linux</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/NLP/">NLP</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Python/">Python</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/数学/">数学</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/数据库/">数据库</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/数据结构和算法/">数据结构和算法</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/机器学习深度学习/">机器学习深度学习</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/记录/">记录</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-star-o"> 标签</i></div><div class="tagcloud"><a href="/blog/tags/算法/" style="font-size: 15px;">算法</a> <a href="/blog/tags/C/" style="font-size: 15px;">C</a> <a href="/blog/tags/Python/" style="font-size: 15px;">Python</a> <a href="/blog/tags/设计模式/" style="font-size: 15px;">设计模式</a> <a href="/blog/tags/C语言/" style="font-size: 15px;">C语言</a> <a href="/blog/tags/数据库/" style="font-size: 15px;">数据库</a> <a href="/blog/tags/区块链/" style="font-size: 15px;">区块链</a> <a href="/blog/tags/MySQL/" style="font-size: 15px;">MySQL</a> <a href="/blog/tags/分布式/" style="font-size: 15px;">分布式</a> <a href="/blog/tags/ACID/" style="font-size: 15px;">ACID</a> <a href="/blog/tags/sudo/" style="font-size: 15px;">sudo</a> <a href="/blog/tags/Docker/" style="font-size: 15px;">Docker</a> <a href="/blog/tags/SQL/" style="font-size: 15px;">SQL</a> <a href="/blog/tags/NoSQL/" style="font-size: 15px;">NoSQL</a> <a href="/blog/tags/git/" style="font-size: 15px;">git</a> <a href="/blog/tags/Linux/" style="font-size: 15px;">Linux</a> <a href="/blog/tags/Git/" style="font-size: 15px;">Git</a> <a href="/blog/tags/命令行/" style="font-size: 15px;">命令行</a> <a href="/blog/tags/Systemd/" style="font-size: 15px;">Systemd</a> <a href="/blog/tags/Tensorflow/" style="font-size: 15px;">Tensorflow</a> <a href="/blog/tags/gcc/" style="font-size: 15px;">gcc</a> <a href="/blog/tags/网络/" style="font-size: 15px;">网络</a> <a href="/blog/tags/操作系统/" style="font-size: 15px;">操作系统</a> <a href="/blog/tags/正则表达式/" style="font-size: 15px;">正则表达式</a> <a href="/blog/tags/记录/" style="font-size: 15px;">记录</a> <a href="/blog/tags/数据结构/" style="font-size: 15px;">数据结构</a> <a href="/blog/tags/Go/" style="font-size: 15px;">Go</a> <a href="/blog/tags/go/" style="font-size: 15px;">go</a> <a href="/blog/tags/LRU/" style="font-size: 15px;">LRU</a> <a href="/blog/tags/ARC/" style="font-size: 15px;">ARC</a> <a href="/blog/tags/Java/" style="font-size: 15px;">Java</a> <a href="/blog/tags/搜索引擎/" style="font-size: 15px;">搜索引擎</a> <a href="/blog/tags/剑指Offer/" style="font-size: 15px;">剑指Offer</a> <a href="/blog/tags/函数式/" style="font-size: 15px;">函数式</a> <a href="/blog/tags/Stack/" style="font-size: 15px;">Stack</a> <a href="/blog/tags/并发编程/" style="font-size: 15px;">并发编程</a> <a href="/blog/tags/网络编程/" style="font-size: 15px;">网络编程</a> <a href="/blog/tags/HTTP/" style="font-size: 15px;">HTTP</a> <a href="/blog/tags/并发/" style="font-size: 15px;">并发</a> <a href="/blog/tags/装饰器/" style="font-size: 15px;">装饰器</a> <a href="/blog/tags/Redis/" style="font-size: 15px;">Redis</a> <a href="/blog/tags/数学/" style="font-size: 15px;">数学</a> <a href="/blog/tags/时间序列/" style="font-size: 15px;">时间序列</a> <a href="/blog/tags/投资/" style="font-size: 15px;">投资</a> <a href="/blog/tags/概率/" style="font-size: 15px;">概率</a> <a href="/blog/tags/统计/" style="font-size: 15px;">统计</a> <a href="/blog/tags/信息论/" style="font-size: 15px;">信息论</a> <a href="/blog/tags/度量/" style="font-size: 15px;">度量</a> <a href="/blog/tags/机器学习/" style="font-size: 15px;">机器学习</a> <a href="/blog/tags/贝叶斯/" style="font-size: 15px;">贝叶斯</a> <a href="/blog/tags/最小二乘法/" style="font-size: 15px;">最小二乘法</a> <a href="/blog/tags/分布/" style="font-size: 15px;">分布</a> <a href="/blog/tags/深度学习/" style="font-size: 15px;">深度学习</a> <a href="/blog/tags/变分推断/" style="font-size: 15px;">变分推断</a> <a href="/blog/tags/随机/" style="font-size: 15px;">随机</a> <a href="/blog/tags/不等式/" style="font-size: 15px;">不等式</a> <a href="/blog/tags/采样/" style="font-size: 15px;">采样</a> <a href="/blog/tags/光滑/" style="font-size: 15px;">光滑</a> <a href="/blog/tags/逼近/" style="font-size: 15px;">逼近</a> <a href="/blog/tags/矩阵/" style="font-size: 15px;">矩阵</a> <a href="/blog/tags/交叉验证/" style="font-size: 15px;">交叉验证</a> <a href="/blog/tags/特征工程/" style="font-size: 15px;">特征工程</a> <a href="/blog/tags/集成学习/" style="font-size: 15px;">集成学习</a> <a href="/blog/tags/分类/" style="font-size: 15px;">分类</a> <a href="/blog/tags/证明/" style="font-size: 15px;">证明</a> <a href="/blog/tags/损失函数/" style="font-size: 15px;">损失函数</a> <a href="/blog/tags/回归/" style="font-size: 15px;">回归</a> <a href="/blog/tags/正则化/" style="font-size: 15px;">正则化</a> <a href="/blog/tags/词向量/" style="font-size: 15px;">词向量</a> <a href="/blog/tags/NLP/" style="font-size: 15px;">NLP</a> <a href="/blog/tags/信息/" style="font-size: 15px;">信息</a> <a href="/blog/tags/Embedding/" style="font-size: 15px;">Embedding</a> <a href="/blog/tags/神经网络/" style="font-size: 15px;">神经网络</a> <a href="/blog/tags/Transformer/" style="font-size: 15px;">Transformer</a> <a href="/blog/tags/Attention/" style="font-size: 15px;">Attention</a> <a href="/blog/tags/对抗训练/" style="font-size: 15px;">对抗训练</a> <a href="/blog/tags/文本分类/" style="font-size: 15px;">文本分类</a> <a href="/blog/tags/分词/" style="font-size: 15px;">分词</a> <a href="/blog/tags/并行/" style="font-size: 15px;">并行</a> <a href="/blog/tags/NER/" style="font-size: 15px;">NER</a> <a href="/blog/tags/概率图/" style="font-size: 15px;">概率图</a> <a href="/blog/tags/HMM/" style="font-size: 15px;">HMM</a> <a href="/blog/tags/图/" style="font-size: 15px;">图</a> <a href="/blog/tags/可视化/" style="font-size: 15px;">可视化</a> <a href="/blog/tags/RNN/" style="font-size: 15px;">RNN</a> <a href="/blog/tags/LSTM/" style="font-size: 15px;">LSTM</a> <a href="/blog/tags/梯度/" style="font-size: 15px;">梯度</a> <a href="/blog/tags/注意力/" style="font-size: 15px;">注意力</a> <a href="/blog/tags/序列编码/" style="font-size: 15px;">序列编码</a> <a href="/blog/tags/磁盘故障/" style="font-size: 15px;">磁盘故障</a> <a href="/blog/tags/BERT/" style="font-size: 15px;">BERT</a> <a href="/blog/tags/CNN/" style="font-size: 15px;">CNN</a> <a href="/blog/tags/卷积/" style="font-size: 15px;">卷积</a> <a href="/blog/tags/优化/" style="font-size: 15px;">优化</a> <a href="/blog/tags/调参/" style="font-size: 15px;">调参</a> <a href="/blog/tags/Flask/" style="font-size: 15px;">Flask</a> <a href="/blog/tags/web/" style="font-size: 15px;">web</a> <a href="/blog/tags/socket/" style="font-size: 15px;">socket</a> <a href="/blog/tags/安全/" style="font-size: 15px;">安全</a> <a href="/blog/tags/协程/" style="font-size: 15px;">协程</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-file-o"> 最近文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/blog/16003/">天马行空：设计自己的激活函数</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/15887/">函数光滑近似（4）：Heaviside step函数及其应用</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/15205/">引入参数控制softmax的smooth程度</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/15110/">分析与拓展：多分类模型的输出为什么使用softmax？</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14990/">一种基于光滑逼近的正态分布采样法</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14721/">GELU由来：从狄拉克函数到GELU激活函数</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14465/">Lp范数的上下界分析</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14441/">logsumexp函数分析</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14133/">分析Mish激活函数的设计思路</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/13899/">阿尔法经济学：Shiller模型介绍</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-external-link"> 友情链接</i></div><ul></ul><a href="https://github.com/allenwind" title="My GitHub" target="_blank">My GitHub</a><ul></ul><a href="http://www.arxiv-sanity.com/" title="arxiv-sanity" target="_blank">arxiv-sanity</a><ul></ul><a href="https://arxiv.org/" title="arxiv.org" target="_blank">arxiv.org</a></div></div></div><div class="pure-u-1 pure-u-md-3-4"><div id="footer">Copyright © 2021 <a href="/blog/." rel="nofollow">Mr.Feng Blog.</a> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a><a rel="nofollow" target="_blank" href="https://github.com/tufu9441/maupassant-hexo"> Theme</a> by<a rel="nofollow" target="_blank" href="https://github.com/pagecho"> Cho.</a></div></div></div><a class="show" id="rocket" href="#top"></a><script type="text/javascript" src="/blog/js/totop.js?v=0.0.0" async></script><script type="text/javascript" src="//lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js" async></script><script type="text/javascript" src="/blog/js/fancybox.js?v=0.0.0" async></script><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css"><script type="text/x-mathjax-config">MathJax.Hub.Config({
+  tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}
+  });
+</script><script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-MML-AM_CHTML" async></script><script type="text/javascript" src="/blog/js/codeblock-resizer.js?v=0.0.0"></script><script type="text/javascript" src="/blog/js/smartresize.js?v=0.0.0"></script></div></body></html>

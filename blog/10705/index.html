@@ -1,0 +1,252 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.9.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description" content="你好，世界！"><title>从函数光滑近似的角度统一理解激活函数 | Mr.Feng Blog</title><link rel="stylesheet" type="text/css" href="/blog/css/style.css?v=0.0.0"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/normalize/8.0.1/normalize.min.css"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/pure/1.0.0/pure-min.css"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/pure/1.0.0/grids-responsive-min.css"><link rel="stylesheet" href="//lib.baomitu.com/font-awesome/4.7.0/css/font-awesome.min.css"><script type="text/javascript" src="//lib.baomitu.com/jquery/3.4.0/jquery.min.js"></script><link rel="icon" mask sizes="any" href="/blog/favicon.ico"><link rel="Shortcut Icon" type="image/x-icon" href="/blog/favicon.ico"><link rel="apple-touch-icon" href="/blog/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/blog/apple-touch-icon.png"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">从函数光滑近似的角度统一理解激活函数</h1><a id="logo" href="/blog/.">Mr.Feng Blog</a><p class="description">NLP、深度学习、机器学习、Python、Go</p></div><div id="nav-menu"><a class="current" href="/blog/."><i class="fa fa-home"> 首页</i></a><a href="/blog/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/blog/about/"><i class="fa fa-user"> 关于</i></a></div></div><div class="pure-g" id="layout"><div class="pure-u-1 pure-u-md-3-4"><div class="content_container"><div class="post"><h1 class="post-title">从函数光滑近似的角度统一理解激活函数</h1><div class="post-meta">Aug 30, 2019<span> | </span><span class="category"><a href="/blog/categories/机器学习深度学习/">机器学习深度学习</a></span></div><div class="clear"><div class="toc-article" id="toc"><div class="toc-title">文章目录</div><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#关于激活函数"><span class="toc-number">1.</span> <span class="toc-text">关于激活函数</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#逼近0-1函数"><span class="toc-number">2.</span> <span class="toc-text">逼近0-1函数</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#sigmoid"><span class="toc-number">2.1.</span> <span class="toc-text">sigmoid</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#tanh"><span class="toc-number">2.2.</span> <span class="toc-text">tanh</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#softsign"><span class="toc-number">2.3.</span> <span class="toc-text">softsign</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#逼近RELU函数"><span class="toc-number">3.</span> <span class="toc-text">逼近RELU函数</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Noisy-ReLU"><span class="toc-number">3.1.</span> <span class="toc-text">Noisy ReLU</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#ELU-amp-SELU"><span class="toc-number">3.2.</span> <span class="toc-text">ELU &amp; SELU</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Softplus"><span class="toc-number">3.3.</span> <span class="toc-text">Softplus</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Swish"><span class="toc-number">3.4.</span> <span class="toc-text">Swish</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Mish"><span class="toc-number">4.</span> <span class="toc-text">Mish</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#GELU"><span class="toc-number">4.1.</span> <span class="toc-text">GELU</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#自行构造"><span class="toc-number">5.</span> <span class="toc-text">自行构造</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#总结"><span class="toc-number">6.</span> <span class="toc-text">总结</span></a></li></ol></div></div><div class="post-content"><p>神经网络强大的表示能力应该归功于网络模型中的激活函数，深度学习中，很多数学形式其实都是光滑逼近的结果。比如激活函数，sigmoid、swish、gelu、softplus，这里从光滑近似的角度统一理解激活函数。</p>
+<p>更新：Transformer使用的激活函数GELU。</p>
+<a id="more"></a>
+<h2 id="关于激活函数"><a href="#关于激活函数" class="headerlink" title="关于激活函数"></a>关于激活函数</h2><p>神经网络中激活函数的作用：</p>
+<ul>
+<li>输出层，获得概率意义</li>
+<li>中间层，产生非线性</li>
+<li>门机制，如LSTM，信息筛选</li>
+</ul>
+<p>激活函数作为输出层，获得概率意义；作为中间层，产生非线性，这些接下来会谈到。这里简单说说作为门机制的激活函数，比如以下网络模型，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+f(\boldsymbol{x}) 
+&= \operatorname{Dense}(\boldsymbol{x}) \otimes \sigma(\operatorname{Dense}(x)) \\
+&= (\boldsymbol{W}_{1}\boldsymbol{x} + \boldsymbol{b}_{1}) \otimes \sigma((\boldsymbol{W}_{2}\boldsymbol{x} + \boldsymbol{b}_{2}))
+\end{align}</script><p>称为Gated Linear Units (GLU)，这里激活函数$\sigma(x)$​起到门控的作用。整体上看是一种swish形式的门机制。</p>
+<p>激活函数的设计关注如下几点：</p>
+<ul>
+<li>非线性，产生非线性</li>
+<li>光滑性，以便求梯度</li>
+<li>线性区，以便在一定范围内保持输出的均值（0中心）与方差统计特征不漂移</li>
+<li>活性范围，关系到下层和输出</li>
+<li>非饱和性</li>
+<li>计算性能，计算复杂度不能太大</li>
+</ul>
+<p>对于第三点，这里展开说说。所谓的线性区是要求激活函数在自变量$x$​取值一定范围内，满足</p>
+<script type="math/tex; mode=display">
+S(x) \approx x'</script><p>这样，输入$x$和输出$x’$​的均值与方差统计特征的变化不大，以保证网络学习的稳定。</p>
+<p>关于次梯度，例如RELU激活函数在$x=0$​处不可导，那么是不是对于深度学习模型来说就无法进行误差逆向传播优化？</p>
+<p>事实上，在工程上，有一种叫做<strong>次梯度</strong>的解决方案。就以RELU函数为例，当$x \gt 0$时，梯度为1，当$x \lt 0$时梯度为0。而0这个位置不存在梯度，而次梯度即选择$[0, 1]$区间中的任意值。在实现时，一般会选择一个区间内的固定值。</p>
+<h2 id="逼近0-1函数"><a href="#逼近0-1函数" class="headerlink" title="逼近0-1函数"></a>逼近0-1函数</h2><p>Heaviside step函数，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+H(x)
+&= \frac {d}{dx}\max\{0, x\} \newline
+&=
+\begin{cases}
+1,&\;x>0\\
+0,&\;x\leq 0
+\end{cases} 
+\end{align}</script><p>在深度学习中其意义是，如果logit取值为负半轴，则把类别判别为负类（0），如果取值为正半轴，则把类别判别为正类（+1）。另外，从生物学上看，$H(x)$可以直接描述神经元的激活或非激活状态，或者说是一个开关，要么开，要么关。但是$H(x)$并不光滑，对于模型训练来说，寻找其光滑逼近版本相当重要。</p>
+<p>这个取值可以改为$1,-1$​，即，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+H(x)
+&=
+\begin{cases}
++1,&\;x>0\\
+-1,&\;x\leq 0
+\end{cases} 
+\end{align}</script><p>这个函数不可导，模型优化困难。考虑到</p>
+<script type="math/tex; mode=display">
+\displaystyle \operatorname {sign}(x) ={\begin{cases}-1&\;{\text{if }}x<0,\\0&\;{\text{if }}x=0,\\1&\;{\text{if }}x>0.\end{cases}}</script><p>如果规定$H(0) = \frac{1}{2}$，那么有$H(x) = \frac{1}{2}[1 + \operatorname{sign}(x)]$。​</p>
+<p>当$x \ne 0$时，$H(x)$可以用$|x|$表示，</p>
+<script type="math/tex; mode=display">
+H(x)=\frac {x+|x|}{2x}</script><p>根据$H(x)$​的分段特性可以为均匀分布的概率密度函数提供紧凑的表达形式，如下</p>
+<script type="math/tex; mode=display">
+f(x)={\frac {\operatorname {H} (x-a)-\operatorname {H} (x-b)}{b-a}}</script><p>$H(x)$​​本身难计算梯度，其梯度是一个非常特殊的函数狄拉克函数$\delta(x)$​，</p>
+<script type="math/tex; mode=display">
+\delta (x)={\frac {d}{dx}}H(x)</script><p>为此，<strong>应用于深度学习需要其光滑版本</strong>。以sigmoid为首的很多激活函数就是逼近$H(x)$的光滑版本。</p>
+<h3 id="sigmoid"><a href="#sigmoid" class="headerlink" title="sigmoid"></a>sigmoid</h3><p>对$H(x)$​函数的逼近是寻找一个S型函数且区间在$(0, 1)$或$(-1, 1)$，最常见的是$\sigma(x)$函数，</p>
+<script type="math/tex; mode=display">
+f(x)=\sigma(x)=\frac{1}{1 + e^{-x}}</script><p>在<a href="../9998">Sigmoid函数导出的另外一个角度</a>中我们知道，$\sigma(x)$函数来说$\max(x)$的光滑逼近$ \ln(1 + e^x)$的梯度，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+H(x)
+&= \frac {d}{dx}\max\{0, x\} \newline
+&\approx \frac {d}{dx} \ln(1 + e^x) \newline
+&= \frac{e^x}{1 + e^x} \newline
+&= \frac{1}{1 + e^{-x}} \newline
+&= \sigma(x)
+\end{align}</script><p>可以用$\tanh(x)$来表示，</p>
+<script type="math/tex; mode=display">
+\sigma(x) = \frac{1}{2}\left(\tanh \frac{x}{2} + 1\right)</script><p>这两个激活函数都存在当$x$很大时梯度饱和，即接近0。</p>
+<h3 id="tanh"><a href="#tanh" class="headerlink" title="tanh"></a>tanh</h3><p>注意到，$\tanh (x)$可以用$\sigma(x)$表示</p>
+<script type="math/tex; mode=display">
+\tanh (x) = \frac{e^{x}-e^{-x}}{e^{x}+e^{-x}} = 2\sigma(2x) - 1</script><p>是$\sigma(x)$​的一个仿射变换，因此还是S型函数，不过取值区间变为$(-1, 1)$。</p>
+<h3 id="softsign"><a href="#softsign" class="headerlink" title="softsign"></a>softsign</h3><p>softsign激活函数为，</p>
+<script type="math/tex; mode=display">
+\displaystyle f(x)={\frac {x}{1+|x|}}</script><p>该激活函数来自$\operatorname{sign}(x)$的近似，</p>
+<script type="math/tex; mode=display">
+\operatorname{sign}(x) = \frac{x}{|x|}\approx \frac{x}{\beta + |x|} \approx \frac{x}{1 + |x|}</script><p> softsign激活函数可以推广开来，</p>
+<script type="math/tex; mode=display">
+\displaystyle f_k(x)={\frac {x}{(1+|x|^k)^{\frac{1}{k}}}}</script><p>按照类似的思路，有，</p>
+<script type="math/tex; mode=display">
+\operatorname{sign}(x) = \frac{x}{|x|} = \frac{x}{\ln e^{|x|}} \approx \frac{x}{\ln( e^{x} + e^{-x})}</script><p>激活函数用S型函数逼近0-1阶跃函数的好处是在$x$较小时，有</p>
+<script type="math/tex; mode=display">
+S(x) \approx x</script><p>例如$\tanh(x)  \approx x$，这样通过激活函数输出后，均值和方差大致保存不变，这样便于模型的训练和优化。</p>
+<h2 id="逼近RELU函数"><a href="#逼近RELU函数" class="headerlink" title="逼近RELU函数"></a>逼近RELU函数</h2><p>RELU函数，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+\operatorname{relu}(x) 
+&= \max(0, x) \newline
+&= x \times H(x) \newline
+&=\left\{\begin{array}{ll}{0} & {\text { for } x \leq 0} \\ {x} & {\text { for } x>0}\end{array}\right.
+\end{align}</script><p>从神经元的角度看，RELU激活函数描述两种状态：</p>
+<ul>
+<li>非激活状态，即负半轴</li>
+<li>激活状态的激活程度，即正半轴，且不具有饱和性</li>
+</ul>
+<p>用一句话来说就是单边抑制宽兴奋边界，这是有<strong>生物学合理性</strong>。但是从数学角度看，RELU的定义非光滑，不利于优化。</p>
+<p>RELU激活函数的图形呈现无上界有下界，但有一个严重的问题，即死区，当网络输出值在负半轴时，非激活状态一直延续到后层。解决方案有：</p>
+<ul>
+<li>平滑RELU，平滑$H(x)$或平滑整体$x \times H(x)$，也就是寻找$\max(0, x)$的光滑版本，如果是前者，则寻找一个S型函数逼近即可。</li>
+<li>分段化RELU，使其负半轴取值不为0</li>
+</ul>
+<p>简而言之，如果找到$H(x)$的光滑逼近函数，那么也就找到$\operatorname{relu}(x)$的光滑逼近；如果找到$\max(0, x)$的光滑逼近，那么也找到$\operatorname{relu}(x)$​​的光滑。</p>
+<p>RELU改进应该满足一下几点：</p>
+<ul>
+<li>平滑RELU的函数应该连续可导</li>
+<li>平滑RELU的函数<strong>负半轴应该非单调，以便增加非线性</strong></li>
+<li>平滑RELU的函数，在$x$​较小时，$R_s(x) \approx x$</li>
+</ul>
+<p>RELU改进方案：</p>
+<ul>
+<li>Noisy ReLU</li>
+<li>Softplus</li>
+<li>ELU</li>
+<li>SELU</li>
+<li>GELU</li>
+</ul>
+<p>下面我们来谈谈它们的设计思路。</p>
+<h3 id="Noisy-ReLU"><a href="#Noisy-ReLU" class="headerlink" title="Noisy ReLU"></a>Noisy ReLU</h3><p>考虑添加噪声</p>
+<script type="math/tex; mode=display">
+f(x)=\max(0,x+Y), \quad Y\sim {\mathcal {N}}(0,\sigma^2)</script><p>这个激活函数的出发点是增加鲁棒性。</p>
+<h3 id="ELU-amp-SELU"><a href="#ELU-amp-SELU" class="headerlink" title="ELU &amp; SELU"></a>ELU &amp; SELU</h3><p>改变RELU死区问题的一个思路是分段化，负半轴通过一定技巧避免其取值为0，常见有ELU函数，</p>
+<script type="math/tex; mode=display">
+f(\alpha, x)=\left\{\begin{array}{ll}{\alpha\left(e^{x}-1\right)} & {\text { for } x \leq 0} \\ {x} & {\text { for } x>0}\end{array}\right.</script><p>其中 $\alpha \ge 0$​ 。</p>
+<p>SELU函数，</p>
+<script type="math/tex; mode=display">
+\begin{array}{ll}{f(x, \alpha)=\lambda\left\{\begin{array}{ll}{\alpha\left(e^{x}-1\right)} & {\text { for } x<0} \\ {x} & {\text { for } x \geq 0}\end{array}\right.} \\ \end{array}</script><p>其中$\lambda=1.0507,\alpha=1.67326$​​ ，这两个参数用来微调ELU激活函数。SELU激活函数来自论文<a href="https://arxiv.org/abs/1706.02515" target="_blank" rel="noopener">Self-Normalizing Neural Networks</a>。论文提到该激活函数不使用Normalization手段能够自动归一化。</p>
+<h3 id="Softplus"><a href="#Softplus" class="headerlink" title="Softplus"></a>Softplus</h3><p>Softplus函数为，</p>
+<script type="math/tex; mode=display">
+\displaystyle f(x)=\ln(1+e^{x})</script><p>我们都知道Logsumexp是max的光滑近似，</p>
+<script type="math/tex; mode=display">
+\begin{align}\underset{\alpha \rightarrow \infty}{\lim} \frac{1}{\alpha} \log( \sum_{i=1}^{n}e^{\alpha x_{i}}) = \max(x_{1},\dots,x_{n})\end{align}</script><p>因此取$n=2, x_1 = x, x_2 = 0,  \alpha=1$​有，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+\operatorname{relu}(x) 
+&= \max\{0, x \} \newline
+&\le \ln( 1 + e^{x})
+\end{align}</script><p><strong>因为是 RELU 的光滑化版本，故称为 SmoothReLU。这里Logsumexp可以认为是Softplus的推广。</strong></p>
+<p>此外，还有积分思路，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+\operatorname{relu}(x)
+&= \left\{\begin{array}{ll}{0} & {\text { for } x \leq 0} \\ {x} & {\text { for } x>0}\end{array}\right. \newline
+&= \max\{0, x\} \newline
+&= \int_{-\infty}^{x} H(x) \; dx \newline
+&\approx \int_{-\infty}^{x} \frac{1}{1 + e^{-2kx}} \; dx \newline 
+&= \frac{1}{2k} \ln( 1 + e^{2kx})
+\end{align}</script><p>取$k=\frac{1}{2}$​得Softplus函数。Softplus激活函数是单调的，负半轴无法提供更多的非线性功能。</p>
+<h3 id="Swish"><a href="#Swish" class="headerlink" title="Swish"></a>Swish</h3><p>过去的一篇文章<a href="../9999/">Google的激活函数Swish是怎么设计出来的？</a>也分析过Swish的导出，可参看。Swish函数为，</p>
+<script type="math/tex; mode=display">
+f(x) = x\sigma(x)</script><p>$\sigma(x)$可以看做是一个门，控制$x$​​的输出。易知，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+\operatorname{relu}(x) 
+&= \max\{0, x \} \newline
+&= x \times H(x)
+\end{align}</script><p>然后注意到Heaviside step函数$H(x)$可以用$\tanh(x)$逼近，即，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+H(x)
+&= \frac {d}{dx}\max\{0, x\} \newline
+&=
+\begin{cases}
+1,&\;x>0\\
+0,&\;x\leq 0
+\end{cases} \newline
+&\approx \frac{1}{2} + \frac{1}{2} \tanh(kx) \newline
+&= \frac{1}{1 + e^{-2kx}}
+\end{align}</script><p>我们取$k=\frac{1}{2}$​，有基于$H(x)$​光滑逼近的$\operatorname{relu}(x) $​近似，</p>
+<script type="math/tex; mode=display">
+\operatorname{relu}(x)  \approx \frac{x}{1 + e^{-x}} = x \sigma(x)</script><h2 id="Mish"><a href="#Mish" class="headerlink" title="Mish"></a>Mish</h2><p>后面的文章更新了Mish激活函数的分析，见<a href="../14133">Mish激活函数的设计思路</a>。</p>
+<h3 id="GELU"><a href="#GELU" class="headerlink" title="GELU"></a>GELU</h3><p><a href="https://arxiv.org/pdf/1606.08415.pdf" target="_blank" rel="noopener">GELU</a>，全称为Gaussian Error Linear Unit，也算是RELU的变种。对比一下和RELU的区别，</p>
+<p><img src="../images/gelu-vs-relu-1.png" alt></p>
+<p>首先我们知道误差函数$\operatorname{erf}(x)$，</p>
+<script type="math/tex; mode=display">
+\operatorname{erf}(x) = \frac{1}{\sqrt{\pi}}\int_{-x}^{x}e^{-t^{2}}dt = \frac{2}{\sqrt{\pi}}\int_{0}^{x}e^{-t^{2}}dt</script><p>是一个像logistics函数图像一样的函数，易证$\operatorname{erf}(\frac{x}{\sqrt{2}}) \in (-1, 1)$​​，函数图像如下，</p>
+<p><img src="../images/math-erf-image-1.png" alt></p>
+<p>可以变换到$(0, 1)$​​区间，即$\frac{1}{2} \Big[  1 + \operatorname{erf}(\frac{x}{\sqrt{2}})  \Big]$​​，是$H(x)$的光滑近似。有趣的是，标准正态分布的累积分布函数可以用$\operatorname{erf}(x)$​​表示，</p>
+<script type="math/tex; mode=display">
+\Phi(x) = \frac{1}{\sqrt{2 \pi}} \int_{-\infty}^{x} e^{\frac{-t^2}{2}} dt = \frac{1}{2} \Big(  1 + \operatorname{erf}(\frac{x}{\sqrt{2}})  \Big) \in (0, 1)</script><p>GELU可以由标准正态分布的累积分布函数表示，</p>
+<script type="math/tex; mode=display">
+\operatorname{GELU}(x)=x P(X \leq x)=x \Phi(x)</script><p>因此有，</p>
+<script type="math/tex; mode=display">
+\operatorname{GELU}(x) \approx \frac{x}{2}\left[1 + \text{erf}\left(\frac{x}{\sqrt{2}}\right)\right]</script><p>由于$\frac{1}{2} \Big[  1 + \operatorname{erf}(\frac{x}{\sqrt{2}})  \Big]$​，是$H(x)$​​的光滑近似，于是有，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+\operatorname{relu}(x) 
+&= \max\{0, x \} \newline
+&= x \times H(x) \newline
+&\approx x \times \frac{1}{2} \Big[  1 + \operatorname{erf}(\frac{x}{\sqrt{2}})  \Big] \newline
+&= x \Phi(x) \newline
+&= \operatorname{GELU}(x)
+\end{align}</script><p>论文<a href="https://arxiv.org/abs/1606.08415" target="_blank" rel="noopener">Gaussian Error Linear Units (GELUs)</a>中还有如下结论近似$\operatorname{GELU}(x)$，</p>
+<script type="math/tex; mode=display">
+\operatorname{GELU}(x) \approx \frac{x}{2}  \left[1 + \tanh\left(\sqrt{\frac{2}{\pi}}\left(x + 0.044715 x^3\right)\right)\right]</script><p>测试该函数可以用<code>scipy.special.erf</code>，有些框架并没有提供该函数则会使用近似。也就有，</p>
+<script type="math/tex; mode=display">
+\operatorname{erf}(\frac{x}{\sqrt{2}}) \approx  \tanh \left[ \sqrt{\frac{2}{\pi}} (x +  0.044715x^3)\right]</script><p>其实该近似挺符合我们的数学直觉，$\operatorname{erf}(\frac{x}{\sqrt{2}})$本身是S型函数，$\tanh(x)$也是S型函数，因此，</p>
+<script type="math/tex; mode=display">
+\tanh(ax + bx^3)</script><p>形式的函数也是S型函数，通过$a,b$参数控制S形状可以逼近$\operatorname{erf}(\frac{x}{\sqrt{2}})$​​。</p>
+<h2 id="自行构造"><a href="#自行构造" class="headerlink" title="自行构造"></a>自行构造</h2><p>光滑近似的构造是相当灵活的，可以自行构造。例如根据</p>
+<script type="math/tex; mode=display">
+|x-y| \approx \sqrt{(x-y)^2 + \alpha}</script><p>有，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+\max(x,y)
+&= \frac{|x+y|+|x-y|}{2} \newline
+&= \frac{1}{2}\Big((x + y) + \sqrt{ (x - y)^2}   \Big) \newline
+&\approx \frac{1}{2}\Big((x + y) + \sqrt{ (x - y)^2 + \alpha}   \Big) ,\quad \alpha \to 0
+\end{align}</script><p>于是relu激活函数有近似，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+\operatorname{relu}(x) 
+&= \max(0, x) \newline
+&\approx \frac{1}{2}\Big(x + \sqrt{ x^2 + \alpha}   \Big)
+\end{align}</script><p>这里$\alpha \to 0$取等号，实践中可以取$\alpha = 0.01$​。​</p>
+<p>类似地，考虑$|x| \approx \sqrt{x^2 + \alpha}$，有​</p>
+<script type="math/tex; mode=display">
+\begin{align}
+H(x)
+&=
+\begin{cases}
+1,&\;x>0\\
+0,&\;x\leq 0
+\end{cases} \newline
+&=
+\begin{cases}
+\frac{1}{2}\big(\frac{x}{|x|} + 1\big),&\;x \ne 0\\
+0,&\;x = 0
+\end{cases} \newline
+&\approx \frac{1}{2}\Big(\frac{x}{\sqrt{x^2 + \alpha}} + 1\Big)
+\end{align}</script><p>其中$\alpha$​是一个可以小的数，如$\alpha = 0.1$​​。可视化图像如下，</p>
+<p><img src="../images/relu-self-create-approx.png" alt></p>
+<p>考虑到$\operatorname{relu}(x) = x \times H(x)$，只要找到$H(x)$的光滑近似，自然就有$\operatorname{relu}(x)$的光滑近似。因此，也有，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+\operatorname{relu}(x) 
+&= x \times H(x) \newline
+&\approx \frac{x}{2}\Big(\frac{x}{\sqrt{x^2 + \alpha}} + 1\Big)
+\end{align}</script><p>诸如此类，等等。</p>
+<p>补充：更多自行设计激活函数的思路可看最新文章<a href="../16003">天马行空：设计自己的激活函数</a>。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>本文从光滑近似的角度统一理解激活函数。函数光滑近似能够创造更多的性能优良的激活函数。</p>
+<p>sigmoid类激活函数的本质是平滑$H(x)$，relu类函数的本质是平滑$\operatorname{relu}(x) = x \times H(x)$。​</p>
+<p>对$\operatorname{relu}(x) = \max(0, x) = x \times H(x)$​的光滑近似能够创造更多的激活函数，光滑近似思路有两种，平滑$H(x)$​或平滑整体$x \times H(x)$​​，如果是前者，则寻找一个S型函数逼近即可，不同的逼近方式获得不同的激活函数。</p>
+<p>转载请包括本文地址：<a href="../10705">https://allenwind.github.io/blog/10705</a><br>更多文章请参考：<a href="../archives/">https://allenwind.github.io/blog/archives/</a></p>
+</div><div class="tags"><a href="/blog/tags/数学/">数学</a><a href="/blog/tags/逼近/">逼近</a></div><div class="post-nav"><a class="pre" href="/blog/10997/">列出集合的所有子集的numpy实现</a><a class="next" href="/blog/10660/">磁盘故障预测思路和有关论文（更新）</a></div></div></div></div><div class="pure-u-1-4 hidden_mid_and_down"><div id="sidebar"><div class="widget"><form class="search-form" action="//www.google.com/search" method="get" accept-charset="utf-8" target="_blank"><input type="text" name="q" maxlength="20" placeholder="Search"><input type="hidden" name="sitesearch" value="http://allenwind.github.io/blog"></form></div><div class="widget"><div class="widget-title"><i class="fa fa-folder-o"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/blog/categories/C-C/">C/C++</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Go/">Go</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Java/">Java</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Linux/">Linux</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/NLP/">NLP</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Python/">Python</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/数学/">数学</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/数据库/">数据库</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/数据结构和算法/">数据结构和算法</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/机器学习深度学习/">机器学习深度学习</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/记录/">记录</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-star-o"> 标签</i></div><div class="tagcloud"><a href="/blog/tags/算法/" style="font-size: 15px;">算法</a> <a href="/blog/tags/C/" style="font-size: 15px;">C</a> <a href="/blog/tags/Python/" style="font-size: 15px;">Python</a> <a href="/blog/tags/设计模式/" style="font-size: 15px;">设计模式</a> <a href="/blog/tags/C语言/" style="font-size: 15px;">C语言</a> <a href="/blog/tags/数据库/" style="font-size: 15px;">数据库</a> <a href="/blog/tags/区块链/" style="font-size: 15px;">区块链</a> <a href="/blog/tags/MySQL/" style="font-size: 15px;">MySQL</a> <a href="/blog/tags/分布式/" style="font-size: 15px;">分布式</a> <a href="/blog/tags/ACID/" style="font-size: 15px;">ACID</a> <a href="/blog/tags/sudo/" style="font-size: 15px;">sudo</a> <a href="/blog/tags/Docker/" style="font-size: 15px;">Docker</a> <a href="/blog/tags/SQL/" style="font-size: 15px;">SQL</a> <a href="/blog/tags/NoSQL/" style="font-size: 15px;">NoSQL</a> <a href="/blog/tags/git/" style="font-size: 15px;">git</a> <a href="/blog/tags/Linux/" style="font-size: 15px;">Linux</a> <a href="/blog/tags/Git/" style="font-size: 15px;">Git</a> <a href="/blog/tags/命令行/" style="font-size: 15px;">命令行</a> <a href="/blog/tags/Systemd/" style="font-size: 15px;">Systemd</a> <a href="/blog/tags/Tensorflow/" style="font-size: 15px;">Tensorflow</a> <a href="/blog/tags/gcc/" style="font-size: 15px;">gcc</a> <a href="/blog/tags/网络/" style="font-size: 15px;">网络</a> <a href="/blog/tags/操作系统/" style="font-size: 15px;">操作系统</a> <a href="/blog/tags/正则表达式/" style="font-size: 15px;">正则表达式</a> <a href="/blog/tags/记录/" style="font-size: 15px;">记录</a> <a href="/blog/tags/数据结构/" style="font-size: 15px;">数据结构</a> <a href="/blog/tags/Go/" style="font-size: 15px;">Go</a> <a href="/blog/tags/go/" style="font-size: 15px;">go</a> <a href="/blog/tags/LRU/" style="font-size: 15px;">LRU</a> <a href="/blog/tags/ARC/" style="font-size: 15px;">ARC</a> <a href="/blog/tags/Java/" style="font-size: 15px;">Java</a> <a href="/blog/tags/搜索引擎/" style="font-size: 15px;">搜索引擎</a> <a href="/blog/tags/剑指Offer/" style="font-size: 15px;">剑指Offer</a> <a href="/blog/tags/函数式/" style="font-size: 15px;">函数式</a> <a href="/blog/tags/Stack/" style="font-size: 15px;">Stack</a> <a href="/blog/tags/并发编程/" style="font-size: 15px;">并发编程</a> <a href="/blog/tags/网络编程/" style="font-size: 15px;">网络编程</a> <a href="/blog/tags/HTTP/" style="font-size: 15px;">HTTP</a> <a href="/blog/tags/并发/" style="font-size: 15px;">并发</a> <a href="/blog/tags/装饰器/" style="font-size: 15px;">装饰器</a> <a href="/blog/tags/Redis/" style="font-size: 15px;">Redis</a> <a href="/blog/tags/数学/" style="font-size: 15px;">数学</a> <a href="/blog/tags/时间序列/" style="font-size: 15px;">时间序列</a> <a href="/blog/tags/投资/" style="font-size: 15px;">投资</a> <a href="/blog/tags/概率/" style="font-size: 15px;">概率</a> <a href="/blog/tags/统计/" style="font-size: 15px;">统计</a> <a href="/blog/tags/信息论/" style="font-size: 15px;">信息论</a> <a href="/blog/tags/度量/" style="font-size: 15px;">度量</a> <a href="/blog/tags/机器学习/" style="font-size: 15px;">机器学习</a> <a href="/blog/tags/贝叶斯/" style="font-size: 15px;">贝叶斯</a> <a href="/blog/tags/最小二乘法/" style="font-size: 15px;">最小二乘法</a> <a href="/blog/tags/分布/" style="font-size: 15px;">分布</a> <a href="/blog/tags/深度学习/" style="font-size: 15px;">深度学习</a> <a href="/blog/tags/变分推断/" style="font-size: 15px;">变分推断</a> <a href="/blog/tags/随机/" style="font-size: 15px;">随机</a> <a href="/blog/tags/不等式/" style="font-size: 15px;">不等式</a> <a href="/blog/tags/采样/" style="font-size: 15px;">采样</a> <a href="/blog/tags/光滑/" style="font-size: 15px;">光滑</a> <a href="/blog/tags/逼近/" style="font-size: 15px;">逼近</a> <a href="/blog/tags/矩阵/" style="font-size: 15px;">矩阵</a> <a href="/blog/tags/交叉验证/" style="font-size: 15px;">交叉验证</a> <a href="/blog/tags/特征工程/" style="font-size: 15px;">特征工程</a> <a href="/blog/tags/集成学习/" style="font-size: 15px;">集成学习</a> <a href="/blog/tags/分类/" style="font-size: 15px;">分类</a> <a href="/blog/tags/证明/" style="font-size: 15px;">证明</a> <a href="/blog/tags/损失函数/" style="font-size: 15px;">损失函数</a> <a href="/blog/tags/回归/" style="font-size: 15px;">回归</a> <a href="/blog/tags/正则化/" style="font-size: 15px;">正则化</a> <a href="/blog/tags/词向量/" style="font-size: 15px;">词向量</a> <a href="/blog/tags/NLP/" style="font-size: 15px;">NLP</a> <a href="/blog/tags/信息/" style="font-size: 15px;">信息</a> <a href="/blog/tags/Embedding/" style="font-size: 15px;">Embedding</a> <a href="/blog/tags/神经网络/" style="font-size: 15px;">神经网络</a> <a href="/blog/tags/Transformer/" style="font-size: 15px;">Transformer</a> <a href="/blog/tags/Attention/" style="font-size: 15px;">Attention</a> <a href="/blog/tags/对抗训练/" style="font-size: 15px;">对抗训练</a> <a href="/blog/tags/文本分类/" style="font-size: 15px;">文本分类</a> <a href="/blog/tags/分词/" style="font-size: 15px;">分词</a> <a href="/blog/tags/并行/" style="font-size: 15px;">并行</a> <a href="/blog/tags/NER/" style="font-size: 15px;">NER</a> <a href="/blog/tags/概率图/" style="font-size: 15px;">概率图</a> <a href="/blog/tags/HMM/" style="font-size: 15px;">HMM</a> <a href="/blog/tags/图/" style="font-size: 15px;">图</a> <a href="/blog/tags/可视化/" style="font-size: 15px;">可视化</a> <a href="/blog/tags/RNN/" style="font-size: 15px;">RNN</a> <a href="/blog/tags/LSTM/" style="font-size: 15px;">LSTM</a> <a href="/blog/tags/梯度/" style="font-size: 15px;">梯度</a> <a href="/blog/tags/注意力/" style="font-size: 15px;">注意力</a> <a href="/blog/tags/序列编码/" style="font-size: 15px;">序列编码</a> <a href="/blog/tags/磁盘故障/" style="font-size: 15px;">磁盘故障</a> <a href="/blog/tags/BERT/" style="font-size: 15px;">BERT</a> <a href="/blog/tags/CNN/" style="font-size: 15px;">CNN</a> <a href="/blog/tags/卷积/" style="font-size: 15px;">卷积</a> <a href="/blog/tags/优化/" style="font-size: 15px;">优化</a> <a href="/blog/tags/调参/" style="font-size: 15px;">调参</a> <a href="/blog/tags/Flask/" style="font-size: 15px;">Flask</a> <a href="/blog/tags/web/" style="font-size: 15px;">web</a> <a href="/blog/tags/socket/" style="font-size: 15px;">socket</a> <a href="/blog/tags/安全/" style="font-size: 15px;">安全</a> <a href="/blog/tags/协程/" style="font-size: 15px;">协程</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-file-o"> 最近文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/blog/16003/">天马行空：设计自己的激活函数</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/15887/">函数光滑近似（4）：Heaviside step函数及其应用</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/15205/">引入参数控制softmax的smooth程度</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/15110/">分析与拓展：多分类模型的输出为什么使用softmax？</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14990/">一种基于光滑逼近的正态分布采样法</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14721/">GELU由来：从狄拉克函数到GELU激活函数</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14465/">Lp范数的上下界分析</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14441/">logsumexp函数分析</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14133/">分析Mish激活函数的设计思路</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/13899/">阿尔法经济学：Shiller模型介绍</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-external-link"> 友情链接</i></div><ul></ul><a href="https://github.com/allenwind" title="My GitHub" target="_blank">My GitHub</a><ul></ul><a href="http://www.arxiv-sanity.com/" title="arxiv-sanity" target="_blank">arxiv-sanity</a><ul></ul><a href="https://arxiv.org/" title="arxiv.org" target="_blank">arxiv.org</a></div></div></div><div class="pure-u-1 pure-u-md-3-4"><div id="footer">Copyright © 2021 <a href="/blog/." rel="nofollow">Mr.Feng Blog.</a> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a><a rel="nofollow" target="_blank" href="https://github.com/tufu9441/maupassant-hexo"> Theme</a> by<a rel="nofollow" target="_blank" href="https://github.com/pagecho"> Cho.</a></div></div></div><a class="show" id="rocket" href="#top"></a><script type="text/javascript" src="/blog/js/totop.js?v=0.0.0" async></script><script type="text/javascript" src="//lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js" async></script><script type="text/javascript" src="/blog/js/fancybox.js?v=0.0.0" async></script><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css"><script type="text/x-mathjax-config">MathJax.Hub.Config({
+  tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}
+  });
+</script><script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-MML-AM_CHTML" async></script><script type="text/javascript" src="/blog/js/codeblock-resizer.js?v=0.0.0"></script><script type="text/javascript" src="/blog/js/smartresize.js?v=0.0.0"></script></div></body></html>

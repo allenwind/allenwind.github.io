@@ -1,0 +1,124 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.9.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description" content="你好，世界！"><title>最大熵原理、最大熵约束与概率分布 | Mr.Feng Blog</title><link rel="stylesheet" type="text/css" href="/blog/css/style.css?v=0.0.0"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/normalize/8.0.1/normalize.min.css"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/pure/1.0.0/pure-min.css"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/pure/1.0.0/grids-responsive-min.css"><link rel="stylesheet" href="//lib.baomitu.com/font-awesome/4.7.0/css/font-awesome.min.css"><script type="text/javascript" src="//lib.baomitu.com/jquery/3.4.0/jquery.min.js"></script><link rel="icon" mask sizes="any" href="/blog/favicon.ico"><link rel="Shortcut Icon" type="image/x-icon" href="/blog/favicon.ico"><link rel="apple-touch-icon" href="/blog/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/blog/apple-touch-icon.png"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">最大熵原理、最大熵约束与概率分布</h1><a id="logo" href="/blog/.">Mr.Feng Blog</a><p class="description">NLP、深度学习、机器学习、Python、Go</p></div><div id="nav-menu"><a class="current" href="/blog/."><i class="fa fa-home"> 首页</i></a><a href="/blog/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/blog/about/"><i class="fa fa-user"> 关于</i></a></div></div><div class="pure-g" id="layout"><div class="pure-u-1 pure-u-md-3-4"><div class="content_container"><div class="post"><h1 class="post-title">最大熵原理、最大熵约束与概率分布</h1><div class="post-meta">Sep 3, 2018<span> | </span><span class="category"><a href="/blog/categories/数学/">数学</a></span></div><div class="clear"><div class="toc-article" id="toc"><div class="toc-title">文章目录</div><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#最大熵原理"><span class="toc-number">1.</span> <span class="toc-text">最大熵原理</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#最大熵与正态分布"><span class="toc-number">2.</span> <span class="toc-text">最大熵与正态分布</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#最大熵与均匀分布"><span class="toc-number">3.</span> <span class="toc-text">最大熵与均匀分布</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#最大熵与指数分布"><span class="toc-number">4.</span> <span class="toc-text">最大熵与指数分布</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#最大熵与拉普拉斯分布"><span class="toc-number">5.</span> <span class="toc-text">最大熵与拉普拉斯分布</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#总结"><span class="toc-number">6.</span> <span class="toc-text">总结</span></a></li></ol></div></div><div class="post-content"><p>本文讲最大熵原理，并从最大熵约束角度导出常见概率分布。</p>
+<a id="more"></a>
+<p>在处理未知概率分布时，我们常常假设满足观察条件下熵为最大的概率分布，该分布称为最大熵分布。</p>
+<h2 id="最大熵原理"><a href="#最大熵原理" class="headerlink" title="最大熵原理"></a>最大熵原理</h2><p>最大熵原理就是说在未知的事情面前，我们选择不确定性最大的那一个。这样做意味着我们不引入任何假设，承认自己除了已经观察到的信息外，对其事情无知。简而言之：自知无知！</p>
+<p>反过来想，如果我们不承认无知，而是对其引入假设（假设不是观察信息），如果正确，那对我们建模当然有用，如果错误，只会偏离正确结果更远，那么我们如何保证我们的假设是正确的。这样一来，引入假设反而有风险，既然如此，还不如不做假设，自知无知更好！然后，满足这样条件的分布还是有很多，最大熵原理则认为熵最大的分布最好，</p>
+<script type="math/tex; mode=display">
+\max_{p \in \mathbb{P}} H[p] =\max_{p \in \mathbb{P}} -\int p(x) \log p(x)\, dx</script><p>例如一颗骰子在面前，对各个点数 $\Omega = {1, 2, 3, 4, 5, 6}$，那么每颗骰子点数出现的概率是多数呢？由于没有更多信息，这里不做任何假设，自知无知。认为每个点数等可能出现是最优的做法。于是有，</p>
+<script type="math/tex; mode=display">
+p(x) = \frac{1}{|\Omega|} = \frac{1}{6}</script><p>有未知分布$p(x)$​​，其具体形式和参数都不知道，但是我们有了一些观察信息$r_i(x)$，可以使用期望来表示，</p>
+<script type="math/tex; mode=display">
+E\Big[r_i(x) \Big] = \int_{\Omega} p(x)r_{i}(x) dx = \alpha_{i}</script><p>其中，$1 \le i \le m$​，这些信息是可以通过试验获得。例如通过采样估计均值，也就是$r(x) = x$，</p>
+<script type="math/tex; mode=display">
+\int_{\Omega} x p(x) dx = \mu</script><p>通过采样估计二价矩，也就是$r(x) = x^2$，</p>
+<script type="math/tex; mode=display">
+\int_{\Omega} x^{2} p(x) dx = m_{2}</script><p>或者更实际的方差，也就是$r(x) = (x - \mu)^2$，</p>
+<script type="math/tex; mode=display">
+\int_{\Omega} (x-\mu)^{2} p(x) dx = \sigma^{2}</script><p>这些观察信息对于优化问题来说就是<strong>约束</strong>，即未知概率分布必须满足的条件。</p>
+<p>根据最大熵原理，我们期望$p(x)$在满足约束下熵最大，于是有如下优化问题，</p>
+<script type="math/tex; mode=display">
+\begin{align} 
+\max_{p \in \mathbb{P}} H[p]
+&=-\int p(x) \log p(x)\, dx \\
+\operatorname{s.t.} \;
+&
+\begin{cases}
+p(x) \ge 0 \\
+\int_{\Omega} p(x) dx = 1 \\
+\int_{\Omega} p(x)r_{i}(x) dx = \alpha_{i}\; \text{for}\; 1 \le i \le m
+\end{cases}
+\end{align}</script><p>其中$r_{i}(x)$均为矩约束条件，如一价矩（均值）、二价矩（方差）等等。该优化问题其实就是求在满足矩约束条件下，求解熵最大的概率密度函数。这并不是一个普通的数值优化问题，因为变量是未知的函数。不过在数学上有泛函分析和变分法来处理。当函数作为变量时的优化问题，可以参考有关资料（keyword：Euler-Lagrange Equation、拉格朗日泛函）。</p>
+<p>为求解以上优化问题，构造如下泛函，</p>
+<script type="math/tex; mode=display">
+J(p) = -\int p(x) \log p(x) + \lambda_{0}\int p + \sum_{i=1}^{m}\lambda_{i}\int p r_{i}</script><p>根据变分法，对泛函$J(p)$求关于$p$的泛函导数，</p>
+<script type="math/tex; mode=display">
+\frac{\partial J(p)}{\partial p} = -\log p(x) - 1 + \lambda_{0} + \sum_{i=1}^{m}\lambda_{i}r_{i}(x)</script><p>另上式取零，求得$p(x)$，</p>
+<script type="math/tex; mode=display">
+p(x) = \exp \Big(\lambda_{0} - 1 + \sum_{i=1}^{m}\lambda_{i}r_{i}(x) \Big)</script><p>参数$\lambda_{i}$可以代入到原约束中求解，</p>
+<script type="math/tex; mode=display">
+\int_{\Omega} p(x)r_{i}(x) dx = \alpha_{i}</script><p>考虑概率密度的归一性，以上形式可以转化为，</p>
+<script type="math/tex; mode=display">
+p(x) = \frac{1}{Z}\exp \Big[ \sum_{i=1}^{m}\lambda_{i}r_{i}(x)\Big]</script><p>其中，</p>
+<script type="math/tex; mode=display">
+Z = \sum_{x \in \Omega}\exp\Big[ \sum_{i=1}^{m}\lambda_{i}r_{i}(x) \Big]</script><p>常数$Z$确保$\int_{\Omega} p(x) dx = 1$。连续型概率与离散型概率的推导过程一致。</p>
+<p>根据最大熵原理的思路，我们就可以导出很大常见的分布。</p>
+<h2 id="最大熵与正态分布"><a href="#最大熵与正态分布" class="headerlink" title="最大熵与正态分布"></a>最大熵与正态分布</h2><p>考虑未知具体形式的概率密度$p(x)$​，假设已知方差$\sigma^{2}$​与均值$\mu$​，求解最大熵分布。已知方差和均值相当于约束分别为$r_{1}(x) = x$​和$r_{2} (x) = (x-\mu)^2$​。​为了更好理解以上过程，这里我们不直接套用以上结论，而是沿着结论的思路再推导一遍，</p>
+<p>该未知分布$p(x)$的熵有，</p>
+<script type="math/tex; mode=display">
+H[p]=-\int_{\Omega} p(x) \log p(x) d x</script><p>约束有，</p>
+<script type="math/tex; mode=display">
+\int_{\Omega} r_1(x) p(x) dx = \mu \\
+\int_{\Omega} r_2(x) p(x) dx = \sigma^2</script><p>于是有拉格朗日函数，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+L(p, \lambda)
+&=\int _{-\infty }^{\infty }p(x)\log p(x)\,dx
+-\lambda_{1}\left(1-\int _{-\infty }^{\infty }p(x)\,dx\right)
+-\lambda_2 \left(\mu
+-\int _{-\infty }^{\infty }p(x)x\,dx\right)
+-\lambda_3 \left(\sigma ^{2}
+-\int _{-\infty }^{\infty }p(x)(x-\mu )^{2}\,dx\right) \newline
+&= \lambda_{1}\left(\int p(x) d x-1\right)+\lambda_{2}(\mathbb{E}[x]-\mu)+\lambda_{3}\left(\mathbb{E}\left[(x-\mu)^{2}\right]-\sigma^{2}\right)+H[p] \newline
+&= \int\left[\lambda_{1} p(x)+\lambda_{2} p(x) x+\lambda_{3} p(x)(x-\mu)^{2}-p(x) \log p(x)\right] d x-\lambda_{1}-\mu \lambda_{2}-\sigma^{2} \lambda_{3}
+\end{align}</script><p>另上式等于零，解得形式，</p>
+<script type="math/tex; mode=display">
+p(x)=\exp \Big(\lambda_{1}+\lambda_{2} x+\lambda_{3}(x-\mu)^{2}-1\Big)</script><p>根据概率密度的归一性，代入到方差$\sigma^{2}$​与均值$\mu$​的约束中，解得，</p>
+<script type="math/tex; mode=display">
+\displaystyle p(x,\mu ,\sigma )={\frac {1}{\sqrt {2\pi \sigma ^{2}}}}e^{-{\frac {(x-\mu )^{2}}{2\sigma ^{2}}}}</script><p>也就是说，在已知方差和均值情况下，熵最大的分布为正态分布。此时，我们知道正态分布的熵为，</p>
+<script type="math/tex; mode=display">
+H[N(\mu, \sigma^{2})] = \displaystyle {\frac {1}{2}}\log(2\pi e\sigma ^{2})</script><h2 id="最大熵与均匀分布"><a href="#最大熵与均匀分布" class="headerlink" title="最大熵与均匀分布"></a>最大熵与均匀分布</h2><p>在没有矩约束即$r_{i}(x)=0$的情况下，概率密度的形式，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+p(x) 
+&= C\exp \Big[\sum_{i=1}^{m}\lambda_{i}r_{i}(x) \Big] \\
+&= C
+\end{align}</script><p>考虑归一性有，</p>
+<script type="math/tex; mode=display">
+p(x) = \frac{1}{|\Omega|}</script><p>例如骰子，$\Omega = {1, 2, 3, 4, 5, 6}$，让熵最大的分布为均匀分布，此时，</p>
+<script type="math/tex; mode=display">
+p(x) = \frac{1}{6}</script><p>于是，我们就可以理解，在贝叶斯统计中，在什么都不知道的情况下，选择均匀分布作为先验分布的原因了。假如我们在大街上捡到一枚硬币，为让熵最大，我们承认自己无知（不知道它是不是普通硬币还是做过手脚的硬币），认为这枚硬币正反两面的概率都一样。</p>
+<h2 id="最大熵与指数分布"><a href="#最大熵与指数分布" class="headerlink" title="最大熵与指数分布"></a>最大熵与指数分布</h2><p>指数分布是考虑约束，</p>
+<script type="math/tex; mode=display">
+r_1(x) = \operatorname {E} (x)=\frac {1}{\lambda }</script><p>其实$x \in [0, +\infty)$。由于只有约束$r(x) = x$​，那么代入最大熵分布有，</p>
+<script type="math/tex; mode=display">
+p(x) = \frac{1}{Z} \exp(-\lambda x)</script><p>处理好归一问题后，有，</p>
+<script type="math/tex; mode=display">
+p(x) = \frac{1}{\lambda} \exp(-\lambda x)</script><h2 id="最大熵与拉普拉斯分布"><a href="#最大熵与拉普拉斯分布" class="headerlink" title="最大熵与拉普拉斯分布"></a>最大熵与拉普拉斯分布</h2><p>考虑$x \in (- \infty, + \infty)$，且满足约束条件，</p>
+<script type="math/tex; mode=display">
+r_1(x) = \operatorname {E} (|x-\mu |)=b</script><p>代入最大熵分布，且归一化分布，得，</p>
+<script type="math/tex; mode=display">
+f(x)={\frac {1}{2b}}\exp \left(-{\frac {|x-\mu |}{b}}\right)</script><p>这些求解本质上是代入后求积分，根据归一化特点求出未知参数$\lambda_i$。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>从信息论角度看，某个具体的概率分布是给定取值约束（最大熵约束）条件下，熵最大的解。总结有下表，</p>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th>概率分布</th>
+<th>最大熵约束</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>均匀分布</td>
+<td>随机变量的均值方差<strong>未知</strong></td>
+</tr>
+<tr>
+<td>指数分布</td>
+<td>已知随机变量的均值</td>
+</tr>
+<tr>
+<td>拉普拉斯分布</td>
+<td>已知随机变量的<strong>绝对值</strong>的均值（平均绝对误差）</td>
+</tr>
+<tr>
+<td>正态分布</td>
+<td>已知随机变量的均值和方差</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>转载请包括本文地址：<a href="../6708">https://allenwind.github.io/blog/6708</a><br>更多文章请参考：<a href="../archives/">https://allenwind.github.io/blog/archives/</a></p>
+</div><div class="tags"><a href="/blog/tags/数学/">数学</a><a href="/blog/tags/概率/">概率</a></div><div class="post-nav"><a class="pre" href="/blog/6756/">频率学派与贝叶斯学派之争</a><a class="next" href="/blog/6699/">漫谈“熵”</a></div></div></div></div><div class="pure-u-1-4 hidden_mid_and_down"><div id="sidebar"><div class="widget"><form class="search-form" action="//www.google.com/search" method="get" accept-charset="utf-8" target="_blank"><input type="text" name="q" maxlength="20" placeholder="Search"><input type="hidden" name="sitesearch" value="http://allenwind.github.io/blog"></form></div><div class="widget"><div class="widget-title"><i class="fa fa-folder-o"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/blog/categories/C-C/">C/C++</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Go/">Go</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Java/">Java</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Linux/">Linux</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/NLP/">NLP</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Python/">Python</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/数学/">数学</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/数据库/">数据库</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/数据结构和算法/">数据结构和算法</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/机器学习深度学习/">机器学习深度学习</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/记录/">记录</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-star-o"> 标签</i></div><div class="tagcloud"><a href="/blog/tags/算法/" style="font-size: 15px;">算法</a> <a href="/blog/tags/C/" style="font-size: 15px;">C</a> <a href="/blog/tags/Python/" style="font-size: 15px;">Python</a> <a href="/blog/tags/设计模式/" style="font-size: 15px;">设计模式</a> <a href="/blog/tags/C语言/" style="font-size: 15px;">C语言</a> <a href="/blog/tags/数据库/" style="font-size: 15px;">数据库</a> <a href="/blog/tags/区块链/" style="font-size: 15px;">区块链</a> <a href="/blog/tags/MySQL/" style="font-size: 15px;">MySQL</a> <a href="/blog/tags/分布式/" style="font-size: 15px;">分布式</a> <a href="/blog/tags/ACID/" style="font-size: 15px;">ACID</a> <a href="/blog/tags/sudo/" style="font-size: 15px;">sudo</a> <a href="/blog/tags/Docker/" style="font-size: 15px;">Docker</a> <a href="/blog/tags/SQL/" style="font-size: 15px;">SQL</a> <a href="/blog/tags/NoSQL/" style="font-size: 15px;">NoSQL</a> <a href="/blog/tags/git/" style="font-size: 15px;">git</a> <a href="/blog/tags/Linux/" style="font-size: 15px;">Linux</a> <a href="/blog/tags/Git/" style="font-size: 15px;">Git</a> <a href="/blog/tags/命令行/" style="font-size: 15px;">命令行</a> <a href="/blog/tags/Systemd/" style="font-size: 15px;">Systemd</a> <a href="/blog/tags/Tensorflow/" style="font-size: 15px;">Tensorflow</a> <a href="/blog/tags/gcc/" style="font-size: 15px;">gcc</a> <a href="/blog/tags/网络/" style="font-size: 15px;">网络</a> <a href="/blog/tags/操作系统/" style="font-size: 15px;">操作系统</a> <a href="/blog/tags/正则表达式/" style="font-size: 15px;">正则表达式</a> <a href="/blog/tags/记录/" style="font-size: 15px;">记录</a> <a href="/blog/tags/数据结构/" style="font-size: 15px;">数据结构</a> <a href="/blog/tags/Go/" style="font-size: 15px;">Go</a> <a href="/blog/tags/go/" style="font-size: 15px;">go</a> <a href="/blog/tags/LRU/" style="font-size: 15px;">LRU</a> <a href="/blog/tags/ARC/" style="font-size: 15px;">ARC</a> <a href="/blog/tags/Java/" style="font-size: 15px;">Java</a> <a href="/blog/tags/搜索引擎/" style="font-size: 15px;">搜索引擎</a> <a href="/blog/tags/剑指Offer/" style="font-size: 15px;">剑指Offer</a> <a href="/blog/tags/函数式/" style="font-size: 15px;">函数式</a> <a href="/blog/tags/Stack/" style="font-size: 15px;">Stack</a> <a href="/blog/tags/并发编程/" style="font-size: 15px;">并发编程</a> <a href="/blog/tags/网络编程/" style="font-size: 15px;">网络编程</a> <a href="/blog/tags/HTTP/" style="font-size: 15px;">HTTP</a> <a href="/blog/tags/并发/" style="font-size: 15px;">并发</a> <a href="/blog/tags/装饰器/" style="font-size: 15px;">装饰器</a> <a href="/blog/tags/Redis/" style="font-size: 15px;">Redis</a> <a href="/blog/tags/数学/" style="font-size: 15px;">数学</a> <a href="/blog/tags/时间序列/" style="font-size: 15px;">时间序列</a> <a href="/blog/tags/投资/" style="font-size: 15px;">投资</a> <a href="/blog/tags/概率/" style="font-size: 15px;">概率</a> <a href="/blog/tags/统计/" style="font-size: 15px;">统计</a> <a href="/blog/tags/信息论/" style="font-size: 15px;">信息论</a> <a href="/blog/tags/度量/" style="font-size: 15px;">度量</a> <a href="/blog/tags/机器学习/" style="font-size: 15px;">机器学习</a> <a href="/blog/tags/贝叶斯/" style="font-size: 15px;">贝叶斯</a> <a href="/blog/tags/最小二乘法/" style="font-size: 15px;">最小二乘法</a> <a href="/blog/tags/分布/" style="font-size: 15px;">分布</a> <a href="/blog/tags/深度学习/" style="font-size: 15px;">深度学习</a> <a href="/blog/tags/变分推断/" style="font-size: 15px;">变分推断</a> <a href="/blog/tags/随机/" style="font-size: 15px;">随机</a> <a href="/blog/tags/不等式/" style="font-size: 15px;">不等式</a> <a href="/blog/tags/采样/" style="font-size: 15px;">采样</a> <a href="/blog/tags/光滑/" style="font-size: 15px;">光滑</a> <a href="/blog/tags/逼近/" style="font-size: 15px;">逼近</a> <a href="/blog/tags/矩阵/" style="font-size: 15px;">矩阵</a> <a href="/blog/tags/交叉验证/" style="font-size: 15px;">交叉验证</a> <a href="/blog/tags/特征工程/" style="font-size: 15px;">特征工程</a> <a href="/blog/tags/集成学习/" style="font-size: 15px;">集成学习</a> <a href="/blog/tags/分类/" style="font-size: 15px;">分类</a> <a href="/blog/tags/证明/" style="font-size: 15px;">证明</a> <a href="/blog/tags/损失函数/" style="font-size: 15px;">损失函数</a> <a href="/blog/tags/回归/" style="font-size: 15px;">回归</a> <a href="/blog/tags/正则化/" style="font-size: 15px;">正则化</a> <a href="/blog/tags/词向量/" style="font-size: 15px;">词向量</a> <a href="/blog/tags/NLP/" style="font-size: 15px;">NLP</a> <a href="/blog/tags/信息/" style="font-size: 15px;">信息</a> <a href="/blog/tags/Embedding/" style="font-size: 15px;">Embedding</a> <a href="/blog/tags/神经网络/" style="font-size: 15px;">神经网络</a> <a href="/blog/tags/Transformer/" style="font-size: 15px;">Transformer</a> <a href="/blog/tags/Attention/" style="font-size: 15px;">Attention</a> <a href="/blog/tags/对抗训练/" style="font-size: 15px;">对抗训练</a> <a href="/blog/tags/文本分类/" style="font-size: 15px;">文本分类</a> <a href="/blog/tags/分词/" style="font-size: 15px;">分词</a> <a href="/blog/tags/并行/" style="font-size: 15px;">并行</a> <a href="/blog/tags/NER/" style="font-size: 15px;">NER</a> <a href="/blog/tags/概率图/" style="font-size: 15px;">概率图</a> <a href="/blog/tags/HMM/" style="font-size: 15px;">HMM</a> <a href="/blog/tags/图/" style="font-size: 15px;">图</a> <a href="/blog/tags/可视化/" style="font-size: 15px;">可视化</a> <a href="/blog/tags/RNN/" style="font-size: 15px;">RNN</a> <a href="/blog/tags/LSTM/" style="font-size: 15px;">LSTM</a> <a href="/blog/tags/梯度/" style="font-size: 15px;">梯度</a> <a href="/blog/tags/注意力/" style="font-size: 15px;">注意力</a> <a href="/blog/tags/序列编码/" style="font-size: 15px;">序列编码</a> <a href="/blog/tags/磁盘故障/" style="font-size: 15px;">磁盘故障</a> <a href="/blog/tags/BERT/" style="font-size: 15px;">BERT</a> <a href="/blog/tags/CNN/" style="font-size: 15px;">CNN</a> <a href="/blog/tags/卷积/" style="font-size: 15px;">卷积</a> <a href="/blog/tags/优化/" style="font-size: 15px;">优化</a> <a href="/blog/tags/调参/" style="font-size: 15px;">调参</a> <a href="/blog/tags/Flask/" style="font-size: 15px;">Flask</a> <a href="/blog/tags/web/" style="font-size: 15px;">web</a> <a href="/blog/tags/socket/" style="font-size: 15px;">socket</a> <a href="/blog/tags/安全/" style="font-size: 15px;">安全</a> <a href="/blog/tags/协程/" style="font-size: 15px;">协程</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-file-o"> 最近文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/blog/16003/">天马行空：设计自己的激活函数</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/15887/">函数光滑近似（4）：Heaviside step函数及其应用</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/15205/">引入参数控制softmax的smooth程度</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/15110/">分析与拓展：多分类模型的输出为什么使用softmax？</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14990/">一种基于光滑逼近的正态分布采样法</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14721/">GELU由来：从狄拉克函数到GELU激活函数</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14465/">Lp范数的上下界分析</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14441/">logsumexp函数分析</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14133/">分析Mish激活函数的设计思路</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/13899/">阿尔法经济学：Shiller模型介绍</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-external-link"> 友情链接</i></div><ul></ul><a href="https://github.com/allenwind" title="My GitHub" target="_blank">My GitHub</a><ul></ul><a href="http://www.arxiv-sanity.com/" title="arxiv-sanity" target="_blank">arxiv-sanity</a><ul></ul><a href="https://arxiv.org/" title="arxiv.org" target="_blank">arxiv.org</a></div></div></div><div class="pure-u-1 pure-u-md-3-4"><div id="footer">Copyright © 2021 <a href="/blog/." rel="nofollow">Mr.Feng Blog.</a> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a><a rel="nofollow" target="_blank" href="https://github.com/tufu9441/maupassant-hexo"> Theme</a> by<a rel="nofollow" target="_blank" href="https://github.com/pagecho"> Cho.</a></div></div></div><a class="show" id="rocket" href="#top"></a><script type="text/javascript" src="/blog/js/totop.js?v=0.0.0" async></script><script type="text/javascript" src="//lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js" async></script><script type="text/javascript" src="/blog/js/fancybox.js?v=0.0.0" async></script><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css"><script type="text/x-mathjax-config">MathJax.Hub.Config({
+  tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}
+  });
+</script><script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-MML-AM_CHTML" async></script><script type="text/javascript" src="/blog/js/codeblock-resizer.js?v=0.0.0"></script><script type="text/javascript" src="/blog/js/smartresize.js?v=0.0.0"></script></div></body></html>

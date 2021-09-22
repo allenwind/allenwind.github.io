@@ -1,0 +1,220 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.9.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description" content="你好，世界！"><title>概率图模型系列（3）：隐马尔可夫模型（HMM） | Mr.Feng Blog</title><link rel="stylesheet" type="text/css" href="/blog/css/style.css?v=0.0.0"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/normalize/8.0.1/normalize.min.css"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/pure/1.0.0/pure-min.css"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/pure/1.0.0/grids-responsive-min.css"><link rel="stylesheet" href="//lib.baomitu.com/font-awesome/4.7.0/css/font-awesome.min.css"><script type="text/javascript" src="//lib.baomitu.com/jquery/3.4.0/jquery.min.js"></script><link rel="icon" mask sizes="any" href="/blog/favicon.ico"><link rel="Shortcut Icon" type="image/x-icon" href="/blog/favicon.ico"><link rel="apple-touch-icon" href="/blog/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/blog/apple-touch-icon.png"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">概率图模型系列（3）：隐马尔可夫模型（HMM）</h1><a id="logo" href="/blog/.">Mr.Feng Blog</a><p class="description">NLP、深度学习、机器学习、Python、Go</p></div><div id="nav-menu"><a class="current" href="/blog/."><i class="fa fa-home"> 首页</i></a><a href="/blog/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/blog/about/"><i class="fa fa-user"> 关于</i></a></div></div><div class="pure-g" id="layout"><div class="pure-u-1 pure-u-md-3-4"><div class="content_container"><div class="post"><h1 class="post-title">概率图模型系列（3）：隐马尔可夫模型（HMM）</h1><div class="post-meta">Nov 7, 2018<span> | </span><span class="category"><a href="/blog/categories/机器学习深度学习/">机器学习深度学习</a></span></div><div class="clear"><div class="toc-article" id="toc"><div class="toc-title">文章目录</div><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#HMM及其参数描述"><span class="toc-number">1.</span> <span class="toc-text">HMM及其参数描述</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#HMM的概率化描述"><span class="toc-number">2.</span> <span class="toc-text">HMM的概率化描述</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#HMM四个基本问题"><span class="toc-number">3.</span> <span class="toc-text">HMM四个基本问题</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#采样和生成"><span class="toc-number">4.</span> <span class="toc-text">采样和生成</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#观察序列概率计算"><span class="toc-number">5.</span> <span class="toc-text">观察序列概率计算</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#直接计算"><span class="toc-number">5.1.</span> <span class="toc-text">直接计算</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#间接计算"><span class="toc-number">5.2.</span> <span class="toc-text">间接计算</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#HMM参数学习"><span class="toc-number">6.</span> <span class="toc-text">HMM参数学习</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#带标签的学习问题"><span class="toc-number">6.1.</span> <span class="toc-text">带标签的学习问题</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#无标签的学习问题"><span class="toc-number">6.2.</span> <span class="toc-text">无标签的学习问题</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#隐状态序列预测"><span class="toc-number">7.</span> <span class="toc-text">隐状态序列预测</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#贪心策略"><span class="toc-number">7.1.</span> <span class="toc-text">贪心策略</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#维特比算法"><span class="toc-number">7.2.</span> <span class="toc-text">维特比算法</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#HMM-vs-Navie-bayes"><span class="toc-number">8.</span> <span class="toc-text">HMM .vs. Navie bayes</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#HMM的不足之处"><span class="toc-number">9.</span> <span class="toc-text">HMM的不足之处</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#实现"><span class="toc-number">10.</span> <span class="toc-text">实现</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#总结"><span class="toc-number">11.</span> <span class="toc-text">总结</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#参考文献"><span class="toc-number">12.</span> <span class="toc-text">参考文献</span></a></li></ol></div></div><div class="post-content"><p>HMM是描述时间序列生成的概率模型，属于概率<strong>生成模型</strong>，由一个隐藏的马尔可夫链随机生成不可观测的状态序列，再由各个状态随机生成一个观测进而构成观测序列的过程。</p>
+<a id="more"></a>
+<p>由于 HMM 涉及到的内容比较多，需要马尔科夫链的基础知识，可以参考过去文章<a href="../7163">马尔可夫链及其Python实现</a>。有了马尔科夫链的知识后，HMM的定义就相对简单了。HMM是由一条不可观察的马尔科夫链生成不可观察的状态序列，再由个状态生成可观察变量的生成模型。</p>
+<h2 id="HMM及其参数描述"><a href="#HMM及其参数描述" class="headerlink" title="HMM及其参数描述"></a>HMM及其参数描述</h2><p>HMM把马尔可夫链作为隐变量（离散的不可观察变量），通过隐变量生成不可观察的序列（隐状态序列），再由其序列中的各个时间点的状态生成可观察的变量。假设隐变量状态空间为，</p>
+<script type="math/tex; mode=display">
+S = \left\{s_{1},s_{2},\dots,s_{n} \right\}</script><p>例如，在中文分词中，常用BMES作为状态空间，</p>
+<script type="math/tex; mode=display">
+S = \{B,M,E,S \}</script><p>假设可观察的变量的状态空间（观察空间）为，</p>
+<script type="math/tex; mode=display">
+V = \left\{v_{1},v_{2},\dots,v_{m} \right\}</script><p>例如，在中文分词中，所有的汉字作为观察空间，</p>
+<script type="math/tex; mode=display">
+V = \{\text{中文词汇组成的集合}\}</script><p>HMM生成的隐状态序列与可观察序列是一一对应的，例如隐状态序列为，</p>
+<script type="math/tex; mode=display">
+I = (s_{t_{1}},s_{t_{2}},\dots,s_{t_{k}})</script><p>对应的观察序列为，</p>
+<script type="math/tex; mode=display">
+O = (o_{t_{1}},o_{t_{2}},\dots,o_{t_{k}})</script><p>例如，<code>SSBEBME</code>对应“我爱北京天安门”。示意图如下，</p>
+<p><img src="../images/HMM-BMES-demo-1.png" alt="hmm"></p>
+<p>上图对应的隐状态序列为，</p>
+<script type="math/tex; mode=display">
+S\rightarrow S\rightarrow B\rightarrow E\rightarrow B\rightarrow M\rightarrow E</script><p>对应的观察序列为，</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">我 爱 北 京 天 安 门</span><br></pre></td></tr></table></figure>
+<p>以上这些都很好理解吧。</p>
+<p>事实上，注意到，HMM的每个时间步都可以看做是朴素贝叶斯模型，</p>
+<p><img src="../images/naive-bayes-demo-1.png" alt></p>
+<p>任意一个时间步的y（此处对应BMES标签集）对应$x_1, \dots, x_n$（此处为汉字集），因此HMM可以看成是朴素贝叶斯模型在时间维度上的扩展，并使用马尔科可假设约定相邻状态的约束。</p>
+<p>HMM的隐状态序列$I$总有个开头吧？比如上述的“SSBEBME”，开头为“S”状态。开头出现不同的状态有不同的概率，我们称它为初始状态分布，表示为，</p>
+<script type="math/tex; mode=display">
+\pi = (\pi_1, \dots, \pi_n)</script><p>其中$\pi_i = P(i_1 = s_i)$​表示初始时刻$t = 1$​处于状态$s_i$​​的概率。就是统计大量初始分布的概率。</p>
+<p>HMM的隐状态的转换由<strong>状态转移矩阵</strong>决定，</p>
+<script type="math/tex; mode=display">
+\boldsymbol{A} = [a_{ij}]_{n \times n}</script><p>矩阵中的每个元素为，</p>
+<script type="math/tex; mode=display">
+a_{ij} = P(S_{t+1}=s_{j}|S_{t}=s_{i})</script><p>表示在时刻$t$状态为$s_i$转移到时刻$t+1$状态为$s_j$的概率是$a_{ij}$。可以看到时刻$t+1$状态为$s_j$只由时刻$t$状态为$s_i$​决定，和更久远时刻的状态无关，这称为<strong>马尔科可假设</strong>。注意到由于概率的归一性，有</p>
+<script type="math/tex; mode=display">
+\sum_{j} a_{ij} = 1</script><p>HMM的隐状态对应的可观察状态由观察概率矩阵（发射矩阵）决定，</p>
+<script type="math/tex; mode=display">
+\boldsymbol{B} = [b_{jk}]_{n \times m}</script><p>矩阵中的每个元素为，</p>
+<script type="math/tex; mode=display">
+b_{jk} = P(V_{t}=v_{k}|S_{t}=s_{j})</script><p>表示在时刻$t$状态为$s_j$生成对应时刻的可观察状态$v_k$的概率是$b_{jk}$，有时候我们也用$b_j(k)$来说表示。这里也可以看到，观察状态$v_k$之由当前时刻的状态为$s_j$​​决定，这称为<strong>观察独立性假设</strong>。注意到，由于概率的归一性，有</p>
+<script type="math/tex; mode=display">
+\sum_{k} b_{jk} = 1</script><p>初始状态分布、状态转移矩阵和观察矩阵决定了HMM的所有参数，即</p>
+<script type="math/tex; mode=display">
+\lambda = (A,B,\pi)</script><p>总之，HMM只考虑两点：</p>
+<ul>
+<li>隐状态的状态转移受到<strong>马尔科可假设</strong>约束</li>
+<li>观察状态只由当前时刻的隐状态决定，即<strong>观察独立性假设</strong></li>
+</ul>
+<h2 id="HMM的概率化描述"><a href="#HMM的概率化描述" class="headerlink" title="HMM的概率化描述"></a>HMM的概率化描述</h2><p>以上我们使用基于矩阵的形式描述HMM及其参数，其实它还有基于概率的描述，两种是等价的。首先HMM可以解决序列标注问题，以中文分词为例。例如输入中文序列$(x_{1}, x_{2}, \dots, x_{n})$，HMM要预测其标注序列$(y_{1}, y_{2}, \dots ,y_{n})$，可以简单表示为，</p>
+<script type="math/tex; mode=display">
+(y_{1}, y_{2}, \dots ,y_{n}) \leftarrow (x_{1}, x_{2}, \dots, x_{n})</script><p>基于HMM的两点约束，HMM的联合概率分布为，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+\hat{y} 
+&= \arg \max_{y} P(y|x) \newline
+&= \arg \max_{y} \frac{P(x, y)}{P(x)} \newline
+&= \arg \max_{y} P(x, y) \newline
+&= \arg \max_{y} \prod_{i=1}^{n} P(x_i|y_i)P(y_i|y_{i-1}) \newline
+&= \arg \max_{y} \sum_{i=1}^{n} \Big(\log P(x_i|y_i) + \log P(y_i|y_{i-1})   \Big)
+\end{align}</script><p>其中$x = (x_1, x_2, \dots, x_n),y=(y_1, y_2, \dots, y_n)$，$P(y_1|y_{0}) = P(y_1)$，$P(x_i|y_i)$称为<strong>发射概率</strong>，所有可能组成观察矩阵，$P(y_i|y_{i-1})$称为<strong>转移概率</strong>，所有的可能组成状态转移矩阵。</p>
+<p>于是，$P(y_1|y_{0}) = P(y_1)$对应上一节中HMM的参数$\pi$，$P(x_i|y_i)$对应观察矩阵$\boldsymbol{B}$中相应的元素，$P(y_i|y_{i-1})$对应状态矩阵$\boldsymbol{A}$​中相应的元素。因此，描述HMM有两套数学语言，一套是概率语言、一套是矩阵的语言，其实它们是等价的。</p>
+<h2 id="HMM四个基本问题"><a href="#HMM四个基本问题" class="headerlink" title="HMM四个基本问题"></a>HMM四个基本问题</h2><p>HMM作为概率图模型涉及四个基本问题。</p>
+<p><strong>概率计算问题</strong>：已知HMM模型，计算观察序列的概率$P(O|\lambda)$</p>
+<p><strong>参数学习问题</strong>：已知观察序列$O$，状态序列$I$​已知或未知，计算HMM的参数$\lambda$</p>
+<p><strong>隐状态序列预测问题</strong>：已知HMM模型，以及观察序列$O$，推断隐状态序列$I$</p>
+<p><strong>采样与生成</strong>：已知HMM模型，生成观察序列$O$和隐状态序列$I$</p>
+<h2 id="采样和生成"><a href="#采样和生成" class="headerlink" title="采样和生成"></a>采样和生成</h2><p>HMM是生成模型，典型的贝叶斯网络，即有向无环图（DAG）模型。其生成样本的过程：</p>
+<ul>
+<li>（1）首先根据初始状态分布采样以隐状态</li>
+<li>（2）根据当前隐状态和状态转移矩阵获得下一时间步隐状态的分布</li>
+<li>（3）根据当前隐状态获得观察状态分布，从该分布中采样一个观察样本并输出</li>
+<li>（4）迭代下一个时间步</li>
+</ul>
+<h2 id="观察序列概率计算"><a href="#观察序列概率计算" class="headerlink" title="观察序列概率计算"></a>观察序列概率计算</h2><p>首先我们来解决观察序列概率计算，假定我们已经知道HMM的参数$\lambda = (A,B,\pi)$，计算观察序列的概率$P(O|\lambda)$</p>
+<h3 id="直接计算"><a href="#直接计算" class="headerlink" title="直接计算"></a>直接计算</h3><p>最直接的思路是枚举所有的隐状态序列，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+p(O|\lambda) 
+&= \sum_{I}P(O,I|\lambda) \\
+&= \sum_{I}P(I|\lambda)P(O|I,\lambda)
+\end{align}</script><p>这里$I = (i_1, \dots, i_T)$是一个排列组合的求和，计算量非常大，是 $O(TN^{T})$ 时间复杂度。这里有一个技巧，为避免连续乘积的数值下溢，可以取对数然后求和。</p>
+<h3 id="间接计算"><a href="#间接计算" class="headerlink" title="间接计算"></a>间接计算</h3><p>既然直接计算算法复杂度大，那么可以使用间接计算，一下示意图作为计算的参考辅助，</p>
+<p><img src="../images/hmm-obs-compute.png" alt></p>
+<p>有与对观察序列的计算是从左到右，因此成为<strong>前向计算</strong>方法</p>
+<script type="math/tex; mode=display">
+\alpha_{t}(i) = P(o_1, \dots, o_t, i_{t} = q_{i})</script><p>容易计算初始值，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+\alpha_1(i) 
+&= P(o_{1}, i_1=q_{i}) \newline
+&= \pi_{i} P(o_1|i_1 = q_{i}) \newline
+&= \pi_{i} b_{i}(o_{1})
+\end{align}</script><p>向前递归计算</p>
+<script type="math/tex; mode=display">
+\begin{align}
+\alpha_{t+1}(i) 
+&= P(o_1, \dots, o_t, o_{t+1}, i_{t+1} = q_{i}) \newline
+&= \sum_{j=1}^{N} P(o_1, \dots, o_t, o_{t+1}, i_t=q_j, i_{t+1} = q_{i}) \newline
+&= \sum_{j=1}^{N} P(o_1, \dots, o_t, i_t=q_j, i_{t+1} = q_{i})P(o_{t+1} | i_{t+1} = q_{i}) \newline
+&= \sum_{j=1}^{N} P(o_1, \dots, o_t, i_t=q_j)P(i_{t+1} = q_{i}|i_{t}=q_{j})P(o_{t+1} | i_{t+1} = q_{i}) \newline
+&= \Big[\sum_{j=1}^{N} \alpha_{t}(i)a_{ji}\Big]b_{i}(o_{t+1})
+\end{align}</script><p>这个过程的推导技巧是还原出$\alpha_t(i)$，这样就可以利用上一步的计算结果递归计算。一直递推下去可获得$\alpha_{T}(i)$​的结果，</p>
+<script type="math/tex; mode=display">
+\alpha_{T}(i)</script><p>迭代到第$T$​步，所有的隐状态构成结果，</p>
+<script type="math/tex; mode=display">
+P(O) = \sum_{i=1}^{N} \alpha_{T}(i)</script><p>类似的思路，<strong>后向计算</strong>，定义</p>
+<script type="math/tex; mode=display">
+\beta_{t}(i) = P(o_{t+1},o_{t+2},\dots,o_{T}|i_{t}=q_{i})</script><p>容易计算$\beta_{T}(i)$，</p>
+<script type="math/tex; mode=display">
+\beta_{T}(i) = 1</script><p>向后递归计算，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+\beta_{t-1}(i) 
+&= P(o_t, o_{t+1},o_{t+2},\dots,o_{T}|i_{t-1}=q_{i}) \newline
+&= \sum_{j=1}^{N} P(o_t, o_{t+1},o_{t+2},\dots,o_{T}, i_t = q_j|i_{t-1}=q_{i}) \newline
+&= \sum_{j=1}^{N} P(i_{t} = q_{j} | i_{t-1} = q_{i}) P(o_{t} | i_{t}=q_{j}) P(o_{t+1},o_{t+2},\dots,o_{T}|i_{t}=q_{i}) \newline
+&= \sum_{j=1}^{N} a_{ij}b_{j}(o_t) \beta_{t}(i)
+\end{align}</script><p>其思路依旧是展开后能够还原出$\beta_t(i)$​以便利用上一步计算的结果，如此迭代下去获得，$\beta_1(i)$的结果，</p>
+<script type="math/tex; mode=display">
+\beta_{1}(i) = P(o_2, o_{3},\dots,o_{T}|i_{1}=q_{i})</script><p>于是获得观察序列概率，</p>
+<script type="math/tex; mode=display">
+P(O) = \sum_{i=1}^{N} \pi_i b_i(o_1)\beta_1(i)</script><p>间接计算尽管看起来有点复杂，但是其思路很简单，就是构造概率计算的递归关系，并逐时间步迭代。</p>
+<h2 id="HMM参数学习"><a href="#HMM参数学习" class="headerlink" title="HMM参数学习"></a>HMM参数学习</h2><p>HMM参数学习分两类：</p>
+<ul>
+<li>已知观察序列$O$，状态序列$I$​<strong>已知</strong></li>
+<li>已知观察序列$O$，状态序列$I$<strong>未知</strong></li>
+</ul>
+<p>对于序列标注问题，状态序列$I$<strong>已知</strong>相当于标签已知，所以也称为带标签的学习问题。于之对应的是状态序列$I$<strong>未知</strong>，即无标签的学习问题。</p>
+<h3 id="带标签的学习问题"><a href="#带标签的学习问题" class="headerlink" title="带标签的学习问题"></a>带标签的学习问题</h3><p>状态转移矩阵参数估计，$a_{ij} = P(i_{t+1} = q_{j}|i_{t}=q_{i})$</p>
+<script type="math/tex; mode=display">
+\hat{a}_{ij} = \frac{A_{ij}}{\displaystyle \sum_{j=1}^{N} A_{ij}}</script><p>其中$i,j$取值均在$[1, N]$范围内。</p>
+<p>观察矩阵的参数估计，</p>
+<script type="math/tex; mode=display">
+\hat{b}_{j(k)} = \frac{B_{jk}}{\displaystyle \sum_{k=1}^{M} B_{jk}}</script><p>其中$j \in [1, N], k \in [1, M]$​，通常在实现的时候使用稀疏形式，如字典来存储参数。如果遇到OOV问题，可以统一使用一个<unk>来处理。</unk></p>
+<p>初始状态$\pi = (\pi_{1}, \dots, \pi_{N})$，其中</p>
+<script type="math/tex; mode=display">
+\pi_{i} = P(i_{1} = s_{i})</script><p>即所有待学习样本的初始状态的概率。不过初始状态在这里用不上，在生成任务上才需要。</p>
+<h3 id="无标签的学习问题"><a href="#无标签的学习问题" class="headerlink" title="无标签的学习问题"></a>无标签的学习问题</h3><p>无标签的学习问题，即无监督序列建模，一般使用Baum-Welch，实则是EM算法在HMM中的应用。</p>
+<h2 id="隐状态序列预测"><a href="#隐状态序列预测" class="headerlink" title="隐状态序列预测"></a>隐状态序列预测</h2><p>隐状态序列预测就是已知HMM模型，以及观察序列$O$，推断隐状态序列$I$​。有两种策略：</p>
+<ul>
+<li>贪心策略</li>
+<li>基于动态规划的维特比算法</li>
+</ul>
+<h3 id="贪心策略"><a href="#贪心策略" class="headerlink" title="贪心策略"></a>贪心策略</h3><p>贪心策略是每个时间步取概率最大的状态而不考虑前后时间步的约束。假设给定模型参数$\lambda = (\pi, A, B)$​以及观察序列$O = (o_1, o_2, \dots, o_T)$​，令</p>
+<script type="math/tex; mode=display">
+\gamma_t(i) = P(i_t = q_i|O; \lambda)</script><p>表示在时间步$t$​观察到$O$​条件下处于状态$q_i$​​的概率。</p>
+<p>于是，贪心策略下，第$t$个时间步的解为，</p>
+<script type="math/tex; mode=display">
+\hat{i}_t = \arg \max \Big[ \gamma_t(1), \gamma_2(2), \dots, \gamma_T(N) \Big]</script><p>这里$N$为隐状态数量。依次解得$t = 1, 2, \dots, T$，获得隐状态序列$\hat{I} = (\hat{i}_1, \hat{i}_2, \dots, \hat{i}_T)$。</p>
+<p>贪心策略计算十分简单，但是并没有考虑到状态转移的约束，因此不能保证解得的状态序列是最优序列。该算法通常用在考虑解码速度（计算性能）而不过分强调模型性能的场景上。至于对模型性能的考虑，则要使用维特比算法。</p>
+<h3 id="维特比算法"><a href="#维特比算法" class="headerlink" title="维特比算法"></a>维特比算法</h3><p>以上分析我们知道HMM求隐状态序列就是求，</p>
+<script type="math/tex; mode=display">
+\hat{y} =  \arg \max_{y} \sum_{i=1}^{n} \Big(\log P(x_i|y_i) + \log P(y_i|y_{i-1})   \Big)</script><p>中$y=(y_1, y_2, \dots, y_n)$的最大概率，称为最优解码。最优解码不光是$P(x_i|y_i)$的最大值，还要考虑$P(y_i|y_{i-1})$。</p>
+<p>其中，$P(y_i|y_{i-1})$​表示相邻两个标签间的转移概率，比如，</p>
+<script type="math/tex; mode=display">
+P(B_{t}|M_{t-1})</script><p>表示时间步$t-1$标签为$M$转移到时间步$t$标签为$B$的概率，当然正确的标注下这样的标签转移是不存在的。这里还需要注意一个边界条件，就是$P(y_1|y_{0})$表示初始状态分布。</p>
+<p>而，$P(x_i|y_i)$​​表示标签概率分布，对于给定的时间步$i$​​，$x$​​的取值是固定的，比如观察变量“北”，但是其对应的标签是有不同的概率，一般HMM、CRF、CNN、RNN或者Dense+softmax网络都可以计算。比如“北”字，</p>
+<script type="math/tex; mode=display">
+P(\text{北} | y_i) = \begin{cases}
+P(\text{北} | B) \\
+P(\text{北} | M) \\ 
+P(\text{北} | E) \\
+P(\text{北} | S) \\ 
+\end{cases}</script><p>类似地，“京”字，</p>
+<script type="math/tex; mode=display">
+P(\text{京} | y_i) = \begin{cases}
+P(\text{京} | B) \\
+P(\text{京} | M) \\ 
+P(\text{京} | E) \\
+P(\text{京} | S) \\ 
+\end{cases}</script><p>综合上述，那么沿着所有时间步前进，上式就构成篱笆（Lattice）网络的有向无环图（DAG）。如下图所示，</p>
+<p><img src="../images/viterbi-BMES-demo-1.png" alt></p>
+<p>于是求解$\hat{y} = \arg \max_{y} P(y|x)$就成了篱笆（Lattice）网络上的最大概率路径或最短路问题。它的计算复杂度是$O(T\cdot N^2)$，$T$是时间步数，$N$是状态数量。其实抛开HMM看，维特比算法解决的就是使用动态规划解决方阵型DAG的最短路算法，使用CNN、RNN、Dense+softmax等模型解决序列标注问题同样可以使用维特比解码最优序列。</p>
+<p>维特比算法要做的是在这些众多的路径组合中找到概率最大的路径。上图路径长度为7，每个时间步有4种可选择的状态，因此路径总共有$4^7$​种。对于更一般的情况，路径长度为$l$​，每个时间步状态数量为$n$​，那么所有路径组合有$n^l$​​种。直接枚举所有路径搜索是不可能的。</p>
+<p>最短路中有一个简单朴素的特性：如果$(i_1, \dots, i_j, \dots, i_n)$是所有路径中的最短路，那么任意$i_j$切分出的两段分路径$(i_1, \dots, i_j)$和$(i_j, \dots, i_n)$都是这两段路径的端点所构成的所有可能路径中最优的，否则如果还有更优的分路径，就会有比原来更短的路径，这与一开始的最优路径假设相悖。这个特性用来排除在前行搜索最优路径时把不符合以上特性的分路径过滤掉。</p>
+<p>例如，上图的最优路径为$S \to S \to B \to E \to B \to M \to E$。最优路径的分路径（最优路径的某一点把它切成两段）也是最优，否则分路径可以找到更优的分路径，那么合并到最优路径就得到一条比原来最优路径更好的路径，这与假设矛盾。</p>
+<p>因此，维特比算法的核心思想是<strong>过滤掉不符合最短路思想的路径</strong>。</p>
+<p>定义$\delta_t(i)$表示时刻$t$状态为$i$的最优路径概率，</p>
+<script type="math/tex; mode=display">
+\delta_t(i) = \max_{i_1, \dots, i_{t-1}} P(i_t = i, i_{t-1}, \dots, i_1, o_t, \dots, o_1|\lambda)</script><p>于是有地推关系，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+\delta_{t+1}(i) 
+&= \max_{i_1, \dots, i_{t}} P(i_{t+1} = i, i_{t}, \dots, i_1, o_{t+1}, \dots, o_1|\lambda) \newline
+&= \max_{1 \le j \le N} \left[ \delta_{t}(j) a_{ji} \right]b_i(o_{t+1}) \newline
+\end{align}</script><p>时刻$t+1$​​状态为$i$​​的所有路径中概率最大路径在$t$​​时刻的状态为，</p>
+<script type="math/tex; mode=display">
+\hat{i}_{t+1} = \psi_{t+1}(i) = \underset{1 \le j \le N}{\arg \max} \left[ \delta_t(j) a_{ji}\right]</script><p>以上这些递推过程的中间参数都可以使用矩阵来存储。对于时刻$T$，容易求得，</p>
+<script type="math/tex; mode=display">
+\hat{i}_T =  \underset{1 \le j \le N}{\arg \max} \left[\delta_T(i)  \right]</script><p>于是获得的$\hat{i}_T$容易递推回溯，令$\hat{i}_{t+1} = \hat{i}_T$​，有</p>
+<script type="math/tex; mode=display">
+\hat{i}_t = \psi_{t+1}(\hat{i}_{t+1}) \\
+\hat{i}_{t-1} = \psi_{t}(\hat{i}_{t}) \\
+\hat{i}_{t-2} = \psi_{t-1}(\hat{i}_{t-1}) \\
+\dots \\
+\hat{i}_1 = \psi_{2}(\hat{i}_2)</script><p>于是就获得最优解码，</p>
+<script type="math/tex; mode=display">
+I = \big[ \hat{i}_1, \dots, \hat{i}_T \big]</script><p>需要注意一点，在实现时为避免数值溢出，一般都是取log后求和避免逐时间步连续乘积。</p>
+<p>基于numpy的实现如下，</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">viterbi_decode</span><span class="params">(scores, trans, return_score=False)</span>:</span></span><br><span class="line">    <span class="comment"># 使用viterbi算法求最优路径</span></span><br><span class="line">    <span class="comment"># scores.shape = (seq_len, num_tags)</span></span><br><span class="line">    <span class="comment"># trans.shape = (num_tags, num_tags)</span></span><br><span class="line">    dp = np.zeros_like(scores)</span><br><span class="line">    backpointers = np.zeros_like(scores, dtype=np.int32)</span><br><span class="line">    dp[<span class="number">0</span>] = scores[<span class="number">0</span>]</span><br><span class="line">    <span class="keyword">for</span> t <span class="keyword">in</span> range(<span class="number">1</span>, scores.shape[<span class="number">0</span>]):</span><br><span class="line">        v = np.expand_dims(dp[t<span class="number">-1</span>], axis=<span class="number">1</span>) + trans</span><br><span class="line">        dp[t] = scores[t] + np.max(v, axis=<span class="number">0</span>)</span><br><span class="line">        backpointers[t] = np.argmax(v, axis=<span class="number">0</span>)</span><br><span class="line"></span><br><span class="line">    viterbi = [np.argmax(dp[<span class="number">-1</span>])]</span><br><span class="line">    <span class="keyword">for</span> bp <span class="keyword">in</span> reversed(backpointers[<span class="number">1</span>:]):</span><br><span class="line">        viterbi.append(bp[viterbi[<span class="number">-1</span>]])</span><br><span class="line">    viterbi.reverse()</span><br><span class="line">    <span class="keyword">if</span> return_score:</span><br><span class="line">        viterbi_score = np.max(dp[<span class="number">-1</span>])</span><br><span class="line">        <span class="keyword">return</span> viterbi, viterbi_score</span><br><span class="line">    <span class="keyword">return</span> viterbi</span><br></pre></td></tr></table></figure>
+<h2 id="HMM-vs-Navie-bayes"><a href="#HMM-vs-Navie-bayes" class="headerlink" title="HMM .vs. Navie bayes"></a>HMM .vs. Navie bayes</h2><p>朴素贝叶斯分类器的目标函数是后验概率最大化，分类器可以写成，</p>
+<script type="math/tex; mode=display">
+\hat{k} = {\underset {k\in \{1,\ldots ,K\}}{\operatorname {argmax} }} 
+p(C_{k})\prod_{i}p(x^{(i)}|C_{k})</script><p>HMM是对序列建模，最大概率序列输出可以表示为，</p>
+<script type="math/tex; mode=display">
+\hat{y} = \arg \max_{y} \prod_{i=1}^{n} P(x_i|y_i)P(y_i|y_{i-1})</script><p>两者都是生成模型，直接对$P(x,y)$建模，HMM可以看成是Navie bayes在时间维度上的拓展，同时考虑相邻状态的马尔科夫约束。</p>
+<h2 id="HMM的不足之处"><a href="#HMM的不足之处" class="headerlink" title="HMM的不足之处"></a>HMM的不足之处</h2><p>HMM两个基本假设：</p>
+<ul>
+<li>观察值之间严格独立，观察独立性假设</li>
+<li>状态转移过程中，当前状态仅依赖于前一个状态（一阶马尔科夫模型）</li>
+</ul>
+<p>这两个假设换成中文分词语境来说就是，在隐状态集为<code>{B,M,E,S}</code>下，当前标注的取值取决于前一时间步的标注，而当前时刻的观察值（中文字）只由当前时间步的标注决定。显然，这样的约束导致模型忽视上下文特征表达能力不够。</p>
+<h2 id="实现"><a href="#实现" class="headerlink" title="实现"></a>实现</h2><p>后期补充了实现，项目实现源码地址：<a href="https://github.com/allenwind/hmm-ner-cws" target="_blank" rel="noopener">hmm-ner-cws</a>。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>本文从两套数学语言出发描述HMM，然后简单梳理一下HMM的四个问题，包括：HMM的观察序列生成、观察序列相关的概率计算、参数学习以及维特比算法。</p>
+<h2 id="参考文献"><a href="#参考文献" class="headerlink" title="参考文献"></a>参考文献</h2><p>[1] 《统计自然语言处理》</p>
+<p>[2] 《统计机器学习》</p>
+<p>[3] <a href="https://en.wikipedia.org/wiki/Maximum-entropy_Markov_model" target="_blank" rel="noopener">https://en.wikipedia.org/wiki/Maximum-entropy_Markov_model</a></p>
+</div><div class="tags"><a href="/blog/tags/概率/">概率</a><a href="/blog/tags/HMM/">HMM</a></div><div class="post-nav"><a class="pre" href="/blog/7694/">概率图模型系列（4）：MEMM</a><a class="next" href="/blog/7661/">概率图模型系列（2）：最大熵原理和最大熵模型</a></div></div></div></div><div class="pure-u-1-4 hidden_mid_and_down"><div id="sidebar"><div class="widget"><form class="search-form" action="//www.google.com/search" method="get" accept-charset="utf-8" target="_blank"><input type="text" name="q" maxlength="20" placeholder="Search"><input type="hidden" name="sitesearch" value="http://allenwind.github.io/blog"></form></div><div class="widget"><div class="widget-title"><i class="fa fa-folder-o"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/blog/categories/C-C/">C/C++</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Go/">Go</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Java/">Java</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Linux/">Linux</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/NLP/">NLP</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Python/">Python</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/数学/">数学</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/数据库/">数据库</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/数据结构和算法/">数据结构和算法</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/机器学习深度学习/">机器学习深度学习</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/记录/">记录</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-star-o"> 标签</i></div><div class="tagcloud"><a href="/blog/tags/算法/" style="font-size: 15px;">算法</a> <a href="/blog/tags/C/" style="font-size: 15px;">C</a> <a href="/blog/tags/Python/" style="font-size: 15px;">Python</a> <a href="/blog/tags/设计模式/" style="font-size: 15px;">设计模式</a> <a href="/blog/tags/C语言/" style="font-size: 15px;">C语言</a> <a href="/blog/tags/数据库/" style="font-size: 15px;">数据库</a> <a href="/blog/tags/区块链/" style="font-size: 15px;">区块链</a> <a href="/blog/tags/MySQL/" style="font-size: 15px;">MySQL</a> <a href="/blog/tags/分布式/" style="font-size: 15px;">分布式</a> <a href="/blog/tags/ACID/" style="font-size: 15px;">ACID</a> <a href="/blog/tags/sudo/" style="font-size: 15px;">sudo</a> <a href="/blog/tags/Docker/" style="font-size: 15px;">Docker</a> <a href="/blog/tags/SQL/" style="font-size: 15px;">SQL</a> <a href="/blog/tags/NoSQL/" style="font-size: 15px;">NoSQL</a> <a href="/blog/tags/git/" style="font-size: 15px;">git</a> <a href="/blog/tags/Linux/" style="font-size: 15px;">Linux</a> <a href="/blog/tags/Git/" style="font-size: 15px;">Git</a> <a href="/blog/tags/命令行/" style="font-size: 15px;">命令行</a> <a href="/blog/tags/Systemd/" style="font-size: 15px;">Systemd</a> <a href="/blog/tags/Tensorflow/" style="font-size: 15px;">Tensorflow</a> <a href="/blog/tags/gcc/" style="font-size: 15px;">gcc</a> <a href="/blog/tags/网络/" style="font-size: 15px;">网络</a> <a href="/blog/tags/操作系统/" style="font-size: 15px;">操作系统</a> <a href="/blog/tags/正则表达式/" style="font-size: 15px;">正则表达式</a> <a href="/blog/tags/记录/" style="font-size: 15px;">记录</a> <a href="/blog/tags/数据结构/" style="font-size: 15px;">数据结构</a> <a href="/blog/tags/Go/" style="font-size: 15px;">Go</a> <a href="/blog/tags/go/" style="font-size: 15px;">go</a> <a href="/blog/tags/LRU/" style="font-size: 15px;">LRU</a> <a href="/blog/tags/ARC/" style="font-size: 15px;">ARC</a> <a href="/blog/tags/Java/" style="font-size: 15px;">Java</a> <a href="/blog/tags/搜索引擎/" style="font-size: 15px;">搜索引擎</a> <a href="/blog/tags/剑指Offer/" style="font-size: 15px;">剑指Offer</a> <a href="/blog/tags/函数式/" style="font-size: 15px;">函数式</a> <a href="/blog/tags/Stack/" style="font-size: 15px;">Stack</a> <a href="/blog/tags/并发编程/" style="font-size: 15px;">并发编程</a> <a href="/blog/tags/网络编程/" style="font-size: 15px;">网络编程</a> <a href="/blog/tags/HTTP/" style="font-size: 15px;">HTTP</a> <a href="/blog/tags/并发/" style="font-size: 15px;">并发</a> <a href="/blog/tags/装饰器/" style="font-size: 15px;">装饰器</a> <a href="/blog/tags/Redis/" style="font-size: 15px;">Redis</a> <a href="/blog/tags/数学/" style="font-size: 15px;">数学</a> <a href="/blog/tags/时间序列/" style="font-size: 15px;">时间序列</a> <a href="/blog/tags/投资/" style="font-size: 15px;">投资</a> <a href="/blog/tags/概率/" style="font-size: 15px;">概率</a> <a href="/blog/tags/统计/" style="font-size: 15px;">统计</a> <a href="/blog/tags/信息论/" style="font-size: 15px;">信息论</a> <a href="/blog/tags/度量/" style="font-size: 15px;">度量</a> <a href="/blog/tags/机器学习/" style="font-size: 15px;">机器学习</a> <a href="/blog/tags/贝叶斯/" style="font-size: 15px;">贝叶斯</a> <a href="/blog/tags/最小二乘法/" style="font-size: 15px;">最小二乘法</a> <a href="/blog/tags/分布/" style="font-size: 15px;">分布</a> <a href="/blog/tags/深度学习/" style="font-size: 15px;">深度学习</a> <a href="/blog/tags/变分推断/" style="font-size: 15px;">变分推断</a> <a href="/blog/tags/随机/" style="font-size: 15px;">随机</a> <a href="/blog/tags/不等式/" style="font-size: 15px;">不等式</a> <a href="/blog/tags/采样/" style="font-size: 15px;">采样</a> <a href="/blog/tags/光滑/" style="font-size: 15px;">光滑</a> <a href="/blog/tags/逼近/" style="font-size: 15px;">逼近</a> <a href="/blog/tags/矩阵/" style="font-size: 15px;">矩阵</a> <a href="/blog/tags/交叉验证/" style="font-size: 15px;">交叉验证</a> <a href="/blog/tags/特征工程/" style="font-size: 15px;">特征工程</a> <a href="/blog/tags/集成学习/" style="font-size: 15px;">集成学习</a> <a href="/blog/tags/分类/" style="font-size: 15px;">分类</a> <a href="/blog/tags/证明/" style="font-size: 15px;">证明</a> <a href="/blog/tags/损失函数/" style="font-size: 15px;">损失函数</a> <a href="/blog/tags/回归/" style="font-size: 15px;">回归</a> <a href="/blog/tags/正则化/" style="font-size: 15px;">正则化</a> <a href="/blog/tags/词向量/" style="font-size: 15px;">词向量</a> <a href="/blog/tags/NLP/" style="font-size: 15px;">NLP</a> <a href="/blog/tags/信息/" style="font-size: 15px;">信息</a> <a href="/blog/tags/Embedding/" style="font-size: 15px;">Embedding</a> <a href="/blog/tags/神经网络/" style="font-size: 15px;">神经网络</a> <a href="/blog/tags/Transformer/" style="font-size: 15px;">Transformer</a> <a href="/blog/tags/Attention/" style="font-size: 15px;">Attention</a> <a href="/blog/tags/对抗训练/" style="font-size: 15px;">对抗训练</a> <a href="/blog/tags/文本分类/" style="font-size: 15px;">文本分类</a> <a href="/blog/tags/分词/" style="font-size: 15px;">分词</a> <a href="/blog/tags/并行/" style="font-size: 15px;">并行</a> <a href="/blog/tags/NER/" style="font-size: 15px;">NER</a> <a href="/blog/tags/概率图/" style="font-size: 15px;">概率图</a> <a href="/blog/tags/HMM/" style="font-size: 15px;">HMM</a> <a href="/blog/tags/图/" style="font-size: 15px;">图</a> <a href="/blog/tags/可视化/" style="font-size: 15px;">可视化</a> <a href="/blog/tags/RNN/" style="font-size: 15px;">RNN</a> <a href="/blog/tags/LSTM/" style="font-size: 15px;">LSTM</a> <a href="/blog/tags/梯度/" style="font-size: 15px;">梯度</a> <a href="/blog/tags/注意力/" style="font-size: 15px;">注意力</a> <a href="/blog/tags/序列编码/" style="font-size: 15px;">序列编码</a> <a href="/blog/tags/磁盘故障/" style="font-size: 15px;">磁盘故障</a> <a href="/blog/tags/BERT/" style="font-size: 15px;">BERT</a> <a href="/blog/tags/CNN/" style="font-size: 15px;">CNN</a> <a href="/blog/tags/卷积/" style="font-size: 15px;">卷积</a> <a href="/blog/tags/优化/" style="font-size: 15px;">优化</a> <a href="/blog/tags/调参/" style="font-size: 15px;">调参</a> <a href="/blog/tags/Flask/" style="font-size: 15px;">Flask</a> <a href="/blog/tags/web/" style="font-size: 15px;">web</a> <a href="/blog/tags/socket/" style="font-size: 15px;">socket</a> <a href="/blog/tags/安全/" style="font-size: 15px;">安全</a> <a href="/blog/tags/协程/" style="font-size: 15px;">协程</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-file-o"> 最近文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/blog/16003/">天马行空：设计自己的激活函数</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/15887/">函数光滑近似（4）：Heaviside step函数及其应用</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/15205/">引入参数控制softmax的smooth程度</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/15110/">分析与拓展：多分类模型的输出为什么使用softmax？</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14990/">一种基于光滑逼近的正态分布采样法</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14721/">GELU由来：从狄拉克函数到GELU激活函数</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14465/">Lp范数的上下界分析</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14441/">logsumexp函数分析</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14133/">分析Mish激活函数的设计思路</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/13899/">阿尔法经济学：Shiller模型介绍</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-external-link"> 友情链接</i></div><ul></ul><a href="https://github.com/allenwind" title="My GitHub" target="_blank">My GitHub</a><ul></ul><a href="http://www.arxiv-sanity.com/" title="arxiv-sanity" target="_blank">arxiv-sanity</a><ul></ul><a href="https://arxiv.org/" title="arxiv.org" target="_blank">arxiv.org</a></div></div></div><div class="pure-u-1 pure-u-md-3-4"><div id="footer">Copyright © 2021 <a href="/blog/." rel="nofollow">Mr.Feng Blog.</a> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a><a rel="nofollow" target="_blank" href="https://github.com/tufu9441/maupassant-hexo"> Theme</a> by<a rel="nofollow" target="_blank" href="https://github.com/pagecho"> Cho.</a></div></div></div><a class="show" id="rocket" href="#top"></a><script type="text/javascript" src="/blog/js/totop.js?v=0.0.0" async></script><script type="text/javascript" src="//lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js" async></script><script type="text/javascript" src="/blog/js/fancybox.js?v=0.0.0" async></script><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css"><script type="text/x-mathjax-config">MathJax.Hub.Config({
+  tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}
+  });
+</script><script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-MML-AM_CHTML" async></script><script type="text/javascript" src="/blog/js/codeblock-resizer.js?v=0.0.0"></script><script type="text/javascript" src="/blog/js/smartresize.js?v=0.0.0"></script></div></body></html>

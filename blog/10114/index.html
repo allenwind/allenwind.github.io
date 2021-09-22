@@ -1,0 +1,153 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.9.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description" content="你好，世界！"><title>集成回归的有效性证明（更新） | Mr.Feng Blog</title><link rel="stylesheet" type="text/css" href="/blog/css/style.css?v=0.0.0"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/normalize/8.0.1/normalize.min.css"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/pure/1.0.0/pure-min.css"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/pure/1.0.0/grids-responsive-min.css"><link rel="stylesheet" href="//lib.baomitu.com/font-awesome/4.7.0/css/font-awesome.min.css"><script type="text/javascript" src="//lib.baomitu.com/jquery/3.4.0/jquery.min.js"></script><link rel="icon" mask sizes="any" href="/blog/favicon.ico"><link rel="Shortcut Icon" type="image/x-icon" href="/blog/favicon.ico"><link rel="apple-touch-icon" href="/blog/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/blog/apple-touch-icon.png"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">集成回归的有效性证明（更新）</h1><a id="logo" href="/blog/.">Mr.Feng Blog</a><p class="description">NLP、深度学习、机器学习、Python、Go</p></div><div id="nav-menu"><a class="current" href="/blog/."><i class="fa fa-home"> 首页</i></a><a href="/blog/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/blog/about/"><i class="fa fa-user"> 关于</i></a></div></div><div class="pure-g" id="layout"><div class="pure-u-1 pure-u-md-3-4"><div class="content_container"><div class="post"><h1 class="post-title">集成回归的有效性证明（更新）</h1><div class="post-meta">May 5, 2019<span> | </span><span class="category"><a href="/blog/categories/机器学习深度学习/">机器学习深度学习</a></span></div><div class="clear"><div class="toc-article" id="toc"><div class="toc-title">文章目录</div><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#1-集成回归模型"><span class="toc-number">1.</span> <span class="toc-text">1 集成回归模型</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-集成预测的有效性证明"><span class="toc-number">2.</span> <span class="toc-text">2 集成预测的有效性证明</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#2-1-有效性证明"><span class="toc-number">2.1.</span> <span class="toc-text">2.1 有效性证明</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-2-评估（补充）"><span class="toc-number">2.2.</span> <span class="toc-text">2.2 评估（补充）</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#总结"><span class="toc-number">3.</span> <span class="toc-text">总结</span></a></li></ol></div></div><div class="post-content"><p>本文提供集成回归的有效性证明</p>
+<a id="more"></a>
+<p>我们在<a href="../7464">集成分类有效性证明</a>上证明集成学习于分类问题的有效性，今天我们证明集成学习在回归问题上的有效性。</p>
+<h2 id="1-集成回归模型"><a href="#1-集成回归模型" class="headerlink" title="1 集成回归模型"></a>1 集成回归模型</h2><p>设有集成回归模型</p>
+<script type="math/tex; mode=display">
+\begin{align}
+H_T(x) = \sum_{i=1}^{T}\omega_{i}f_{i}(x) \newline \text{s.t.} \sum_{i=1}^{T}\omega_{i} = 1
+\end{align}</script><p>基模型集合为 <script type="math/tex">F=\left \{ f_{1},f_{2},...,f_{T} \right \}</script>，它们分别从数据集<script type="math/tex">\left \{ (x_{1},y_{1}),(x_{2},y_{2}),...,(x_{n},y_{n}) \right \}</script>训练得到。容易计算这些模型的误差</p>
+<script type="math/tex; mode=display">
+\begin{align}
+e_1 &= y - f_1 \newline
+e_2 &= y - f_2 \newline
+& \vdots \newline
+e_T &= y - f_T
+\end{align}</script><p>假定预测模型的误差都是无偏的，即</p>
+<script type="math/tex; mode=display">
+\begin{align}
+E[e_1] &= 0 \newline
+E[e_2] &= 0 \newline
+ &\vdots \newline
+E[e_T] &= 0 \newline
+\end{align}</script><p>预测模型误差的方差为</p>
+<script type="math/tex; mode=display">
+var(e_1) = \sigma_1^{2} \\
+var(e_1) = \sigma_2^{2} \\
+... \\
+var(e_T) = \sigma_T^{2} \\</script><h2 id="2-集成预测的有效性证明"><a href="#2-集成预测的有效性证明" class="headerlink" title="2 集成预测的有效性证明"></a>2 集成预测的有效性证明</h2><h3 id="2-1-有效性证明"><a href="#2-1-有效性证明" class="headerlink" title="2.1 有效性证明"></a>2.1 有效性证明</h3><p>假设有随机过程：</p>
+<script type="math/tex; mode=display">
+\left \{ Y_{t} | t \in T \right \}</script><p>从监控平台获得观察样本：</p>
+<script type="math/tex; mode=display">
+\left \{ (t_{1},y_{1}),(t_{2},y_{2}),...,(t_{n},y_{n}) \right \}</script><p>通过样本训练得到 T 个预测模型：</p>
+<script type="math/tex; mode=display">
+\left \{ f_{1},f_{2},...,f_{T} \right \}</script><p>容易计算这些模型的误差：</p>
+<script type="math/tex; mode=display">
+e_1 = y - f_1 \\
+e_2 = y - f_2 \\
+... \\
+e_T = y - f_T</script><p>假定预测模型的误差都是无偏的，有：</p>
+<script type="math/tex; mode=display">
+E[e_1] = 0 \\
+E[e_2] = 0 \\
+... \\
+E[e_T] = 0 \\</script><p>预测模型的方差：</p>
+<script type="math/tex; mode=display">
+var(e_1) = \sigma_1^{2} \\
+var(e_1) = \sigma_2^{2} \\
+... \\
+var(e_T) = \sigma_T^{2} \\</script><p>现在，我们把所有预测模型进行线性组合：</p>
+<script type="math/tex; mode=display">
+H(T) = \sum_{i=1}^{T}\omega_{i}f_{i} \\
+s.t. \sum_{i=1}^{T}\omega_{i} = 1</script><p>$H(T)$ 成为一个新的机器学习模型，其假设空间为：</p>
+<script type="math/tex; mode=display">
+Span\{f_{1}, f_{2},...,f_{T}\}</script><p>该空间的代数性质我们有空再分析。模型的学习策略是一个凸最优化过程，并且有解析解，等会我们提到。</p>
+<p>有集成模型的误差：</p>
+<script type="math/tex; mode=display">
+\begin{align}
+e = y - H(T)
+\end{align}</script><p>不难计算这个组合模型的误差的均值：</p>
+<script type="math/tex; mode=display">
+\begin{align}
+E[e] &= E[y-H(T)] \\
+&= E[y-\sum_{i=1}^{T}\omega_{i}f_{i}] \\
+&= E[y \cdot 1-\sum_{i=1}^{T}\omega_{i}f_{i}] \\
+&= E[y\sum_{i=1}^{T}\omega_{i} - \sum_{i=1}^{T}\omega_{i}f_{i}] \\
+&= E[\sum_{i=1}^{T}\omega_{i}(y-f_{i})] \\
+&= \sum_{i=1}^{T}\omega_{i}E[y-f_{i}] \\
+&= 0
+\end{align}</script><p>也就是说，无偏的预测模型的线性组合是无偏的。</p>
+<p>不难计算组合模型的方差：</p>
+<script type="math/tex; mode=display">
+\begin{align}
+var(e) &= var(y-H(T)) \\
+ &= var(y\sum_{i=1}^{T}\omega_{i} - \sum_{i=1}^{T}\omega_{i}f_{i}) \\
+ &= var(\sum_{i=1}^{T}\omega_{i}(y-f_{i})) \\
+ &= \sum_{i,j=1}^{T}cov(\omega_{i},e_{i}) \\
+ &= \sum_{i=1}^{T}\omega_{i}^{2}\sigma_{i}^{2} + \sum_{i\neq j}^{T}cov(\omega_{i},e_{i})
+ \end{align}</script><p>假定预测模型之间没有关系，即所有模型均为集成模型的假设空间的基，那么协方差取值均为 0，则有：</p>
+<script type="math/tex; mode=display">
+var(e) = \sum_{i=1}^{T}\omega_{i}^{2}\sigma_{i}^{2}</script><p>现在有两个问题：</p>
+<ol>
+<li>组合后的模型的权重如何分配？</li>
+<li>组合后的模型的预测效果怎么样？</li>
+</ol>
+<p>对于第一个问题，通过最优化方法求解，对于第二个问题，自定义指标并评估它的下限来估计预测效果。下面我们一一分析。</p>
+<p>根据上述组合模型的无偏特点以及方差的性质，不难有：</p>
+<script type="math/tex; mode=display">
+\begin{align}
+var(e) &= E[e^{2}] - E^{2}[e] \\
+ &= E[e^{2}]
+\end{align}</script><p>也就是说，为了让组合模型的误差最小，我们只需要让方差最小即可，因此不同预测模型的权重的求解就成了最优化问题。我们有如下优化问题：</p>
+<script type="math/tex; mode=display">
+\left\{\begin{matrix}
+\min \displaystyle \sum_{i=1}^{T}\omega_{i}^{2}\sigma_{i}^{2} \\
+s.t. \displaystyle \sum_{i=1}^{T}\omega_{i} = 1
+\end{matrix}\right.</script><p>不难看出，目标函数为凸函数，因此极值点即为目标函数的最小值点。根据目标函数，从几何直观上，我们不难理解权重具有某种对称性。（如果相反，保留最大方差会怎样？）</p>
+<p>为求解权重，我们使用拉格朗日乘子，得：</p>
+<script type="math/tex; mode=display">
+L(\omega_{1},\omega_{2},...\omega_T,\lambda) = \sum_{i=1}^{T}\omega_{i}^{2}\sigma_{i}^{2} - \lambda(\sum_{i=i}^{T}\omega_{i}-1)</script><p>分别对各个权重求偏导数且零取值为 0，得：</p>
+<script type="math/tex; mode=display">
+\frac{\partial L(\omega_{1},\omega_{2},...,\omega_T,\lambda)}{\partial \omega_{i}} = 2\omega_{i}\sigma_{i}^2 - \lambda = 0</script><p>解得：</p>
+<script type="math/tex; mode=display">
+\omega_{i} = \frac{\lambda}{2\sigma_{i}^{2}}</script><p>由于 <script type="math/tex">\sum_{i=i}^{T}\omega_{i}=1</script>，代入消除 <script type="math/tex">\lambda</script> ，得到：</p>
+<script type="math/tex; mode=display">
+\omega_{i} = \frac{\sigma_{i}^{-2}}{\displaystyle \sum_{i=1}^{T}\sigma_{i}^{-2}}</script><p>这个结论是否能用于 Pooling 池化</p>
+<p>正如我们上述的直观判断，解有对称性。不难发现，这个解说明如果一个模型的方差越小，其在集成模型中占的权重越大。另外，我们可以知道每个模型在集成模型中占的权重是唯一的，这一点为集成模型的假设空间看做线性空间提供依据，后期我们有空再讨论。</p>
+<p>因此，我们有集成模型的方差：</p>
+<script type="math/tex; mode=display">
+\begin{align}
+var(e) &= \sum_{i=1}^{T}\omega_{i}^{2}\sigma_{i}^{2} \\
+&= \sum_{i=1}^{T}(\frac{\sigma_{i}^{-2}}{\sum_{i=1}^{T}\sigma_{i}^{-2}})^{2}\sigma_{i}^{2} \\
+&= \frac{1}{\sum_{i=1}^{T}\frac{1}{\sigma_{i}^{2}}}
+\end{align}</script><p>不难估计这个方差的上界，不难得到下式：</p>
+<script type="math/tex; mode=display">
+\sum_{i=1}^{T}\frac{1}{\sigma_{i}^2} \geqslant \max(\frac{1}{\sigma_{1}^{2}},...,\frac{1}{\sigma_{T}^{2}}) \\</script><p>易知：</p>
+<script type="math/tex; mode=display">
+\max(\frac{1}{\sigma_{1}^{2}},...,\frac{1}{\sigma_{T}^{2}}) = \frac{1}{\min(\sigma_{1}^{2},...,\sigma_{T}^2)} \\</script><p>对上述不等式左右两边分别取倒数，改变符号，有：</p>
+<script type="math/tex; mode=display">
+var(e) = \frac{1}{\sum_{i=1}^{T}\frac{1}{\sigma_{i}^{2}}} \leqslant \min(\sigma_{1}^{2},...,\sigma_{T}^2)</script><p>这说明，不同性能的预测模型通过恰当的线性组合得到的集成预测模型比预测性能最好的模型还要好！这证明我们的直觉判断是错误的。</p>
+<h3 id="2-2-评估（补充）"><a href="#2-2-评估（补充）" class="headerlink" title="2.2 评估（补充）"></a>2.2 评估（补充）</h3><p>现在我们要评估集成模型的预测性能比预测性能最好的模型好多少，为此定义如下两个指标：</p>
+<script type="math/tex; mode=display">
+D = min(\sigma_{1}^{2},...,\sigma_{T}^2) - \frac{1}{\sum_{i=1}^{T}\frac{1}{\sigma_{i}^{2}}} \\
+Q = min(\sigma_{1}^{2},...,\sigma_{T}^2) \sum_{i=1}^{T}\frac{1}{\sigma_{i}^{2}}</script><p><code>D</code> 越大，集成模型的性能越好，<code>Q</code> 越大，集成模型的性能越好。接下来分别评估这两个指标的下界，以获得模型选择有关的信息。</p>
+<p>现在，我们对模型 <script type="math/tex">f_{1}, f_{2},...,f_{T}</script> 的方差重新排序并标号，使其满足如下关系：</p>
+<script type="math/tex; mode=display">
+\sigma{'}_{1}^{2} \geqslant \sigma{'}_{2}^{2} \geqslant ... \geqslant \sigma{'}_{T}^{2}</script><p>因此，有：</p>
+<script type="math/tex; mode=display">
+\begin{align}
+Q &= min(\sigma{'}_{1}^{2},...,\sigma{'}_{T}^2) \sum_{i=1}^{T}\frac{1}{\sigma{'}_{i}^{2}} \\
+&= \sigma{'}_{T}^{2}\sum_{i=1}^{T}\frac{1}{\sigma{'}_{i}^{2}} \\
+&= 1 + \sigma{'}_{T}^{2}\sum_{i=1}^{T-1}\frac{1}{\sigma{'}_{i}^{2}} \\
+&\geqslant 1
+\end{align}</script><p>最后一项，当 <script type="math/tex">T=1</script>，即只有一个模型时取等号。这说明，我们我们选择进行集成的候选模型的预测性能越好，集成后的预测性能越好。</p>
+<p>类似地，对于指标 <code>D</code> 使用调和-均值不等式有：</p>
+<script type="math/tex; mode=display">
+\begin{align}
+D &= \sigma{'}_{T}^{2} - \frac{1}{\sum_{i=1}^{T}\frac{1}{\sigma{‘}_{i}^{2}}} \\
+  &\geqslant \sigma{'}_{T}^{2} - \frac{1}{T^{2}}\sum_{i=1}^{T}\sigma{'}_{i}^{2} \\
+  &\geqslant 0
+\end{align}</script><p>这个不等式表明，当我们使用的模型数量越多时，集成模型的预测性能越好。</p>
+<p>类似地，在分类问题上，根据<code>Hoeffding</code>不等式可得类似的结论：</p>
+<script type="math/tex; mode=display">
+\begin{align}
+P(H(x)\neq f(x)) &= \sum_{i=0}^{[T/2]}\binom{T}{k}(1-\varepsilon)^{k}\varepsilon^{T-k} \\
+&\leqslant \exp(-\frac{1}{2}T(1-2\varepsilon)^2)
+\end{align}</script><p>更多概率不等式可参看<a href="../6631">漫谈概率论与信息论中的不等式</a>。那么，现在的问题是，我们应该使用怎样的模型进行集成？使用多少个模型进行集成？这个留作读者思考。</p>
+<p>通过以上思路，我们证明了，不同性能的预测模型通过恰当的线性组合得到的集成预测模型比预测性能最好的模型还要好！</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>以上我们证明了不同性能的预测模型通过恰当的线性组合得到的集成预测模型比预测性能最好的模型还要好，这正是集成模型的魅力。在这个基础上可以设计集成时间序列预测模型。</p>
+<p>转载请包括本文地址：<a href="../10114/">https://allenwind.github.io/blog/10114/</a></p>
+<p>更多文章请参考：<a href="../archives/">https://allenwind.github.io/blog/archives/</a></p>
+</div><div class="tags"><a href="/blog/tags/不等式/">不等式</a><a href="/blog/tags/集成学习/">集成学习</a><a href="/blog/tags/分类/">分类</a><a href="/blog/tags/证明/">证明</a></div><div class="post-nav"><a class="pre" href="/blog/10205/">谈算法工程师的数学素养</a><a class="next" href="/blog/9999/">Google的激活函数Swish是怎么设计出来的？</a></div></div></div></div><div class="pure-u-1-4 hidden_mid_and_down"><div id="sidebar"><div class="widget"><form class="search-form" action="//www.google.com/search" method="get" accept-charset="utf-8" target="_blank"><input type="text" name="q" maxlength="20" placeholder="Search"><input type="hidden" name="sitesearch" value="http://allenwind.github.io/blog"></form></div><div class="widget"><div class="widget-title"><i class="fa fa-folder-o"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/blog/categories/C-C/">C/C++</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Go/">Go</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Java/">Java</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Linux/">Linux</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/NLP/">NLP</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Python/">Python</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/数学/">数学</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/数据库/">数据库</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/数据结构和算法/">数据结构和算法</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/机器学习深度学习/">机器学习深度学习</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/记录/">记录</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-star-o"> 标签</i></div><div class="tagcloud"><a href="/blog/tags/算法/" style="font-size: 15px;">算法</a> <a href="/blog/tags/C/" style="font-size: 15px;">C</a> <a href="/blog/tags/Python/" style="font-size: 15px;">Python</a> <a href="/blog/tags/设计模式/" style="font-size: 15px;">设计模式</a> <a href="/blog/tags/C语言/" style="font-size: 15px;">C语言</a> <a href="/blog/tags/数据库/" style="font-size: 15px;">数据库</a> <a href="/blog/tags/区块链/" style="font-size: 15px;">区块链</a> <a href="/blog/tags/MySQL/" style="font-size: 15px;">MySQL</a> <a href="/blog/tags/分布式/" style="font-size: 15px;">分布式</a> <a href="/blog/tags/ACID/" style="font-size: 15px;">ACID</a> <a href="/blog/tags/sudo/" style="font-size: 15px;">sudo</a> <a href="/blog/tags/Docker/" style="font-size: 15px;">Docker</a> <a href="/blog/tags/SQL/" style="font-size: 15px;">SQL</a> <a href="/blog/tags/NoSQL/" style="font-size: 15px;">NoSQL</a> <a href="/blog/tags/git/" style="font-size: 15px;">git</a> <a href="/blog/tags/Linux/" style="font-size: 15px;">Linux</a> <a href="/blog/tags/Git/" style="font-size: 15px;">Git</a> <a href="/blog/tags/命令行/" style="font-size: 15px;">命令行</a> <a href="/blog/tags/Systemd/" style="font-size: 15px;">Systemd</a> <a href="/blog/tags/Tensorflow/" style="font-size: 15px;">Tensorflow</a> <a href="/blog/tags/gcc/" style="font-size: 15px;">gcc</a> <a href="/blog/tags/网络/" style="font-size: 15px;">网络</a> <a href="/blog/tags/操作系统/" style="font-size: 15px;">操作系统</a> <a href="/blog/tags/正则表达式/" style="font-size: 15px;">正则表达式</a> <a href="/blog/tags/记录/" style="font-size: 15px;">记录</a> <a href="/blog/tags/数据结构/" style="font-size: 15px;">数据结构</a> <a href="/blog/tags/Go/" style="font-size: 15px;">Go</a> <a href="/blog/tags/go/" style="font-size: 15px;">go</a> <a href="/blog/tags/LRU/" style="font-size: 15px;">LRU</a> <a href="/blog/tags/ARC/" style="font-size: 15px;">ARC</a> <a href="/blog/tags/Java/" style="font-size: 15px;">Java</a> <a href="/blog/tags/搜索引擎/" style="font-size: 15px;">搜索引擎</a> <a href="/blog/tags/剑指Offer/" style="font-size: 15px;">剑指Offer</a> <a href="/blog/tags/函数式/" style="font-size: 15px;">函数式</a> <a href="/blog/tags/Stack/" style="font-size: 15px;">Stack</a> <a href="/blog/tags/并发编程/" style="font-size: 15px;">并发编程</a> <a href="/blog/tags/网络编程/" style="font-size: 15px;">网络编程</a> <a href="/blog/tags/HTTP/" style="font-size: 15px;">HTTP</a> <a href="/blog/tags/并发/" style="font-size: 15px;">并发</a> <a href="/blog/tags/装饰器/" style="font-size: 15px;">装饰器</a> <a href="/blog/tags/Redis/" style="font-size: 15px;">Redis</a> <a href="/blog/tags/数学/" style="font-size: 15px;">数学</a> <a href="/blog/tags/时间序列/" style="font-size: 15px;">时间序列</a> <a href="/blog/tags/投资/" style="font-size: 15px;">投资</a> <a href="/blog/tags/概率/" style="font-size: 15px;">概率</a> <a href="/blog/tags/统计/" style="font-size: 15px;">统计</a> <a href="/blog/tags/信息论/" style="font-size: 15px;">信息论</a> <a href="/blog/tags/度量/" style="font-size: 15px;">度量</a> <a href="/blog/tags/机器学习/" style="font-size: 15px;">机器学习</a> <a href="/blog/tags/贝叶斯/" style="font-size: 15px;">贝叶斯</a> <a href="/blog/tags/最小二乘法/" style="font-size: 15px;">最小二乘法</a> <a href="/blog/tags/分布/" style="font-size: 15px;">分布</a> <a href="/blog/tags/深度学习/" style="font-size: 15px;">深度学习</a> <a href="/blog/tags/变分推断/" style="font-size: 15px;">变分推断</a> <a href="/blog/tags/随机/" style="font-size: 15px;">随机</a> <a href="/blog/tags/不等式/" style="font-size: 15px;">不等式</a> <a href="/blog/tags/采样/" style="font-size: 15px;">采样</a> <a href="/blog/tags/光滑/" style="font-size: 15px;">光滑</a> <a href="/blog/tags/逼近/" style="font-size: 15px;">逼近</a> <a href="/blog/tags/矩阵/" style="font-size: 15px;">矩阵</a> <a href="/blog/tags/交叉验证/" style="font-size: 15px;">交叉验证</a> <a href="/blog/tags/特征工程/" style="font-size: 15px;">特征工程</a> <a href="/blog/tags/集成学习/" style="font-size: 15px;">集成学习</a> <a href="/blog/tags/分类/" style="font-size: 15px;">分类</a> <a href="/blog/tags/证明/" style="font-size: 15px;">证明</a> <a href="/blog/tags/损失函数/" style="font-size: 15px;">损失函数</a> <a href="/blog/tags/回归/" style="font-size: 15px;">回归</a> <a href="/blog/tags/正则化/" style="font-size: 15px;">正则化</a> <a href="/blog/tags/词向量/" style="font-size: 15px;">词向量</a> <a href="/blog/tags/NLP/" style="font-size: 15px;">NLP</a> <a href="/blog/tags/信息/" style="font-size: 15px;">信息</a> <a href="/blog/tags/Embedding/" style="font-size: 15px;">Embedding</a> <a href="/blog/tags/神经网络/" style="font-size: 15px;">神经网络</a> <a href="/blog/tags/Transformer/" style="font-size: 15px;">Transformer</a> <a href="/blog/tags/Attention/" style="font-size: 15px;">Attention</a> <a href="/blog/tags/对抗训练/" style="font-size: 15px;">对抗训练</a> <a href="/blog/tags/文本分类/" style="font-size: 15px;">文本分类</a> <a href="/blog/tags/分词/" style="font-size: 15px;">分词</a> <a href="/blog/tags/并行/" style="font-size: 15px;">并行</a> <a href="/blog/tags/NER/" style="font-size: 15px;">NER</a> <a href="/blog/tags/概率图/" style="font-size: 15px;">概率图</a> <a href="/blog/tags/HMM/" style="font-size: 15px;">HMM</a> <a href="/blog/tags/图/" style="font-size: 15px;">图</a> <a href="/blog/tags/可视化/" style="font-size: 15px;">可视化</a> <a href="/blog/tags/RNN/" style="font-size: 15px;">RNN</a> <a href="/blog/tags/LSTM/" style="font-size: 15px;">LSTM</a> <a href="/blog/tags/梯度/" style="font-size: 15px;">梯度</a> <a href="/blog/tags/注意力/" style="font-size: 15px;">注意力</a> <a href="/blog/tags/序列编码/" style="font-size: 15px;">序列编码</a> <a href="/blog/tags/磁盘故障/" style="font-size: 15px;">磁盘故障</a> <a href="/blog/tags/BERT/" style="font-size: 15px;">BERT</a> <a href="/blog/tags/CNN/" style="font-size: 15px;">CNN</a> <a href="/blog/tags/卷积/" style="font-size: 15px;">卷积</a> <a href="/blog/tags/优化/" style="font-size: 15px;">优化</a> <a href="/blog/tags/调参/" style="font-size: 15px;">调参</a> <a href="/blog/tags/Flask/" style="font-size: 15px;">Flask</a> <a href="/blog/tags/web/" style="font-size: 15px;">web</a> <a href="/blog/tags/socket/" style="font-size: 15px;">socket</a> <a href="/blog/tags/安全/" style="font-size: 15px;">安全</a> <a href="/blog/tags/协程/" style="font-size: 15px;">协程</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-file-o"> 最近文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/blog/16003/">天马行空：设计自己的激活函数</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/15887/">函数光滑近似（4）：Heaviside step函数及其应用</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/15205/">引入参数控制softmax的smooth程度</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/15110/">分析与拓展：多分类模型的输出为什么使用softmax？</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14990/">一种基于光滑逼近的正态分布采样法</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14721/">GELU由来：从狄拉克函数到GELU激活函数</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14465/">Lp范数的上下界分析</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14441/">logsumexp函数分析</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14133/">分析Mish激活函数的设计思路</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/13899/">阿尔法经济学：Shiller模型介绍</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-external-link"> 友情链接</i></div><ul></ul><a href="https://github.com/allenwind" title="My GitHub" target="_blank">My GitHub</a><ul></ul><a href="http://www.arxiv-sanity.com/" title="arxiv-sanity" target="_blank">arxiv-sanity</a><ul></ul><a href="https://arxiv.org/" title="arxiv.org" target="_blank">arxiv.org</a></div></div></div><div class="pure-u-1 pure-u-md-3-4"><div id="footer">Copyright © 2021 <a href="/blog/." rel="nofollow">Mr.Feng Blog.</a> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a><a rel="nofollow" target="_blank" href="https://github.com/tufu9441/maupassant-hexo"> Theme</a> by<a rel="nofollow" target="_blank" href="https://github.com/pagecho"> Cho.</a></div></div></div><a class="show" id="rocket" href="#top"></a><script type="text/javascript" src="/blog/js/totop.js?v=0.0.0" async></script><script type="text/javascript" src="//lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js" async></script><script type="text/javascript" src="/blog/js/fancybox.js?v=0.0.0" async></script><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css"><script type="text/x-mathjax-config">MathJax.Hub.Config({
+  tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}
+  });
+</script><script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-MML-AM_CHTML" async></script><script type="text/javascript" src="/blog/js/codeblock-resizer.js?v=0.0.0"></script><script type="text/javascript" src="/blog/js/smartresize.js?v=0.0.0"></script></div></body></html>

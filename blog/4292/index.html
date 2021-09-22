@@ -1,0 +1,94 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.9.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description" content="你好，世界！"><title>数据库并发控制的实现原理 | Mr.Feng Blog</title><link rel="stylesheet" type="text/css" href="/blog/css/style.css?v=0.0.0"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/normalize/8.0.1/normalize.min.css"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/pure/1.0.0/pure-min.css"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/pure/1.0.0/grids-responsive-min.css"><link rel="stylesheet" href="//lib.baomitu.com/font-awesome/4.7.0/css/font-awesome.min.css"><script type="text/javascript" src="//lib.baomitu.com/jquery/3.4.0/jquery.min.js"></script><link rel="icon" mask sizes="any" href="/blog/favicon.ico"><link rel="Shortcut Icon" type="image/x-icon" href="/blog/favicon.ico"><link rel="apple-touch-icon" href="/blog/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/blog/apple-touch-icon.png"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">数据库并发控制的实现原理</h1><a id="logo" href="/blog/.">Mr.Feng Blog</a><p class="description">NLP、深度学习、机器学习、Python、Go</p></div><div id="nav-menu"><a class="current" href="/blog/."><i class="fa fa-home"> 首页</i></a><a href="/blog/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/blog/about/"><i class="fa fa-user"> 关于</i></a></div></div><div class="pure-g" id="layout"><div class="pure-u-1 pure-u-md-3-4"><div class="content_container"><div class="post"><h1 class="post-title">数据库并发控制的实现原理</h1><div class="post-meta">Nov 5, 2017<span> | </span><span class="category"><a href="/blog/categories/数据库/">数据库</a></span></div><div class="clear"><div class="toc-article" id="toc"><div class="toc-title">文章目录</div><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#没有并发控制下的异常情况"><span class="toc-number">1.</span> <span class="toc-text">没有并发控制下的异常情况</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#封锁"><span class="toc-number">2.</span> <span class="toc-text">封锁</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#封锁协议"><span class="toc-number">3.</span> <span class="toc-text">封锁协议</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#死锁和活锁"><span class="toc-number">4.</span> <span class="toc-text">死锁和活锁</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#并发调度的可串行性"><span class="toc-number">5.</span> <span class="toc-text">并发调度的可串行性</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#两段锁协议"><span class="toc-number">6.</span> <span class="toc-text">两段锁协议</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#封锁的粒度"><span class="toc-number">7.</span> <span class="toc-text">封锁的粒度</span></a></li></ol></div></div><div class="post-content"><p>介绍数据库的并发控制原理。</p>
+<a id="more"></a>
+<p>隔离是事务<a href="../4315#ACID概念">ACID</a>四大特性之一。在并发环境下，不同事务操纵相同的数据时，每个事务都有各自完整的数据空间。如果不对数据库进行并发控制，或产生异常行为。一些异常行为可以概括为四类。不同的数据库引擎实现不同的事务隔离级别来控制锁的粒度。为了均衡并发效率和异常控制，表中SQL规范中，定义了四个事务隔离级别。</p>
+<p>主要有：</p>
+<ul>
+<li>封锁（locking）</li>
+<li>时间戳（timestamp）</li>
+<li>乐观控制法（optimistic scheduler）</li>
+<li>多版本并发控制（multi-version concurrency control，MVCC）</li>
+</ul>
+<p>加下来谈谈它们的实现和原理。注意不同数据库在并发控制采用的原理不同。先谈谈没有并发控制下的异常情况。</p>
+<h2 id="没有并发控制下的异常情况"><a href="#没有并发控制下的异常情况" class="headerlink" title="没有并发控制下的异常情况"></a>没有并发控制下的异常情况</h2><ul>
+<li>脏读 dirty read<br>当一个事务允许另外一个事务修改但没有COMMIT的数据时，就可能发生脏读。具体过程：事务T1修改数据并写回磁盘，事务T2读取同一数据后，由于T1因某些原因撤销，T1修改的数据恢复到原来的数据，这时T2读到的数据和数据库中的数据不一致。</li>
+<li>不可重复读 nonrepeatable read<br>事务T1读取数据后，事务T2执行更新操作（但没有COMMIT）使得T1无法再现前一次读取结果。具体包括三种情况。<ul>
+<li>（1）事务T2修改数据：数据不一致</li>
+<li>（2）事务T2删除部分数据：却小数据</li>
+<li>（3）事务T2插入新数据：多了数据</li>
+</ul>
+</li>
+<li>丢失修改 lost update<br>两个事务T1、T2读入同一数据并修改，T2提交的结果破坏了T1提交的结果，导致T1的修改被丢失。</li>
+<li>幻读 phantom read<br>幻读就是不可重复读的后两种情况。</li>
+</ul>
+<p>上述四种产生数据不一致的情况中，幻读是不可重复读的特例。造成数据不一致的主要原因是并发操作破坏了事务的隔离性。为了更好理解这一点，可以类比到操作系统进程、线程的并发上。</p>
+<p>并发控制机制就是要用正确的方式调度并发操作，是一个用户事务执行的操作不受其他事务的干扰，从而避免数据的不一致。<a href="\DataBase\TransactionImplementation.md">实现并发控制</a>主要有<code>封锁（locking）</code>、<code>时间戳（timestamp）</code>、<code>乐观控制法（optimistic scheduler）</code>、<code>多版本并发控制（multi-version concurrency control，MVCC）</code>。</p>
+<h2 id="封锁"><a href="#封锁" class="headerlink" title="封锁"></a>封锁</h2><p>封锁是并发控制中的一个非常重要的技术。所谓封锁就是事务T在对某个数据对象如表、记录进行操作前，先向操作系统发起请求，对其加锁。加锁后，事务T对该数据有了一定的控制，在事务T释放它的锁前，其他事务不能更新此数据。基本的封锁类型用两种：排他锁（exclusive locks，间称X锁）和共享锁（share locks，简称S锁）。它们的对比如下。</p>
+<ul>
+<li><p>排他锁<br>若事务T对数据对象A加上X锁，则允许T读取和修改A，其他事务不能对A加任何类型的锁，知道T释放A上的锁为止。这样保证其他事务不能在T释放A的锁之前读取和修改数据对象A。</p>
+</li>
+<li><p>共享锁<br>若事务T对数据对象A加上S锁，则事务T可以读取A但不能修改A，其他事务只能再对A加上S锁，而不能加上X锁，知道T释放A上的S锁为止。这样就能保证其他事务可以读取A，但不能在T释放A的锁前对A做任何修改。</p>
+</li>
+</ul>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th>名称</th>
+<th>锁的影响范围</th>
+<th>别名</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>共享锁</td>
+<td>其他连接可以读取数据但不能修改数据</td>
+<td>读锁</td>
+</tr>
+<tr>
+<td>排他锁</td>
+<td>其他连接无法读取数据，也不能修改数据</td>
+<td>写锁</td>
+</tr>
+</tbody>
+</table>
+</div>
+<h2 id="封锁协议"><a href="#封锁协议" class="headerlink" title="封锁协议"></a>封锁协议</h2><p><strong>封锁协议</strong>约定了在运用X所和S锁着两种基本锁时的规则：如何申请X锁和S锁、持锁时间、何时释放。这里总结三级封锁的基本原理。对并发操作的不正确调度可能会带来丢失修改、不可重复读和读“脏”数据等不一致问题。三级封锁协议分别在不同程度上解决这些问题。</p>
+<ul>
+<li><p>一级封锁协议<br>事务T在修改数据R之前先对其加X锁，直到事务结束才释放。</p>
+</li>
+<li><p>二级封锁协议<br>在一级封锁协议基础上增加事务T在读取数据R之前必须先对其加S锁，读取完后即可释放S锁。</p>
+</li>
+<li><p>三级封锁协议<br>在一级封锁协议基础上增加事务T在读取数据R之前必须先对其加S锁，知道<strong>事务结束</strong>才释放。</p>
+</li>
+</ul>
+<h2 id="死锁和活锁"><a href="#死锁和活锁" class="headerlink" title="死锁和活锁"></a>死锁和活锁</h2><ul>
+<li><p>活锁<br>和操作系统一样封锁也会引起活锁和死锁问题。事务T请求封锁R，但由于其他事务一直占用封锁资源，导致事务T一直在等待，这就是活锁。解决活锁的方法是先来先服务。当多个事务请求封锁同一资源是，封锁子系统会根据请求封锁的先后顺序进行排队，根据队列批准请求封锁。</p>
+</li>
+<li><p>死锁<br>这里的死锁和操作系统的死锁是一致的。解决死锁也可以采取操作系统中处理死锁的方案。死锁的最简单情况，事务T1等待事务T2，而事务T2也在等待事务T1，T1和T2两个事务永远不能结束。</p>
+</li>
+<li><p>乐观锁<br>参考<a href>乐观控制法</a></p>
+</li>
+</ul>
+<h2 id="并发调度的可串行性"><a href="#并发调度的可串行性" class="headerlink" title="并发调度的可串行性"></a>并发调度的可串行性</h2><ul>
+<li><p>定义可串行化调度<br>多个事务的并发执行时正确的，当且仅当其结果与按某一次序串行地执行这些事务时的结果相同，这种调度策略称为可串行化（serializable）调度。可串行性是并发事务正确调度的准则。</p>
+</li>
+<li></li>
+</ul>
+<h2 id="两段锁协议"><a href="#两段锁协议" class="headerlink" title="两段锁协议"></a>两段锁协议</h2><p>两段锁协议是指所有事务必须分两个阶段对数据项加锁和解锁。</p>
+<ul>
+<li><p>在对任何数据进行读、写操作之前，首先要申请并获取对该数据的封锁</p>
+</li>
+<li><p>在释放一个封锁之后，事务不再申请和获取任何其他封锁。</p>
+</li>
+</ul>
+<h2 id="封锁的粒度"><a href="#封锁的粒度" class="headerlink" title="封锁的粒度"></a>封锁的粒度</h2><p>封锁对象的大小称为封锁粒度（granularity）。封锁的对象可以是了逻辑单元和物理单元。封锁的粒度与系统的并发读和并发控制的开销密切相关。</p>
+<p>多版本并发控制 MVCC</p>
+<p>其他并发控制机制</p>
+<ul>
+<li><p>乐观控制法 </p>
+</li>
+<li><p>时间戳</p>
+</li>
+</ul>
+<p>转载请包括本文地址：<a href="../4292">https://allenwind.github.io/blog/4292</a><br>更多文章请参考：<a href="../archives/">https://allenwind.github.io/blog/archives/</a></p>
+</div><div class="tags"><a href="/blog/tags/数据库/">数据库</a></div><div class="post-nav"><a class="pre" href="/blog/4344/">LRU算法的优化</a><a class="next" href="/blog/4262/">常用正则表达式</a></div></div></div></div><div class="pure-u-1-4 hidden_mid_and_down"><div id="sidebar"><div class="widget"><form class="search-form" action="//www.google.com/search" method="get" accept-charset="utf-8" target="_blank"><input type="text" name="q" maxlength="20" placeholder="Search"><input type="hidden" name="sitesearch" value="http://allenwind.github.io/blog"></form></div><div class="widget"><div class="widget-title"><i class="fa fa-folder-o"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/blog/categories/C-C/">C/C++</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Go/">Go</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Java/">Java</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Linux/">Linux</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/NLP/">NLP</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Python/">Python</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/数学/">数学</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/数据库/">数据库</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/数据结构和算法/">数据结构和算法</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/机器学习深度学习/">机器学习深度学习</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/记录/">记录</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-star-o"> 标签</i></div><div class="tagcloud"><a href="/blog/tags/算法/" style="font-size: 15px;">算法</a> <a href="/blog/tags/C/" style="font-size: 15px;">C</a> <a href="/blog/tags/Python/" style="font-size: 15px;">Python</a> <a href="/blog/tags/设计模式/" style="font-size: 15px;">设计模式</a> <a href="/blog/tags/C语言/" style="font-size: 15px;">C语言</a> <a href="/blog/tags/数据库/" style="font-size: 15px;">数据库</a> <a href="/blog/tags/区块链/" style="font-size: 15px;">区块链</a> <a href="/blog/tags/MySQL/" style="font-size: 15px;">MySQL</a> <a href="/blog/tags/分布式/" style="font-size: 15px;">分布式</a> <a href="/blog/tags/ACID/" style="font-size: 15px;">ACID</a> <a href="/blog/tags/sudo/" style="font-size: 15px;">sudo</a> <a href="/blog/tags/Docker/" style="font-size: 15px;">Docker</a> <a href="/blog/tags/SQL/" style="font-size: 15px;">SQL</a> <a href="/blog/tags/NoSQL/" style="font-size: 15px;">NoSQL</a> <a href="/blog/tags/git/" style="font-size: 15px;">git</a> <a href="/blog/tags/Linux/" style="font-size: 15px;">Linux</a> <a href="/blog/tags/Git/" style="font-size: 15px;">Git</a> <a href="/blog/tags/命令行/" style="font-size: 15px;">命令行</a> <a href="/blog/tags/Systemd/" style="font-size: 15px;">Systemd</a> <a href="/blog/tags/Tensorflow/" style="font-size: 15px;">Tensorflow</a> <a href="/blog/tags/gcc/" style="font-size: 15px;">gcc</a> <a href="/blog/tags/网络/" style="font-size: 15px;">网络</a> <a href="/blog/tags/操作系统/" style="font-size: 15px;">操作系统</a> <a href="/blog/tags/正则表达式/" style="font-size: 15px;">正则表达式</a> <a href="/blog/tags/记录/" style="font-size: 15px;">记录</a> <a href="/blog/tags/数据结构/" style="font-size: 15px;">数据结构</a> <a href="/blog/tags/Go/" style="font-size: 15px;">Go</a> <a href="/blog/tags/go/" style="font-size: 15px;">go</a> <a href="/blog/tags/LRU/" style="font-size: 15px;">LRU</a> <a href="/blog/tags/ARC/" style="font-size: 15px;">ARC</a> <a href="/blog/tags/Java/" style="font-size: 15px;">Java</a> <a href="/blog/tags/搜索引擎/" style="font-size: 15px;">搜索引擎</a> <a href="/blog/tags/剑指Offer/" style="font-size: 15px;">剑指Offer</a> <a href="/blog/tags/函数式/" style="font-size: 15px;">函数式</a> <a href="/blog/tags/Stack/" style="font-size: 15px;">Stack</a> <a href="/blog/tags/并发编程/" style="font-size: 15px;">并发编程</a> <a href="/blog/tags/网络编程/" style="font-size: 15px;">网络编程</a> <a href="/blog/tags/HTTP/" style="font-size: 15px;">HTTP</a> <a href="/blog/tags/并发/" style="font-size: 15px;">并发</a> <a href="/blog/tags/装饰器/" style="font-size: 15px;">装饰器</a> <a href="/blog/tags/Redis/" style="font-size: 15px;">Redis</a> <a href="/blog/tags/数学/" style="font-size: 15px;">数学</a> <a href="/blog/tags/时间序列/" style="font-size: 15px;">时间序列</a> <a href="/blog/tags/投资/" style="font-size: 15px;">投资</a> <a href="/blog/tags/概率/" style="font-size: 15px;">概率</a> <a href="/blog/tags/统计/" style="font-size: 15px;">统计</a> <a href="/blog/tags/信息论/" style="font-size: 15px;">信息论</a> <a href="/blog/tags/度量/" style="font-size: 15px;">度量</a> <a href="/blog/tags/机器学习/" style="font-size: 15px;">机器学习</a> <a href="/blog/tags/贝叶斯/" style="font-size: 15px;">贝叶斯</a> <a href="/blog/tags/最小二乘法/" style="font-size: 15px;">最小二乘法</a> <a href="/blog/tags/分布/" style="font-size: 15px;">分布</a> <a href="/blog/tags/深度学习/" style="font-size: 15px;">深度学习</a> <a href="/blog/tags/变分推断/" style="font-size: 15px;">变分推断</a> <a href="/blog/tags/随机/" style="font-size: 15px;">随机</a> <a href="/blog/tags/不等式/" style="font-size: 15px;">不等式</a> <a href="/blog/tags/采样/" style="font-size: 15px;">采样</a> <a href="/blog/tags/光滑/" style="font-size: 15px;">光滑</a> <a href="/blog/tags/逼近/" style="font-size: 15px;">逼近</a> <a href="/blog/tags/矩阵/" style="font-size: 15px;">矩阵</a> <a href="/blog/tags/交叉验证/" style="font-size: 15px;">交叉验证</a> <a href="/blog/tags/特征工程/" style="font-size: 15px;">特征工程</a> <a href="/blog/tags/集成学习/" style="font-size: 15px;">集成学习</a> <a href="/blog/tags/分类/" style="font-size: 15px;">分类</a> <a href="/blog/tags/证明/" style="font-size: 15px;">证明</a> <a href="/blog/tags/损失函数/" style="font-size: 15px;">损失函数</a> <a href="/blog/tags/回归/" style="font-size: 15px;">回归</a> <a href="/blog/tags/正则化/" style="font-size: 15px;">正则化</a> <a href="/blog/tags/词向量/" style="font-size: 15px;">词向量</a> <a href="/blog/tags/NLP/" style="font-size: 15px;">NLP</a> <a href="/blog/tags/信息/" style="font-size: 15px;">信息</a> <a href="/blog/tags/Embedding/" style="font-size: 15px;">Embedding</a> <a href="/blog/tags/神经网络/" style="font-size: 15px;">神经网络</a> <a href="/blog/tags/Transformer/" style="font-size: 15px;">Transformer</a> <a href="/blog/tags/Attention/" style="font-size: 15px;">Attention</a> <a href="/blog/tags/对抗训练/" style="font-size: 15px;">对抗训练</a> <a href="/blog/tags/文本分类/" style="font-size: 15px;">文本分类</a> <a href="/blog/tags/分词/" style="font-size: 15px;">分词</a> <a href="/blog/tags/并行/" style="font-size: 15px;">并行</a> <a href="/blog/tags/NER/" style="font-size: 15px;">NER</a> <a href="/blog/tags/概率图/" style="font-size: 15px;">概率图</a> <a href="/blog/tags/HMM/" style="font-size: 15px;">HMM</a> <a href="/blog/tags/图/" style="font-size: 15px;">图</a> <a href="/blog/tags/可视化/" style="font-size: 15px;">可视化</a> <a href="/blog/tags/RNN/" style="font-size: 15px;">RNN</a> <a href="/blog/tags/LSTM/" style="font-size: 15px;">LSTM</a> <a href="/blog/tags/梯度/" style="font-size: 15px;">梯度</a> <a href="/blog/tags/注意力/" style="font-size: 15px;">注意力</a> <a href="/blog/tags/序列编码/" style="font-size: 15px;">序列编码</a> <a href="/blog/tags/磁盘故障/" style="font-size: 15px;">磁盘故障</a> <a href="/blog/tags/BERT/" style="font-size: 15px;">BERT</a> <a href="/blog/tags/CNN/" style="font-size: 15px;">CNN</a> <a href="/blog/tags/卷积/" style="font-size: 15px;">卷积</a> <a href="/blog/tags/优化/" style="font-size: 15px;">优化</a> <a href="/blog/tags/调参/" style="font-size: 15px;">调参</a> <a href="/blog/tags/Flask/" style="font-size: 15px;">Flask</a> <a href="/blog/tags/web/" style="font-size: 15px;">web</a> <a href="/blog/tags/socket/" style="font-size: 15px;">socket</a> <a href="/blog/tags/安全/" style="font-size: 15px;">安全</a> <a href="/blog/tags/协程/" style="font-size: 15px;">协程</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-file-o"> 最近文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/blog/16003/">天马行空：设计自己的激活函数</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/15887/">函数光滑近似（4）：Heaviside step函数及其应用</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/15205/">引入参数控制softmax的smooth程度</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/15110/">分析与拓展：多分类模型的输出为什么使用softmax？</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14990/">一种基于光滑逼近的正态分布采样法</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14721/">GELU由来：从狄拉克函数到GELU激活函数</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14465/">Lp范数的上下界分析</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14441/">logsumexp函数分析</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14133/">分析Mish激活函数的设计思路</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/13899/">阿尔法经济学：Shiller模型介绍</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-external-link"> 友情链接</i></div><ul></ul><a href="https://github.com/allenwind" title="My GitHub" target="_blank">My GitHub</a><ul></ul><a href="http://www.arxiv-sanity.com/" title="arxiv-sanity" target="_blank">arxiv-sanity</a><ul></ul><a href="https://arxiv.org/" title="arxiv.org" target="_blank">arxiv.org</a></div></div></div><div class="pure-u-1 pure-u-md-3-4"><div id="footer">Copyright © 2021 <a href="/blog/." rel="nofollow">Mr.Feng Blog.</a> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a><a rel="nofollow" target="_blank" href="https://github.com/tufu9441/maupassant-hexo"> Theme</a> by<a rel="nofollow" target="_blank" href="https://github.com/pagecho"> Cho.</a></div></div></div><a class="show" id="rocket" href="#top"></a><script type="text/javascript" src="/blog/js/totop.js?v=0.0.0" async></script><script type="text/javascript" src="//lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js" async></script><script type="text/javascript" src="/blog/js/fancybox.js?v=0.0.0" async></script><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css"><script type="text/javascript" src="/blog/js/codeblock-resizer.js?v=0.0.0"></script><script type="text/javascript" src="/blog/js/smartresize.js?v=0.0.0"></script></div></body></html>
