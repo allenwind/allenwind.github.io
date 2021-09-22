@@ -1,0 +1,103 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.9.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description" content="你好，世界！"><title>漫谈序列编码：MLP、CNN、RNN | Mr.Feng Blog</title><link rel="stylesheet" type="text/css" href="/blog/css/style.css?v=0.0.0"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/normalize/8.0.1/normalize.min.css"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/pure/1.0.0/pure-min.css"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/pure/1.0.0/grids-responsive-min.css"><link rel="stylesheet" href="//lib.baomitu.com/font-awesome/4.7.0/css/font-awesome.min.css"><script type="text/javascript" src="//lib.baomitu.com/jquery/3.4.0/jquery.min.js"></script><link rel="icon" mask sizes="any" href="/blog/favicon.ico"><link rel="Shortcut Icon" type="image/x-icon" href="/blog/favicon.ico"><link rel="apple-touch-icon" href="/blog/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/blog/apple-touch-icon.png"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">漫谈序列编码：MLP、CNN、RNN</h1><a id="logo" href="/blog/.">Mr.Feng Blog</a><p class="description">NLP、深度学习、机器学习、Python、Go</p></div><div id="nav-menu"><a class="current" href="/blog/."><i class="fa fa-home"> 首页</i></a><a href="/blog/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/blog/about/"><i class="fa fa-user"> 关于</i></a></div></div><div class="pure-g" id="layout"><div class="pure-u-1 pure-u-md-3-4"><div class="content_container"><div class="post"><h1 class="post-title">漫谈序列编码：MLP、CNN、RNN</h1><div class="post-meta">Mar 1, 2019<span> | </span><span class="category"><a href="/blog/categories/机器学习深度学习/">机器学习深度学习</a></span></div><div class="clear"><div class="toc-article" id="toc"><div class="toc-title">文章目录</div><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#序列编码问题"><span class="toc-number">1.</span> <span class="toc-text">序列编码问题</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#MLP-处理序列问题"><span class="toc-number">2.</span> <span class="toc-text">MLP 处理序列问题</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#CNN-处理序列问题"><span class="toc-number">3.</span> <span class="toc-text">CNN 处理序列问题</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#RNN-处理序列问题"><span class="toc-number">4.</span> <span class="toc-text">RNN 处理序列问题</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#面临的问题"><span class="toc-number">5.</span> <span class="toc-text">面临的问题</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#总结"><span class="toc-number">6.</span> <span class="toc-text">总结</span></a></li></ol></div></div><div class="post-content"><p>漫谈序列编码：MLP、CNN、RNN</p>
+<a id="more"></a>
+<p>在深度学习中，很多时候要处理的是表示问题，例如在 NLP 中，把变长的句子进行结构化表示，如定长的向量或矩阵，这个过程我们称为句子的表示。有趣的事情是，我们都似乎热衷于模拟人脑，从多层感知机、CNN到RNN，这些都是在某个方面模拟人脑。注意力机制也不例外，尝试对人类的主动性注意力中做模拟。当然，随着这些模型的复杂运用，这些模拟是否真的按照人们所理解的那样工作就不得而知了，例如现在的Transformer，从细节上看，及其复杂，它真的按照人类对其设计之初的初期工作？。但无论如何，目前Attention在各个领域取得的成就是让人瞩目的。为此，开本系列计划总结或者说漫谈一下注意力机制。本篇我先梳理一下在注意力机制出现前的序列编码问题。</p>
+<h2 id="序列编码问题"><a href="#序列编码问题" class="headerlink" title="序列编码问题"></a>序列编码问题</h2><p>假定我们有一序列样本，</p>
+<script type="math/tex; mode=display">
+\boldsymbol{X} = \left [\boldsymbol{x}_{1},\boldsymbol{x}_{2},\cdots,\boldsymbol{x}_{k} \right]</script><p>其中每个时间步 $\boldsymbol{x}_{i}$ 是一个向量，k 是一个正整数，表示不定长序列的长度。一般序列类型数据有如下特点，</p>
+<ul>
+<li>变长，即序列长度不定</li>
+<li>长距离的模式依赖，即两个距离较长的时间步的取值具有管理</li>
+</ul>
+<p>从 NLP 任务看，我们可以认为 $\boldsymbol{X}$ 是一个句子的表示，当然也可以是其他任务中的数据，如某个设备传感器传来的多维时序数据，甚至是软件监控的多个 metric，如CPU时钟频率、IOPS等等。</p>
+<p>现在我们想把这个样本聚合成一个定长的向量（称为<strong>序列编码</strong>）并送入一个机器学习分类器（如决策树、线性模型）作出某个分类判别。例如在 NLP 中，判别句子 $\boldsymbol{X}$ 的情感；或判断硬件设备的健康状况；或判别运动目标的运动状态。</p>
+<p>可是传统的分类器只能接受向量，而这个样本有 $k$ 个向量，怎么办？聪明的你想到非常多的方法，可能包括：随机从 $\boldsymbol{X}$ 从采样一个向量。但这个向量真的能提高分类性能？应该比较难，因为会丢失序列的大量信息。可能你已经意识到，这里的关键是输入分类器的向量（我们把这个向量称为特征向量）一定要包括和任务相关的尽可能多的信息，比如设备故障判断任务中，这个向量应该尽可能包括设备健康情况的信息；NLP情感分类中，这个向量应该尽可能包括情感倾向性信息。但是，我们没有更多的背景信息来帮助我们从 $\boldsymbol{X}$ 中提取有效信息。</p>
+<p>既然如此，我们退一步，试着对 $\boldsymbol{x}_{1},\boldsymbol{x}_{2},\cdots,\boldsymbol{x}_{k}$ 这些向量作平均，计算得到的平均向量作为这个样本的“表示”，传入分类器作分类。这里作平均，意味着每个 $\boldsymbol{x}_{i}$ 都同等重要。我们还可以来个高明点的平均，加权平均。在很多任务中，尤其是时间序列数据，最近获得的数据比旧数据更重要，即 $\boldsymbol{x}_{k}$ 的重要性要比 $\boldsymbol{x}_{.&lt;k}$ 高，所以我们可以如下计算特征向量，</p>
+<script type="math/tex; mode=display">
+\boldsymbol{S}_{t} = \alpha \boldsymbol{x}_{t} + (1−\alpha)\boldsymbol{S}_{t−1}</script><p>$\alpha$ 表示当前时间步 $\boldsymbol{x}_{t}$ 的重要性，在时间序列中称为遗忘因子。展开来，</p>
+<script type="math/tex; mode=display">
+\begin{aligned} \boldsymbol{S}_{t} &=\alpha \left[\boldsymbol{x}_{t}+ (1-\alpha) \boldsymbol{x}_{t-1} + \cdots +(1-\alpha)^{k} \boldsymbol{x}_{t-k}\right]+(1-\alpha)^{k+1} \boldsymbol{S}_{t-(k+1)}
+\end{aligned}</script><p>如果忽略权重因子的具体形式，可以简化写成，</p>
+<script type="math/tex; mode=display">
+\boldsymbol{S}_{k} =\sum_{i=1}^k \lambda_i \boldsymbol{x}_i</script><p>这个 $\lambda_{i}$ 是权重，和 $\alpha$ 有关，而后者是人为设定的参数。 $\boldsymbol{S}_{k}$ 就是我们的特征向量，无论序列长度 k 取多少，$\boldsymbol{S}_{k}$ 向量的维度不变，适合用于输入传统分类模型。以上这个过程就是我们在机器学习中的特征工程。具体地，我们还需要根据场景、数据特点和需求设计更多的特征来提高模型的性能以满足需求。不过这里的关注点并不是特征工程，因此不详细展开。</p>
+<p>现在的问题是 $\alpha$ 需要人为设置，那么应该设多少？更进一步权重 $\lambda_{i}$ 是否可以让模型自动学习？如果思考到这一步，我们就明白注意力的本质：给不同的信息分配不同的关注度，并根据这个关注度把序列数据聚合成一个定长向量。这就是Attention解决不定长序列编码的方案。</p>
+<p>接下来我们先看看MLP、CNN、RNN如何解决序列数据编码问题。</p>
+<h2 id="MLP-处理序列问题"><a href="#MLP-处理序列问题" class="headerlink" title="MLP 处理序列问题"></a>MLP 处理序列问题</h2><p>MLP在数据上可以表示为，</p>
+<script type="math/tex; mode=display">
+\boldsymbol{y} = f(\boldsymbol{W}\boldsymbol{x} + \boldsymbol{b})</script><p>其中 $f$ 是激活函数。这种结构天然就没有办法处理变长序列数据。不过可以在数据处理阶段按固定窗口划分ngrams，在时间序列问题中，采用滑动窗口的形式来规整化数据。在最后的输出上进行Pooling。</p>
+<p>MLP对序列进行ngrams建模，自回归方法，</p>
+<script type="math/tex; mode=display">
+y_t = f(y_{t-1}, \dots, y_{t-n+1};\boldsymbol{w})</script><p>概率自回归方法，</p>
+<script type="math/tex; mode=display">
+p(y_t|y_{t-1}, \dots, y_{t-n+1})</script><p>MLP的问题：</p>
+<ul>
+<li>能够处理长距离依赖</li>
+<li>能够很好地建立长期依赖，但无法处理边长序列以及位置信息</li>
+<li>模型自身无法处理变长序列，需要配合外部的数据处理方法，如滑动窗口规整数据</li>
+</ul>
+<h2 id="CNN-处理序列问题"><a href="#CNN-处理序列问题" class="headerlink" title="CNN 处理序列问题"></a>CNN 处理序列问题</h2><p>CNN 可以看做是 MLP 网络中，为减少计算复杂度而做的优化，模型自身在变长序列上进行滑动窗口计算。CNN网络结构常包括：</p>
+<ul>
+<li>局部连接</li>
+<li>权重共享（卷积核）</li>
+<li>汇聚操作</li>
+</ul>
+<p>引入这些机制能够减少模型的计算复杂度，但不影响模型的表示能力。使用窗口遍历序列，若卷积核为3，可表示为</p>
+<script type="math/tex; mode=display">
+\begin{equation}
+\boldsymbol{y}_t = f(\boldsymbol{x}_{t-1},\boldsymbol{x}_t,\boldsymbol{x}_{t+1})
+\end{equation}</script><p>为了获得长距离依赖，通过堆叠层数（Hidden Layer），膨胀卷积等，见下图，</p>
+<p><img src="../images/FNN-gen.gif" alt></p>
+<p>CNN 喜欢干的事情就是内部进行滑动窗口，注意，这里的滑动窗口是模型内部完成的事情。而MLP是需要人工处理数据滑动窗口。最后CNN的输出为经过特征提取的向量序列，通过Pooling变为定长的向量序列。</p>
+<h2 id="RNN-处理序列问题"><a href="#RNN-处理序列问题" class="headerlink" title="RNN 处理序列问题"></a>RNN 处理序列问题</h2><p>RNN处理变长序列直接通过递归计算，即</p>
+<script type="math/tex; mode=display">
+\begin{equation}\boldsymbol{y}_t = f(\boldsymbol{y}_{t-1},\boldsymbol{x}_t)\end{equation}</script><p>这里的 $f$ 是RNN模型，具体如LSTM、GRU、SRNN等。通过递归计算，最后变长序列会直接编码为一个定长向量（最后一个时间步输出的向量）。理论上我们认为它编码了序列的关键信息到这个定长向量上。</p>
+<p>优缺点：</p>
+<ul>
+<li>无法并行计算</li>
+<li>潜在的梯度消失问题（远距离的梯度太弱，使得梯度和被近距离的梯度所主导）可能导致难以建立长期依赖，长距离依赖问题</li>
+<li>天然能处理序列位置关系</li>
+<li>编码的表示能力有限，丢失信息</li>
+</ul>
+<h2 id="面临的问题"><a href="#面临的问题" class="headerlink" title="面临的问题"></a>面临的问题</h2><p>虽然通用近似定理表明，CNN、MLP、RNN 有很强的拟合能力，但是在具体的任务上，往往由于计算能力和优化算法的问题而达不到理想的效果。为此，这些模型在发展过程中也引入很多技巧，如膨胀卷积、共享权重等等。但是，还无法很好解决信息丢失的问题。既然如此，为什么我们要让编码的定长向量去“记住”所有的信息呢？为什么不根据下游任务去“注意”相关的信息？这就是下篇要讨论的内容，我们不再让模型去记住信息，而是让模型去注意需要的信息。</p>
+<p>从归纳偏置的角度看，CNN、RNN、Attention（后续文章提及）都是对模型引入一定的假设。CNN中，我们假设数据（特征）具有局部性；RNN中，我们假设数（特征）据某个时刻的计算依赖历史计算；Attention中，则是对人的注意力的一种模拟或建模。因此，这里没有办法给出模型好坏的绝对性评价，模型的归纳偏置与数据越match，表现越好。</p>
+<p>当使用神经网络来处理一个变长的向量序列时，我们通常可以使用卷积网络或循环网络进行编码来得到一个相同长度的输出向量序列。虽然循环网络理论上可以建立长距离依赖关系，但是由于信息传递的容量以及梯度消失问题，实际上也只能建立短距离依赖关系。 如果要建立输入序列之间的长距离依赖关系，可以使用以下两种方法：一种方法是增加网络的层数，通过一个深层网络来获取远距离的信息交互；另一种方法是使用全连接网络。全连接网络是一种非常直接的建模远距离依赖的模型，但是无法处理变长的输入序列。 </p>
+<p>通过表格梳理MLP、CNN、RNN在序列编码上的优缺点：</p>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th>特征提取方式</th>
+<th>优点</th>
+<th>缺点</th>
+<th>参考模型</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MLP</td>
+<td>长距离依赖</td>
+<td>不能处理变长序列；不能处理位置信息</td>
+<td>-</td>
+</tr>
+<tr>
+<td>CNN</td>
+<td>易于并行；通过添加更多的层数来扩大感受野来建立长期依赖</td>
+<td>不能处理全局位置信息</td>
+<td>TextCNN</td>
+</tr>
+<tr>
+<td>RNN</td>
+<td>天然能处理序列位置关系</td>
+<td>递归过程无法并行；长距离依赖问题（梯度消失和梯度爆炸）；编码的表示能力有限</td>
+<td>ELMo</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>序列编码中，很多任务无法事先让编码器知道如何重点关注哪些信息、忽略哪些信息，而注意力机制则可以通过“聚焦”方法解决这个问题。</p>
+<p>网络容量（Network Capacity）：神经网络中可以存储的信息量，存储容量和神经元的数量以及网络的复杂度成正比。<br>模型的复杂度：主要由模型参数决定，其与表示能力正相关。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>本文漫谈MLP、CNN、RNN各种处理序列问题上的异同和优缺点。随着深度学习的发展，处理序列问题衍生出第四种范式：Attention。</p>
+<p>转载请包括本文地址：<a href="../9458">https://allenwind.github.io/blog/9458</a><br>更多文章请参考：<a href="../archives/">https://allenwind.github.io/blog/archives/</a></p>
+</div><div class="tags"><a href="/blog/tags/深度学习/">深度学习</a><a href="/blog/tags/NLP/">NLP</a></div><div class="post-nav"><a class="pre" href="/blog/9477/">漫谈注意力机制（一）：人类的注意力和注意力机制基础</a><a class="next" href="/blog/9405/">如何评估词向量化的优劣？</a></div></div></div></div><div class="pure-u-1-4 hidden_mid_and_down"><div id="sidebar"><div class="widget"><form class="search-form" action="//www.google.com/search" method="get" accept-charset="utf-8" target="_blank"><input type="text" name="q" maxlength="20" placeholder="Search"><input type="hidden" name="sitesearch" value="http://allenwind.github.io/blog"></form></div><div class="widget"><div class="widget-title"><i class="fa fa-folder-o"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/blog/categories/C-C/">C/C++</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Go/">Go</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Java/">Java</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Linux/">Linux</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/NLP/">NLP</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Python/">Python</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/数学/">数学</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/数据库/">数据库</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/数据结构和算法/">数据结构和算法</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/机器学习深度学习/">机器学习深度学习</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/记录/">记录</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-star-o"> 标签</i></div><div class="tagcloud"><a href="/blog/tags/算法/" style="font-size: 15px;">算法</a> <a href="/blog/tags/C/" style="font-size: 15px;">C</a> <a href="/blog/tags/Python/" style="font-size: 15px;">Python</a> <a href="/blog/tags/设计模式/" style="font-size: 15px;">设计模式</a> <a href="/blog/tags/C语言/" style="font-size: 15px;">C语言</a> <a href="/blog/tags/数据库/" style="font-size: 15px;">数据库</a> <a href="/blog/tags/MySQL/" style="font-size: 15px;">MySQL</a> <a href="/blog/tags/ACID/" style="font-size: 15px;">ACID</a> <a href="/blog/tags/区块链/" style="font-size: 15px;">区块链</a> <a href="/blog/tags/分布式/" style="font-size: 15px;">分布式</a> <a href="/blog/tags/SQL/" style="font-size: 15px;">SQL</a> <a href="/blog/tags/NoSQL/" style="font-size: 15px;">NoSQL</a> <a href="/blog/tags/sudo/" style="font-size: 15px;">sudo</a> <a href="/blog/tags/Docker/" style="font-size: 15px;">Docker</a> <a href="/blog/tags/git/" style="font-size: 15px;">git</a> <a href="/blog/tags/Linux/" style="font-size: 15px;">Linux</a> <a href="/blog/tags/Git/" style="font-size: 15px;">Git</a> <a href="/blog/tags/gcc/" style="font-size: 15px;">gcc</a> <a href="/blog/tags/Systemd/" style="font-size: 15px;">Systemd</a> <a href="/blog/tags/Tensorflow/" style="font-size: 15px;">Tensorflow</a> <a href="/blog/tags/命令行/" style="font-size: 15px;">命令行</a> <a href="/blog/tags/网络/" style="font-size: 15px;">网络</a> <a href="/blog/tags/操作系统/" style="font-size: 15px;">操作系统</a> <a href="/blog/tags/记录/" style="font-size: 15px;">记录</a> <a href="/blog/tags/正则表达式/" style="font-size: 15px;">正则表达式</a> <a href="/blog/tags/数据结构/" style="font-size: 15px;">数据结构</a> <a href="/blog/tags/Go/" style="font-size: 15px;">Go</a> <a href="/blog/tags/go/" style="font-size: 15px;">go</a> <a href="/blog/tags/Java/" style="font-size: 15px;">Java</a> <a href="/blog/tags/LRU/" style="font-size: 15px;">LRU</a> <a href="/blog/tags/ARC/" style="font-size: 15px;">ARC</a> <a href="/blog/tags/剑指Offer/" style="font-size: 15px;">剑指Offer</a> <a href="/blog/tags/函数式/" style="font-size: 15px;">函数式</a> <a href="/blog/tags/搜索引擎/" style="font-size: 15px;">搜索引擎</a> <a href="/blog/tags/Stack/" style="font-size: 15px;">Stack</a> <a href="/blog/tags/并发编程/" style="font-size: 15px;">并发编程</a> <a href="/blog/tags/网络编程/" style="font-size: 15px;">网络编程</a> <a href="/blog/tags/并发/" style="font-size: 15px;">并发</a> <a href="/blog/tags/HTTP/" style="font-size: 15px;">HTTP</a> <a href="/blog/tags/装饰器/" style="font-size: 15px;">装饰器</a> <a href="/blog/tags/Redis/" style="font-size: 15px;">Redis</a> <a href="/blog/tags/数学/" style="font-size: 15px;">数学</a> <a href="/blog/tags/时间序列/" style="font-size: 15px;">时间序列</a> <a href="/blog/tags/投资/" style="font-size: 15px;">投资</a> <a href="/blog/tags/概率/" style="font-size: 15px;">概率</a> <a href="/blog/tags/统计/" style="font-size: 15px;">统计</a> <a href="/blog/tags/信息论/" style="font-size: 15px;">信息论</a> <a href="/blog/tags/度量/" style="font-size: 15px;">度量</a> <a href="/blog/tags/机器学习/" style="font-size: 15px;">机器学习</a> <a href="/blog/tags/贝叶斯/" style="font-size: 15px;">贝叶斯</a> <a href="/blog/tags/最小二乘法/" style="font-size: 15px;">最小二乘法</a> <a href="/blog/tags/分布/" style="font-size: 15px;">分布</a> <a href="/blog/tags/矩阵/" style="font-size: 15px;">矩阵</a> <a href="/blog/tags/深度学习/" style="font-size: 15px;">深度学习</a> <a href="/blog/tags/变分推断/" style="font-size: 15px;">变分推断</a> <a href="/blog/tags/随机/" style="font-size: 15px;">随机</a> <a href="/blog/tags/不等式/" style="font-size: 15px;">不等式</a> <a href="/blog/tags/采样/" style="font-size: 15px;">采样</a> <a href="/blog/tags/光滑/" style="font-size: 15px;">光滑</a> <a href="/blog/tags/逼近/" style="font-size: 15px;">逼近</a> <a href="/blog/tags/交叉验证/" style="font-size: 15px;">交叉验证</a> <a href="/blog/tags/特征工程/" style="font-size: 15px;">特征工程</a> <a href="/blog/tags/集成学习/" style="font-size: 15px;">集成学习</a> <a href="/blog/tags/分类/" style="font-size: 15px;">分类</a> <a href="/blog/tags/证明/" style="font-size: 15px;">证明</a> <a href="/blog/tags/损失函数/" style="font-size: 15px;">损失函数</a> <a href="/blog/tags/回归/" style="font-size: 15px;">回归</a> <a href="/blog/tags/词向量/" style="font-size: 15px;">词向量</a> <a href="/blog/tags/信息/" style="font-size: 15px;">信息</a> <a href="/blog/tags/正则化/" style="font-size: 15px;">正则化</a> <a href="/blog/tags/NLP/" style="font-size: 15px;">NLP</a> <a href="/blog/tags/Embedding/" style="font-size: 15px;">Embedding</a> <a href="/blog/tags/神经网络/" style="font-size: 15px;">神经网络</a> <a href="/blog/tags/Transformer/" style="font-size: 15px;">Transformer</a> <a href="/blog/tags/Attention/" style="font-size: 15px;">Attention</a> <a href="/blog/tags/文本分类/" style="font-size: 15px;">文本分类</a> <a href="/blog/tags/对抗训练/" style="font-size: 15px;">对抗训练</a> <a href="/blog/tags/分词/" style="font-size: 15px;">分词</a> <a href="/blog/tags/并行/" style="font-size: 15px;">并行</a> <a href="/blog/tags/图/" style="font-size: 15px;">图</a> <a href="/blog/tags/NER/" style="font-size: 15px;">NER</a> <a href="/blog/tags/HMM/" style="font-size: 15px;">HMM</a> <a href="/blog/tags/概率图/" style="font-size: 15px;">概率图</a> <a href="/blog/tags/可视化/" style="font-size: 15px;">可视化</a> <a href="/blog/tags/RNN/" style="font-size: 15px;">RNN</a> <a href="/blog/tags/LSTM/" style="font-size: 15px;">LSTM</a> <a href="/blog/tags/注意力/" style="font-size: 15px;">注意力</a> <a href="/blog/tags/序列编码/" style="font-size: 15px;">序列编码</a> <a href="/blog/tags/梯度/" style="font-size: 15px;">梯度</a> <a href="/blog/tags/磁盘故障/" style="font-size: 15px;">磁盘故障</a> <a href="/blog/tags/BERT/" style="font-size: 15px;">BERT</a> <a href="/blog/tags/CNN/" style="font-size: 15px;">CNN</a> <a href="/blog/tags/卷积/" style="font-size: 15px;">卷积</a> <a href="/blog/tags/优化/" style="font-size: 15px;">优化</a> <a href="/blog/tags/调参/" style="font-size: 15px;">调参</a> <a href="/blog/tags/Flask/" style="font-size: 15px;">Flask</a> <a href="/blog/tags/web/" style="font-size: 15px;">web</a> <a href="/blog/tags/socket/" style="font-size: 15px;">socket</a> <a href="/blog/tags/安全/" style="font-size: 15px;">安全</a> <a href="/blog/tags/协程/" style="font-size: 15px;">协程</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-file-o"> 最近文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/blog/16003/">天马行空：设计自己的激活函数</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/15887/">函数光滑近似（4）：Heaviside step函数及其应用</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/15205/">引入参数控制softmax的smooth程度</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/15110/">分析与拓展：多分类模型的输出为什么使用softmax？</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14990/">一种基于光滑逼近的正态分布采样法</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14721/">GELU由来：从狄拉克函数到GELU激活函数</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14465/">Lp范数的上下界分析</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14441/">logsumexp函数分析</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14133/">分析Mish激活函数的设计思路</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/13899/">阿尔法经济学：Shiller模型介绍</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-external-link"> 友情链接</i></div><ul></ul><a href="https://github.com/allenwind" title="My GitHub" target="_blank">My GitHub</a><ul></ul><a href="http://www.arxiv-sanity.com/" title="arxiv-sanity" target="_blank">arxiv-sanity</a><ul></ul><a href="https://arxiv.org/" title="arxiv.org" target="_blank">arxiv.org</a></div></div></div><div class="pure-u-1 pure-u-md-3-4"><div id="footer">Copyright © 2021 <a href="/blog/." rel="nofollow">Mr.Feng Blog.</a> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a><a rel="nofollow" target="_blank" href="https://github.com/tufu9441/maupassant-hexo"> Theme</a> by<a rel="nofollow" target="_blank" href="https://github.com/pagecho"> Cho.</a></div></div></div><a class="show" id="rocket" href="#top"></a><script type="text/javascript" src="/blog/js/totop.js?v=0.0.0" async></script><script type="text/javascript" src="//lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js" async></script><script type="text/javascript" src="/blog/js/fancybox.js?v=0.0.0" async></script><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css"><script type="text/x-mathjax-config">MathJax.Hub.Config({
+  tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}
+  });
+</script><script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-MML-AM_CHTML" async></script><script type="text/javascript" src="/blog/js/codeblock-resizer.js?v=0.0.0"></script><script type="text/javascript" src="/blog/js/smartresize.js?v=0.0.0"></script></div></body></html>

@@ -1,0 +1,190 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.9.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description" content="你好，世界！"><title>词向量系列（1）：VSM与词袋模型 | Mr.Feng Blog</title><link rel="stylesheet" type="text/css" href="/blog/css/style.css?v=0.0.0"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/normalize/8.0.1/normalize.min.css"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/pure/1.0.0/pure-min.css"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/pure/1.0.0/grids-responsive-min.css"><link rel="stylesheet" href="//lib.baomitu.com/font-awesome/4.7.0/css/font-awesome.min.css"><script type="text/javascript" src="//lib.baomitu.com/jquery/3.4.0/jquery.min.js"></script><link rel="icon" mask sizes="any" href="/blog/favicon.ico"><link rel="Shortcut Icon" type="image/x-icon" href="/blog/favicon.ico"><link rel="apple-touch-icon" href="/blog/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/blog/apple-touch-icon.png"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">词向量系列（1）：VSM与词袋模型</h1><a id="logo" href="/blog/.">Mr.Feng Blog</a><p class="description">NLP、深度学习、机器学习、Python、Go</p></div><div id="nav-menu"><a class="current" href="/blog/."><i class="fa fa-home"> 首页</i></a><a href="/blog/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/blog/about/"><i class="fa fa-user"> 关于</i></a></div></div><div class="pure-g" id="layout"><div class="pure-u-1 pure-u-md-3-4"><div class="content_container"><div class="post"><h1 class="post-title">词向量系列（1）：VSM与词袋模型</h1><div class="post-meta">Dec 10, 2018<span> | </span><span class="category"><a href="/blog/categories/NLP/">NLP</a></span></div><div class="clear"><div class="toc-article" id="toc"><div class="toc-title">文章目录</div><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#基本概念"><span class="toc-number">1.</span> <span class="toc-text">基本概念</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#分布式表示与分散式表示"><span class="toc-number">2.</span> <span class="toc-text">分布式表示与分散式表示</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#词的-one-hot-表示"><span class="toc-number">3.</span> <span class="toc-text">词的 one-hot 表示</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#随机映射"><span class="toc-number">4.</span> <span class="toc-text">随机映射</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#hash方法"><span class="toc-number">5.</span> <span class="toc-text">hash方法</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#词袋模型"><span class="toc-number">6.</span> <span class="toc-text">词袋模型</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#VSM"><span class="toc-number">7.</span> <span class="toc-text">VSM</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#基于频率的统计思路"><span class="toc-number">8.</span> <span class="toc-text">基于频率的统计思路</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#引入-TF-IDF"><span class="toc-number">9.</span> <span class="toc-text">引入 TF-IDF</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#n-grams"><span class="toc-number">10.</span> <span class="toc-text">n-grams</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#点互信息与词-词共现矩阵"><span class="toc-number">11.</span> <span class="toc-text">点互信息与词-词共现矩阵</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#词向量评估之相似度计算"><span class="toc-number">12.</span> <span class="toc-text">词向量评估之相似度计算</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#总结"><span class="toc-number">13.</span> <span class="toc-text">总结</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#参考文献"><span class="toc-number">14.</span> <span class="toc-text">参考文献</span></a></li></ol></div></div><div class="post-content"><p>在没有词向量之前，计算机对文本的理解局限在字符编码（如 ASCII、UTF8），然而这类编码并不是数字，不具备物理意义或数学意义，这意味着不能进行浮点数相关的操作。词向量出现后，计算机突破原有局限，可以进行数值计算，并引入统计学习方法，可以开始“模仿”人类处理文字、语言的能力。</p>
+<a id="more"></a>
+<p>随着 NLP 的发展，词的向量化取得很大的突破，如 word2vec、fastText，百花齐放百家争鸣。当然，本系列的文章并不是对这些模型的罗列，而是依据一定的线索总结词向量研究的思路与演进。根据过去的发展，洞见未来的趋势。作为本系列的开篇，这里先梳理VSM与词袋模型方法。首先我们来了解NLP中关于表示的基本概念。</p>
+<h2 id="基本概念"><a href="#基本概念" class="headerlink" title="基本概念"></a>基本概念</h2><p><strong>文本表示</strong>：文本表示是对人类语言的一种约定或表述，在 NLP 中称为文本的向量化（Embedding）。文本作为非结构化的数据且具有不同的粒度，需要转化为结构化的数据。如词、短语、句子、段落以及篇章作为非结构化数据，为进行分类、匹配甚至更复杂的任务，首先需要转化为向量、矩阵甚至更复杂的结构化数据。最常见的就是<strong>词向量</strong>，就是使用一个向量来表示（约定）一个词。当然，我们还会问，文本表示用向量就足够了？文本是否可以用矩阵表示？或者其他的数据结构？这个留作后续的思考。文本表示是建立文本数学模型的初步。</p>
+<p><strong>上下文</strong>：词的相邻词、词的所在句子、词的所在段落、词的所在的文档等等。</p>
+<p><strong>分布式假设</strong>：分布式假设具有相似上下文（context）的词具有相似的语义。这很好理解，因为语言在统计上遵循一定的语义和语法规则。有了这个假设，我们就可以设计模型训练语言模型，进而获得词的向量化。相关资料可参考 <a href="https://en.wikipedia.org/wiki/Distributional_semantics" target="_blank" rel="noopener">Distributional semantics</a>。</p>
+<p><strong>局部表示</strong>：局部表示也称为离散表示或符号表示，可以使用 one-hot 向量的形式进行数学化。</p>
+<p><strong>语义鸿沟</strong>：语义鸿沟问题是指输入数据的底层特征和高层语义信息之间的不一致性和差异性。</p>
+<p><strong>相似性和相关性</strong>：相似性指语义相似，相关性则是更大的范畴，可以理解为某个context的共同元素。例如，猫和老鼠，尽管并不相似，但是常常出现在同一context下，因此它们是相关的；又比如咖啡杯与咖啡、雪梨和苹果等等。当然，在没有强调的情况下，不用纠结相似性和相关性这两个词的区别，比较自然语言本身具有很大的灵活性。</p>
+<p><strong>词向量的分类</strong>：单语言或多语言、上下文相关或上下文无关等等。</p>
+<h2 id="分布式表示与分散式表示"><a href="#分布式表示与分散式表示" class="headerlink" title="分布式表示与分散式表示"></a>分布式表示与分散式表示</h2><p>分布式表示与分散式表示这两个词容易混淆，所以这里强调以下。</p>
+<p><strong>分布式表示</strong>：分布式表示（Distributional Representation）是基于分布式假设而形成的对词的约定或表述。例如，如果基于分布式假设设计的模型和训练方法而获得的词向量，那么这个词向量是词的分布式表示。此向量的每个维度不具有具体的语义或语法特征，但整个向量则表示一个语义。有相似语义的词在距离上相近。</p>
+<p>这里容易让人产生疑问，为什么要让词向量具有分布式表示的特点？其实我们可以从信息论的角度来理解。一个学习过程是有效的，一定是一个让数据从无序变为有序的过程，这个过程让熵变小。一开始语义随机分散到多维空间上，随着学习的有效进行，相似的语义的词会聚集在一个区域内（无序变有序的过程）。</p>
+<p>怎么去理解聚集这个过程呢？你可以考虑你正在写一篇文章，遇到某个你不会的词，你需要查字典，如果所有词都随机分散到各页上，那么这个过程是异常困难。为此，你会把相关的词（同一上下问题）放到同一页上，随着使用词汇量的增大，词典慢慢变成具有相似语义的词会放到相邻页码上，最终形成一本高效查询的词典，这个过程就是让熵最小化。因此，<strong>分布式表示是让熵最小化的表示</strong>。此外，我们还可以粗暴地理解，太阳把能量辐射到地球，地球的熵减少。这一点在语言的表示和人类的认知习惯是很相似的。这下我们也可以理解，为什么大脑也是这样存储和检索信息。</p>
+<p><strong>分散式表示</strong>：分散式表示（Distributed Representation）将一定粒度的文本分别分散到稠密、低维、连续的空间中。于是，与分布式表示不同，向量的每一维都表示文本的具有某种潜在的语法或语义特征。分散式表示没有分布式假设的约束，这意味着具有相似语义的两个词，其所在的多维空间的位置<strong>不一定</strong>是相近的。分散式表示可以直接把词ID映射为随机向量，</p>
+<script type="math/tex; mode=display">
+w_{i} = [r_{1},\dots,r_{n}]</script><p>这样就可以获得低维、稠密的表示。由于是随机向量，那么不同语义会分散到高维空间的不同位置中，并不存在语义相似位置相近的情况。</p>
+<p>可能会问，随机向量也行？是的，因为下游的网络可以继续做复杂的映射，但是这也增加模型学习的难度。分散式表示可能更容易理解， 即一个词语的语义分散到语义空间中的不同基向量上。</p>
+<p>分布式表示与分散式表示并不是对立的，在我看来，分布式表示是分散式表示的特例。从最小熵的角度来理解，好的分散式表示应该具有分布式表示的特点。分布式表示是分散式表示在熵最小化上的优化。</p>
+<p>接下来我们谈谈词和文档的表示。</p>
+<h2 id="词的-one-hot-表示"><a href="#词的-one-hot-表示" class="headerlink" title="词的 one-hot 表示"></a>词的 one-hot 表示</h2><p>假设词表的大小为$n$对于词汇表中第$i$个单词可表示为</p>
+<script type="math/tex; mode=display">
+\text{word}_{i} = \operatorname{onehot}(i) = (0,0,\dots,1,\dots,0)^{\mathsf{T}}</script><p>即第$i$位取值为1，其他为0。onehot表示有两个缺点，NLP中尤其是中文，词表往往很大，因此onehot表示的维度也很大。另外，任意两个词的距离都是$\sqrt{2}$​，没有区分度。</p>
+<p>类似的做法就是把单词编码是独一无二的数字，但本质上是不变的，因为词ID可以表示为，</p>
+<script type="math/tex; mode=display">
+i = \sum_{j=1}^{n} j \times \text{word}_{i}[j]</script><p>其中$\text{word}_{i}[j]$表示词向量$\text{word}_{i}$的第$j$个分量。类似地，如果粒度可以是字符级别、短语、句子。为简单起见，下文均使用词作表述。one-hot表示是最原始的，可逆，没有丢失信息。</p>
+<p>缺点：</p>
+<ul>
+<li>词表大，容易导致<strong>维度灾难</strong>，模型训练异常慢，因为每次只有极小数的参数更新。</li>
+<li><strong>语义相似问题</strong>，无法处理歧义问题，相似性计算。无法准确表达不同词之间的相似度</li>
+<li>不能处理词序，这是 BOW 的问题</li>
+</ul>
+<h2 id="随机映射"><a href="#随机映射" class="headerlink" title="随机映射"></a>随机映射</h2><p>给每个词（字）ID分配一个$n$维随机向量作为特征，</p>
+<script type="math/tex; mode=display">
+\operatorname{vectorize}(v) = [r_{1},\dots,r_{n}]</script><p>可能会有人怀疑，随机向量也能做特征？答案：是的！如果使用它作为特征，只要下游网络做得足够复杂，将原始的表示空间高度扭曲使其具有分布式语义特点。事实上Embedding的本质就是可训练的随机向量，其初始化也是按照给定分布下的随机向量。</p>
+<p><strong>补充</strong>：参见新文章<a href="../8912">理解神经网络中Embedding层的原理</a>。</p>
+<h2 id="hash方法"><a href="#hash方法" class="headerlink" title="hash方法"></a>hash方法</h2><p>one-hot维度太大，从压缩特征来讲，可以用Hash Trick，其思路很简单，就是把词ID映射到更小的区间，从而达到降低维度的目的。例如，最简单的方法如下，</p>
+<script type="math/tex; mode=display">
+\text{id}_{h} = \frac{\text{id}}{n} + m</script><p>不过，这意味这Hash函数带来的冲突。还有一种比较另类的方法，就是词的 hash 值或取词的位置，用Python来表示，</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">hash_features</span><span class="params">(words, m, n)</span>:</span></span><br><span class="line">    v = np.zeros(m)</span><br><span class="line">    <span class="keyword">for</span> word <span class="keyword">in</span> words:</span><br><span class="line">        index = hash_func(word) % m</span><br><span class="line">        v[index] += <span class="number">1</span></span><br><span class="line">    <span class="keyword">return</span> v</span><br></pre></td></tr></table></figure>
+<p>其中hash_func函数可以经过特殊设计，让相似的词有相同的哈希值，不过这个在英文中才常用，如funny和fun。</p>
+<p>以上是关于词的表示的若干方法，那么文档的表示呢？</p>
+<h2 id="词袋模型"><a href="#词袋模型" class="headerlink" title="词袋模型"></a>词袋模型</h2><p><strong>词袋模型</strong>，缩写 BOW（bag of words），词在句子或文档中不考虑先后顺序、语法和句法，只要有相同的词集合就是相同的句子或文档。BOW（Bag of Word）假设文档（或句子）由一篮子词组成，词是最小的组成单位，不考虑词序和语法。词袋模型可以看成一种以词为基本单位的向量空间模型（Vector Space Model, VSM）。以下的方法均为基于 BOW 的特征提取方法，都不考虑词序和语法问题。</p>
+<p>BOW不考虑词序也行？我们可以举例来体会一下，比如这段经典的句子：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">“研表究明，汉字的顺序并不定一能影阅响读，比如当你看完这句话后，才发这现里的字全是都乱的。”</span><br></pre></td></tr></table></figure>
+<p>仔细观察上句，发现局部的无序导致语法上是错误的，但是却不改变人类对其语义上的理解。有些情况下，改变预习获得截然相反的意思，</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">叉烧包不太好吃</span><br><span class="line"></span><br><span class="line">叉烧包太好吃不</span><br></pre></td></tr></table></figure>
+<p>词袋模型并不是复杂的方法，但是却很实用，它解决了把<strong>一个变长的文本序列转换为定长的向量</strong>的问题。回顾历史，我觉得这是一种简单又智慧的方法。</p>
+<h2 id="VSM"><a href="#VSM" class="headerlink" title="VSM"></a>VSM</h2><p>向量空间模型，简称 VSM，以下我们一直使用 VSM。VSM的问题在其假设：向量空间模型假设单词和单词之间<strong>相互独立</strong>，每个单词代表一个独立的<strong>语义单元</strong>。该假设很难满足现实情况。因为通常来说，现实的文档有如下特点：</p>
+<ul>
+<li>单词与单词之间并非互相独立，而是存在关联，尤其是单词及其附近的单词</li>
+<li>文档中存在很多的一词多义和多词同义的现象，单词不能代表一个独立的语义单元</li>
+</ul>
+<p>词袋模型和VSM在一定意义上是等价的说法，不过我们这里还是区分对待，VSM是词袋模型的推广。向量空间模型（VSM）和词袋模型（BOW）有什么区别？向量空间模型（VSM）泛指文本向量化的方法，而词袋模型（BOW）则是认为文本是由无序的词组成的，可以认为是实现VSM的方法之一。通过这种方式，VSM 轻易把不定长的文本转化为固定维度的向量，其在空间中的可视化如下，</p>
+<p><img src="../images/vsm-picture.png" alt></p>
+<p>假设有文档-单词矩阵，</p>
+<script type="math/tex; mode=display">
+\boldsymbol{D}_{m,n} = \begin{bmatrix}
+w_{1,1} & w_{1,2} & \dots & w_{1,n} \cr
+w_{2,1} & w_{2,2} & \dots & w_{2,n} \cr
+\vdots & \vdots & \vdots & \vdots \cr
+w_{m,1} & w_{m,2} & \dots & w_{m,n}
+\end{bmatrix}</script><p>称以上矩阵为文档-单词共现矩阵（document-word co-occurrence matrix）。其中 $w_{ij}$ 为第$i$篇文档依据词汇表顺序第$j$​个词的取值。最简单的情况，该取值为布尔权重，只有两个取值，</p>
+<script type="math/tex; mode=display">
+w_{i,j} = \left\{\begin{matrix}
+1\\ 
+0
+\end{matrix}\right.</script><p>当文档 $D_{i}$ 中包括词 $word_{j}$ 则 $\omega_{i,j}$ 取 1，否则取 0，这是 VSM 中最基本的方式，构建非结构化的文本到结构化的数学表示建立桥梁，一个变长的文本序列转换为定长的向量。</p>
+<p>基于boolean权重的VSM有如下问题或局限：</p>
+<ul>
+<li>特征维度非常高，特征大小等于词表大小，资源消耗大，词表大容易OOM</li>
+<li>特征非常稀疏，因为 <code>one-hot</code> 编码</li>
+<li>不具有语义特征，不能够计算相似性</li>
+</ul>
+<p>为此可以从以下思路优化：</p>
+<ul>
+<li>VSM 中权重用于衡量某个特征项（字词）在文档中的重要程度。为此，优化文档向量表征的下游应用如分类效果可以从权重的计算切入。</li>
+<li>VSM 在构造文档-单词矩阵时，涉及到词表的构建，这个时候可以引入一定的技巧，比如去掉停用词、标点符号等。</li>
+<li>这种特征表示方法并没有开来词的频率信息。不难理解，词的出现频率很高或很低至于分类任务来说并不具备有效性。为此引入一定规则的统计方法。</li>
+</ul>
+<h2 id="基于频率的统计思路"><a href="#基于频率的统计思路" class="headerlink" title="基于频率的统计思路"></a>基于频率的统计思路</h2><p>词的权重由其出现的频率决定，</p>
+<script type="math/tex; mode=display">
+w_{i,j} = TF(D_{i}, word_{j})</script><p>权重$w_{i,j}$为文档$D_i$中词$word_j$的频次。</p>
+<p>不过单纯的频率信息，会把“的”、“地”、“得”等词赋予过大的权重，为此引入IDF来优化。</p>
+<h2 id="引入-TF-IDF"><a href="#引入-TF-IDF" class="headerlink" title="引入 TF-IDF"></a>引入 TF-IDF</h2><p>TF-IDF核心就是两个：</p>
+<ul>
+<li>TF：文档频率</li>
+<li>IDF：逆文档频率</li>
+</ul>
+<p>TF-IDF为，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+w_{ij} = \text{TF-IDF} &= TF(D_{i},word_{j})IDF(word_{j}) \newline
+&= TF(D_{i},word_{j})\log{\frac{N}{DF(word_{j})}}
+\end{align}</script><p>其中$N$ 为文档总数，$TF(D_{i},word_{j})$ 表示词 $word_{j}$ 在文档 $D_{i}$ 中的频次。$DF(word_{j})$ 表示包括词 $word_{j}$ 的文档中出现的次数，而$\log{\frac{N}{DF(word_{j})}}$称为逆文档频次，对于仅出现在一个或两个文档中的单词更像噪声而非有用信息，因此给予更低的权重。为避免数值问题，可以通过加一平滑技巧，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+w_{ij} = \text{TF-IDF} &= TF(D_{i},word_{j})IDF(word_{j}) \newline
+&= TF(D_{i},word_{j})\log{\frac{N}{DF(word_{j})+1}}
+\end{align}</script><p>这样可以避免OOV外的词$DF(word_{j}) = 0$出现数值计算问题。IDF的引入避免了“的”、“地”、“得”等词赋予过大的权重。IDF值一般都是通过大量语料统计获得，再应用时通过查字典的方式获得给定词的IDF值。</p>
+<p>因此文档-单词共现矩阵（document-word co-occurrence matrix）的权重可以是：</p>
+<ol>
+<li>boolean</li>
+<li>TF</li>
+<li>IDF</li>
+<li>TF-IDF</li>
+</ol>
+<p>这样获得的矩阵$D$有两个问题：矩阵维度非常大，矩阵的每一行都表示一个文档的向量化表征，但是维度非常大。可以选择矩阵降维（即引入主题模型）或者缩减词汇表如去掉停用词。</p>
+<p>实践中，可以尝试不同粒度的分词或ngrams获得的文档表征进行拼接，以获得更丰富的表征。</p>
+<h2 id="n-grams"><a href="#n-grams" class="headerlink" title="n-grams"></a>n-grams</h2><p>n-grams，即n元语法。n-gram（n 元语法） 的基本想法是把最小单位的粒度扩大到由 n 个单元组成。以二元为例：</p>
+<blockquote>
+<p>猴子 子吃 吃了 了苹 苹果</p>
+</blockquote>
+<p>在直观点，2-gram情况与原来单字的对比，</p>
+<p><img src="../images/hybrid-bi-ngrams-demo-1.png" alt></p>
+<p>BOW 的特征构造方式导致两个句子的向量是一样的，比如下面两个句子，</p>
+<blockquote>
+<p>猴子吃了苹果</p>
+<p>苹果吃了猴子</p>
+</blockquote>
+<p>显然，不考虑词序的 BOW 以词作为最小单位是有很多问题。例如考虑语义的情况，相同的词语，由于忽略对词语义、词序信息的情况，不同语序构造出的句子有截然不同的意思。</p>
+<p>集合中每一项都是由二个相邻的字组成的的子串,长度为 2。像“了苹”这样的单元没有意义，但是在某些任务中却能提供关键的信息，例如通过这些信息能够还原正确的语序。n-grams可以看做是规则的分词，可能引入噪声，也引入序列位置信息，甚至可以引入更高级的特征。</p>
+<p>于是，n-grams可以结合VSM构建文档与词的共现矩阵，提高文档表征的准确性。在统计n-grams时，可能某些segment并不存在于语料中，进而无法统计，这种情况可以引入平滑技巧，</p>
+<script type="math/tex; mode=display">
+\frac{C(x) + \delta}{C(x) + \delta |V|}</script><p>随着 N 的增加，可以抽取的特征就会越多，特征空间也会呈指数增加。这些高阶的特征出现的频率也会相对较低，对分类不但没有太多帮助，还会直接影响着后续处理的效率与复杂度。因此在一般的文本分类任务中，N 取 3 就足够了，并且同时也使用一元和二元特征，防止出现过拟合。</p>
+<h2 id="点互信息与词-词共现矩阵"><a href="#点互信息与词-词共现矩阵" class="headerlink" title="点互信息与词-词共现矩阵"></a>点互信息与词-词共现矩阵</h2><p>以上我们谈的是文档-单词共现矩阵，事实上，共现矩阵（co-occurrence matrix）有两种，一种是词与词的共现矩阵（word-word matrix）通常用在信息检索中，如文档的相似匹配。另外一种的文档与词的共现矩阵（document-word matrix）通常用于构建词向量（Embedding）。下面我们谈谈词与词的共现矩阵。</p>
+<p>度量两个词的共现，PMI（Pointwise mutual information，点互信息）是常用的方法，</p>
+<script type="math/tex; mode=display">
+I(x, y) = \log_2 \frac{p(x,y)}{p(x)p(y)}</script><p>它能够量化词$x$与词$y$是否强相关。实践中常常要求非负，于是有PPMI（Positive PMI），</p>
+<script type="math/tex; mode=display">
+\operatorname{PPMI}(x, y) = \max\Big(0, \log_2 \frac{p(x,y)}{p(x)p(y)} \Big)</script><p>换成词（word）-上下文（context）形式，</p>
+<script type="math/tex; mode=display">
+\text{pp}_{w,c} = \operatorname{PPMI}(w, c) = \max\Big(0, \log_2 \frac{p(w,c)}{p(w)p(c)} \Big)</script><p>$w,c$都是词表V中的词，因此遍历所有词，就可以构成PPMI矩阵，是词-词共现矩阵的一种。PPMI会给低频词一个很大的权重，因此添加一个缩放因子，</p>
+<script type="math/tex; mode=display">
+\operatorname{PPMI}(w, c; \alpha) = \max\Big(0, \log_2 \frac{p(w,c)}{p(w)p_{\alpha}(c)} \Big)</script><p>其中，</p>
+<script type="math/tex; mode=display">
+p_{\alpha}(c) = \frac{\operatorname{count}(c)^{\alpha}}{\displaystyle \sum_c \operatorname{count}(c)^{\alpha}}</script><p>这里取$0 \lt \alpha \lt 1$，起到缩小频率大小的差距。</p>
+<p>假设有单词-上下文矩阵（word-word co-occurrence matrix）为，</p>
+<script type="math/tex; mode=display">
+\boldsymbol{W}_{m,n} = \begin{bmatrix}
+f_{1,1} & f_{1,2} & \dots & f_{1,n} \cr
+f_{2,1} & f_{2,2} & \dots & f_{2,n} \cr
+\vdots & \vdots & \vdots & \vdots \cr
+f_{m,1} & f_{m,2} & \dots & f_{m,n}
+\end{bmatrix}</script><p>其中$m = |w|, n = |c|$分别为词汇表大小、上下文词数量。$f_{i,j}$为词$i$与上下文$j$的共现频次，通常是在个固定大小的窗口内统计。</p>
+<p>根据单词-上下文矩阵，有$p(w, c)$的估计，</p>
+<script type="math/tex; mode=display">
+p_{ij} = \frac{f_{ij}}{\displaystyle \sum_{i=1}^{m}\sum_{i=1}^{n} f_{ij}}</script><p>$p(w)$的估计，</p>
+<script type="math/tex; mode=display">
+p_{i\cdot} = \frac{\displaystyle \sum_{i=1}^{n} f_{ij}}{\displaystyle \sum_{i=1}^{m}\sum_{i=1}^{n} f_{ij}}</script><p>$p(c)$的估计，</p>
+<script type="math/tex; mode=display">
+p_{\cdot j} = \frac{\displaystyle \sum_{i=1}^{m} f_{ij}}{\displaystyle \sum_{i=1}^{m}\sum_{i=1}^{n} f_{ij}}</script><p>于是，</p>
+<script type="math/tex; mode=display">
+\text{pp}_{i,j} = \operatorname{PPMI}(i, j) = \max\Big(0,\log_2 \frac{p_{ij}}{p_{i\cdot} p_{\cdot j}}   \Big)</script><p>当然也可以把缩放因子纳入考虑。</p>
+<p>基于PPMI构建的共现矩阵本身也是稀疏的，因此可以通过矩阵降维或矩阵分解方法来解决。</p>
+<h2 id="词向量评估之相似度计算"><a href="#词向量评估之相似度计算" class="headerlink" title="词向量评估之相似度计算"></a>词向量评估之相似度计算</h2><p>有了这些向量，可以做很多事情，如度量计算，通俗来说就是计算文档的相似性。通常有如下的词类比，</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">king - man = queen - woman</span><br></pre></td></tr></table></figure>
+<p>又如A之于B，相当于X之于什么？</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">A-&gt;B，as X-&gt;Y，Y是什么？</span><br></pre></td></tr></table></figure>
+<p>也就是这种形式的对应，</p>
+<script type="math/tex; mode=display">
+(u, v) \rightarrow (c, ?)</script><p>这种词类比的解法可以直接通过向量相似的方法即可解决，</p>
+<script type="math/tex; mode=display">
+d = \arg \max _{i} \frac{(v - u + c) \cdot x_{i}}{\|v-u + c \|}</script><p>或者找</p>
+<script type="math/tex; mode=display">
+c + u - v</script><p>最近的词向量对应的词。</p>
+<p>上式是很简单的向量运算的推导结果，这里不展开。其次词向量评估可以通过t-SNE、PCA等可视化，通过人工检验其质量。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>本文介绍了一下词向量化的基本概念，包括分布式表示与分散式表示。然后介绍两种共现矩阵（co-occurrence matrix）：</p>
+<ul>
+<li>文档与词的共现矩阵</li>
+<li>词与词的共现矩阵</li>
+</ul>
+<p>基于这两种矩阵获得文档或词的量化化表征。</p>
+<h2 id="参考文献"><a href="#参考文献" class="headerlink" title="参考文献"></a>参考文献</h2><p>[1] <a href="https://scikit-learn.org/stable/modules/classes.html#module-sklearn.feature_extraction.text" target="_blank" rel="noopener">https://scikit-learn.org/stable/modules/classes.html#module-sklearn.feature_extraction.text</a></p>
+<p>[2] <a href="https://zhuanlan.zhihu.com/p/22386230" target="_blank" rel="noopener">https://zhuanlan.zhihu.com/p/22386230</a></p>
+<p>[3] <a href="https://arxiv.org/abs/1507.05523" target="_blank" rel="noopener">How to Generate a Good Word Embedding?</a></p>
+<p>[4] Linguistic items with similar distributions have similar meanings</p>
+<p>[5] 统计自然语言处理</p>
+<p>[6] <a href="https://en.wikipedia.org/wiki/Feature_hashing" target="_blank" rel="noopener">https://en.wikipedia.org/wiki/Feature_hashing</a></p>
+<p>[7] <a href="https://scikit-learn.org/stable/modules/feature_extraction.html#feature-hashing" target="_blank" rel="noopener">https://scikit-learn.org/stable/modules/feature_extraction.html#feature-hashing</a></p>
+<p>[8] <a href="https://en.wikipedia.org/wiki/Distributional_semantics" target="_blank" rel="noopener">https://en.wikipedia.org/wiki/Distributional_semantics</a></p>
+<p>[9] <a href="https://en.wikipedia.org/wiki/Semantic_similarity" target="_blank" rel="noopener">https://en.wikipedia.org/wiki/Semantic_similarity</a></p>
+<p>[10] 数学之美</p>
+<p>[11] <a href="https://www.cs.princeton.edu/courses/archive/fall16/cos402/lectures/402-lec10.pdf" target="_blank" rel="noopener">https://www.cs.princeton.edu/courses/archive/fall16/cos402/lectures/402-lec10.pdf</a></p>
+<p>[12] Evaluation methods for unsupervised word embeddings</p>
+<p>转载请包括本文地址：<a href="../8233">https://allenwind.github.io/blog/8233</a><br>更多文章请参考：<a href="../archives/">https://allenwind.github.io/blog/archives/</a></p>
+</div><div class="tags"><a href="/blog/tags/词向量/">词向量</a><a href="/blog/tags/NLP/">NLP</a></div><div class="post-nav"><a class="pre" href="/blog/8269/">中文分词详解：从词典匹配到深度学习方法</a><a class="next" href="/blog/8103/">简述语义匹配的发展</a></div></div></div></div><div class="pure-u-1-4 hidden_mid_and_down"><div id="sidebar"><div class="widget"><form class="search-form" action="//www.google.com/search" method="get" accept-charset="utf-8" target="_blank"><input type="text" name="q" maxlength="20" placeholder="Search"><input type="hidden" name="sitesearch" value="http://allenwind.github.io/blog"></form></div><div class="widget"><div class="widget-title"><i class="fa fa-folder-o"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/blog/categories/C-C/">C/C++</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Go/">Go</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Java/">Java</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Linux/">Linux</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/NLP/">NLP</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Python/">Python</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/数学/">数学</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/数据库/">数据库</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/数据结构和算法/">数据结构和算法</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/机器学习深度学习/">机器学习深度学习</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/记录/">记录</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-star-o"> 标签</i></div><div class="tagcloud"><a href="/blog/tags/算法/" style="font-size: 15px;">算法</a> <a href="/blog/tags/C/" style="font-size: 15px;">C</a> <a href="/blog/tags/Python/" style="font-size: 15px;">Python</a> <a href="/blog/tags/设计模式/" style="font-size: 15px;">设计模式</a> <a href="/blog/tags/C语言/" style="font-size: 15px;">C语言</a> <a href="/blog/tags/数据库/" style="font-size: 15px;">数据库</a> <a href="/blog/tags/MySQL/" style="font-size: 15px;">MySQL</a> <a href="/blog/tags/ACID/" style="font-size: 15px;">ACID</a> <a href="/blog/tags/区块链/" style="font-size: 15px;">区块链</a> <a href="/blog/tags/分布式/" style="font-size: 15px;">分布式</a> <a href="/blog/tags/SQL/" style="font-size: 15px;">SQL</a> <a href="/blog/tags/NoSQL/" style="font-size: 15px;">NoSQL</a> <a href="/blog/tags/sudo/" style="font-size: 15px;">sudo</a> <a href="/blog/tags/Docker/" style="font-size: 15px;">Docker</a> <a href="/blog/tags/git/" style="font-size: 15px;">git</a> <a href="/blog/tags/Linux/" style="font-size: 15px;">Linux</a> <a href="/blog/tags/Git/" style="font-size: 15px;">Git</a> <a href="/blog/tags/gcc/" style="font-size: 15px;">gcc</a> <a href="/blog/tags/Systemd/" style="font-size: 15px;">Systemd</a> <a href="/blog/tags/Tensorflow/" style="font-size: 15px;">Tensorflow</a> <a href="/blog/tags/命令行/" style="font-size: 15px;">命令行</a> <a href="/blog/tags/网络/" style="font-size: 15px;">网络</a> <a href="/blog/tags/操作系统/" style="font-size: 15px;">操作系统</a> <a href="/blog/tags/记录/" style="font-size: 15px;">记录</a> <a href="/blog/tags/正则表达式/" style="font-size: 15px;">正则表达式</a> <a href="/blog/tags/数据结构/" style="font-size: 15px;">数据结构</a> <a href="/blog/tags/Go/" style="font-size: 15px;">Go</a> <a href="/blog/tags/go/" style="font-size: 15px;">go</a> <a href="/blog/tags/Java/" style="font-size: 15px;">Java</a> <a href="/blog/tags/LRU/" style="font-size: 15px;">LRU</a> <a href="/blog/tags/ARC/" style="font-size: 15px;">ARC</a> <a href="/blog/tags/剑指Offer/" style="font-size: 15px;">剑指Offer</a> <a href="/blog/tags/函数式/" style="font-size: 15px;">函数式</a> <a href="/blog/tags/搜索引擎/" style="font-size: 15px;">搜索引擎</a> <a href="/blog/tags/Stack/" style="font-size: 15px;">Stack</a> <a href="/blog/tags/并发编程/" style="font-size: 15px;">并发编程</a> <a href="/blog/tags/网络编程/" style="font-size: 15px;">网络编程</a> <a href="/blog/tags/并发/" style="font-size: 15px;">并发</a> <a href="/blog/tags/HTTP/" style="font-size: 15px;">HTTP</a> <a href="/blog/tags/装饰器/" style="font-size: 15px;">装饰器</a> <a href="/blog/tags/Redis/" style="font-size: 15px;">Redis</a> <a href="/blog/tags/数学/" style="font-size: 15px;">数学</a> <a href="/blog/tags/时间序列/" style="font-size: 15px;">时间序列</a> <a href="/blog/tags/投资/" style="font-size: 15px;">投资</a> <a href="/blog/tags/概率/" style="font-size: 15px;">概率</a> <a href="/blog/tags/统计/" style="font-size: 15px;">统计</a> <a href="/blog/tags/信息论/" style="font-size: 15px;">信息论</a> <a href="/blog/tags/度量/" style="font-size: 15px;">度量</a> <a href="/blog/tags/机器学习/" style="font-size: 15px;">机器学习</a> <a href="/blog/tags/贝叶斯/" style="font-size: 15px;">贝叶斯</a> <a href="/blog/tags/最小二乘法/" style="font-size: 15px;">最小二乘法</a> <a href="/blog/tags/分布/" style="font-size: 15px;">分布</a> <a href="/blog/tags/矩阵/" style="font-size: 15px;">矩阵</a> <a href="/blog/tags/深度学习/" style="font-size: 15px;">深度学习</a> <a href="/blog/tags/变分推断/" style="font-size: 15px;">变分推断</a> <a href="/blog/tags/随机/" style="font-size: 15px;">随机</a> <a href="/blog/tags/不等式/" style="font-size: 15px;">不等式</a> <a href="/blog/tags/采样/" style="font-size: 15px;">采样</a> <a href="/blog/tags/光滑/" style="font-size: 15px;">光滑</a> <a href="/blog/tags/逼近/" style="font-size: 15px;">逼近</a> <a href="/blog/tags/交叉验证/" style="font-size: 15px;">交叉验证</a> <a href="/blog/tags/特征工程/" style="font-size: 15px;">特征工程</a> <a href="/blog/tags/集成学习/" style="font-size: 15px;">集成学习</a> <a href="/blog/tags/分类/" style="font-size: 15px;">分类</a> <a href="/blog/tags/证明/" style="font-size: 15px;">证明</a> <a href="/blog/tags/损失函数/" style="font-size: 15px;">损失函数</a> <a href="/blog/tags/回归/" style="font-size: 15px;">回归</a> <a href="/blog/tags/词向量/" style="font-size: 15px;">词向量</a> <a href="/blog/tags/信息/" style="font-size: 15px;">信息</a> <a href="/blog/tags/正则化/" style="font-size: 15px;">正则化</a> <a href="/blog/tags/NLP/" style="font-size: 15px;">NLP</a> <a href="/blog/tags/Embedding/" style="font-size: 15px;">Embedding</a> <a href="/blog/tags/神经网络/" style="font-size: 15px;">神经网络</a> <a href="/blog/tags/Transformer/" style="font-size: 15px;">Transformer</a> <a href="/blog/tags/Attention/" style="font-size: 15px;">Attention</a> <a href="/blog/tags/文本分类/" style="font-size: 15px;">文本分类</a> <a href="/blog/tags/对抗训练/" style="font-size: 15px;">对抗训练</a> <a href="/blog/tags/分词/" style="font-size: 15px;">分词</a> <a href="/blog/tags/并行/" style="font-size: 15px;">并行</a> <a href="/blog/tags/图/" style="font-size: 15px;">图</a> <a href="/blog/tags/NER/" style="font-size: 15px;">NER</a> <a href="/blog/tags/HMM/" style="font-size: 15px;">HMM</a> <a href="/blog/tags/概率图/" style="font-size: 15px;">概率图</a> <a href="/blog/tags/可视化/" style="font-size: 15px;">可视化</a> <a href="/blog/tags/RNN/" style="font-size: 15px;">RNN</a> <a href="/blog/tags/LSTM/" style="font-size: 15px;">LSTM</a> <a href="/blog/tags/注意力/" style="font-size: 15px;">注意力</a> <a href="/blog/tags/序列编码/" style="font-size: 15px;">序列编码</a> <a href="/blog/tags/梯度/" style="font-size: 15px;">梯度</a> <a href="/blog/tags/磁盘故障/" style="font-size: 15px;">磁盘故障</a> <a href="/blog/tags/BERT/" style="font-size: 15px;">BERT</a> <a href="/blog/tags/CNN/" style="font-size: 15px;">CNN</a> <a href="/blog/tags/卷积/" style="font-size: 15px;">卷积</a> <a href="/blog/tags/优化/" style="font-size: 15px;">优化</a> <a href="/blog/tags/调参/" style="font-size: 15px;">调参</a> <a href="/blog/tags/Flask/" style="font-size: 15px;">Flask</a> <a href="/blog/tags/web/" style="font-size: 15px;">web</a> <a href="/blog/tags/socket/" style="font-size: 15px;">socket</a> <a href="/blog/tags/安全/" style="font-size: 15px;">安全</a> <a href="/blog/tags/协程/" style="font-size: 15px;">协程</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-file-o"> 最近文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/blog/16003/">天马行空：设计自己的激活函数</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/15887/">函数光滑近似（4）：Heaviside step函数及其应用</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/15205/">引入参数控制softmax的smooth程度</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/15110/">分析与拓展：多分类模型的输出为什么使用softmax？</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14990/">一种基于光滑逼近的正态分布采样法</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14721/">GELU由来：从狄拉克函数到GELU激活函数</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14465/">Lp范数的上下界分析</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14441/">logsumexp函数分析</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14133/">分析Mish激活函数的设计思路</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/13899/">阿尔法经济学：Shiller模型介绍</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-external-link"> 友情链接</i></div><ul></ul><a href="https://github.com/allenwind" title="My GitHub" target="_blank">My GitHub</a><ul></ul><a href="http://www.arxiv-sanity.com/" title="arxiv-sanity" target="_blank">arxiv-sanity</a><ul></ul><a href="https://arxiv.org/" title="arxiv.org" target="_blank">arxiv.org</a></div></div></div><div class="pure-u-1 pure-u-md-3-4"><div id="footer">Copyright © 2021 <a href="/blog/." rel="nofollow">Mr.Feng Blog.</a> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a><a rel="nofollow" target="_blank" href="https://github.com/tufu9441/maupassant-hexo"> Theme</a> by<a rel="nofollow" target="_blank" href="https://github.com/pagecho"> Cho.</a></div></div></div><a class="show" id="rocket" href="#top"></a><script type="text/javascript" src="/blog/js/totop.js?v=0.0.0" async></script><script type="text/javascript" src="//lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js" async></script><script type="text/javascript" src="/blog/js/fancybox.js?v=0.0.0" async></script><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css"><script type="text/x-mathjax-config">MathJax.Hub.Config({
+  tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}
+  });
+</script><script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-MML-AM_CHTML" async></script><script type="text/javascript" src="/blog/js/codeblock-resizer.js?v=0.0.0"></script><script type="text/javascript" src="/blog/js/smartresize.js?v=0.0.0"></script></div></body></html>

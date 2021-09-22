@@ -1,0 +1,150 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.9.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description" content="你好，世界！"><title>函数光滑近似（3）：abs函数 | Mr.Feng Blog</title><link rel="stylesheet" type="text/css" href="/blog/css/style.css?v=0.0.0"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/normalize/8.0.1/normalize.min.css"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/pure/1.0.0/pure-min.css"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/pure/1.0.0/grids-responsive-min.css"><link rel="stylesheet" href="//lib.baomitu.com/font-awesome/4.7.0/css/font-awesome.min.css"><script type="text/javascript" src="//lib.baomitu.com/jquery/3.4.0/jquery.min.js"></script><link rel="icon" mask sizes="any" href="/blog/favicon.ico"><link rel="Shortcut Icon" type="image/x-icon" href="/blog/favicon.ico"><link rel="apple-touch-icon" href="/blog/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/blog/apple-touch-icon.png"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">函数光滑近似（3）：abs函数</h1><a id="logo" href="/blog/.">Mr.Feng Blog</a><p class="description">NLP、深度学习、机器学习、Python、Go</p></div><div id="nav-menu"><a class="current" href="/blog/."><i class="fa fa-home"> 首页</i></a><a href="/blog/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/blog/about/"><i class="fa fa-user"> 关于</i></a></div></div><div class="pure-g" id="layout"><div class="pure-u-1 pure-u-md-3-4"><div class="content_container"><div class="post"><h1 class="post-title">函数光滑近似（3）：abs函数</h1><div class="post-meta">Apr 12, 2019<span> | </span><span class="category"><a href="/blog/categories/数学/">数学</a></span></div><div class="clear"><div class="toc-article" id="toc"><div class="toc-title">文章目录</div><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#max变换出发"><span class="toc-number">1.</span> <span class="toc-text">max变换出发</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#几何角度出发"><span class="toc-number">2.</span> <span class="toc-text">几何角度出发</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#从符号函数开刀"><span class="toc-number">3.</span> <span class="toc-text">从符号函数开刀</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#符号函数概率化逼近"><span class="toc-number">4.</span> <span class="toc-text">符号函数概率化逼近</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#逼近误差"><span class="toc-number">5.</span> <span class="toc-text">逼近误差</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#实现（补充）"><span class="toc-number">6.</span> <span class="toc-text">实现（补充）</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#总结"><span class="toc-number">7.</span> <span class="toc-text">总结</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#参考"><span class="toc-number">8.</span> <span class="toc-text">参考</span></a></li></ol></div></div><div class="post-content"><p>求模函数在深度学习中也是很常见，例如文本匹配中，求两个词向量的模作为特征。本文讨论abs的光滑近似。</p>
+<a id="more"></a>
+<h2 id="max变换出发"><a href="#max变换出发" class="headerlink" title="max变换出发"></a>max变换出发</h2><p>注意到$f(x) = |x|$可以用max函数表示，而max函数可以表示为<a href="../9831#三种近似形式">logsumexp形式</a>，于是有参数的形式</p>
+<script type="math/tex; mode=display">
+\begin{align}
+|x| &= \max\{-x, x \} \newline
+&\approx \frac{1}{\alpha}\log(e^{-\alpha x}+e^{\alpha x})
+\end{align}</script><p>取$\alpha=1$，有特例，</p>
+<script type="math/tex; mode=display">
+|x| \approx \log(e^{-x}+e^{x})</script><p>对于二元形式的$\max(x,y) $​，有</p>
+<script type="math/tex; mode=display">
+\begin{align}
+\max(x,y) 
+&= \frac{|x+y|+|x-y|}{2} \\
+&\approx \frac{1}{2} \Big( \log(e^{x+y} + e^{-x-y}) + \log(e^{x-y} + e^{-x+y})    \Big)
+\end{align}</script><p>取$y = -x$，于是，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+|x| 
+&= \max\{-x, x \} \newline
+&\approx \frac{\log(2)}{2} + \frac{1}{2}\log( e^{2x} + e^{-2x})
+\end{align}</script><p>其实就是<a href="../9831#构造max的光滑近似">函数光滑近似（1）：max函数#构造max的光滑近似</a>中的结果。</p>
+<h2 id="几何角度出发"><a href="#几何角度出发" class="headerlink" title="几何角度出发"></a>几何角度出发</h2><p>abs 可以从几何的角度出发，看做 $(x,0)$​ 到原点的距离，通过偏移 $(x,\mu)$​，有</p>
+<script type="math/tex; mode=display">
+|x| \le \sqrt{x^{2} + \mu^{2}}</script><p>可以写成，</p>
+<script type="math/tex; mode=display">
+|x| \le \sqrt{x^{2} + \mu}</script><p>其中 $\mu \gt 0$​ ，这两种写法没有质的区别。我们可以让$\mu$​​随着远离远点儿减小，例如，</p>
+<script type="math/tex; mode=display">
+|x| \le \sqrt{x^{2}+\frac{\mu}{x^2+1}}</script><p>但是这种形式是不具有对称性，为此可以改为偏移指数衰减，</p>
+<script type="math/tex; mode=display">
+|x| \le \sqrt{x^{2}+\frac{\mu}{e^{x}+e^{-x}}}</script><p>这里涉及到$e^{x}+e^{-x}$是出于对称性考虑。</p>
+<p>偏移平方指数衰减，</p>
+<script type="math/tex; mode=display">
+|x| \le \sqrt{x^{2}+\mu e^{-\beta x^{2}}}</script><p>按照这种思路，还可以构造更多的光滑逼近。不过需要注意，上述涉及到$f(x) = e^x$的构造并不对称，需要改成$f(x) = e^x + e^{-x}$形式。而且这些构造计算梯度并不优雅。</p>
+<h2 id="从符号函数开刀"><a href="#从符号函数开刀" class="headerlink" title="从符号函数开刀"></a>从符号函数开刀</h2><p>使用<a href="https://en.wikipedia.org/wiki/Sign_function" target="_blank" rel="noopener">符号函数</a>表示绝对值函数，</p>
+<script type="math/tex; mode=display">
+|x| = x \operatorname{sign}(x)</script><p>其中，</p>
+<script type="math/tex; mode=display">
+\displaystyle \operatorname {sign}(x) ={\begin{cases}-1&\;{\text{if }}x<0,\\0&\;{\text{if }}x=0,\\1&\;{\text{if }}x>0.\end{cases}}</script><p>因此，当$x \ne 0$​时，有</p>
+<script type="math/tex; mode=display">
+\operatorname{sign}(x) = \frac{x}{|x|} = \frac{|x|}{x}</script><p>只要逼近符号函数 $\operatorname{sign}(x)$ 就能解决绝对值函数$f(x) = |x|$的光滑逼近问题，也就是找“softsign”函数。逼近符号函数有两种方法：</p>
+<ul>
+<li>数值逼近</li>
+<li>随机逼近</li>
+</ul>
+<p>这两种思路本质上是寻找类似logistics函数来逼近符号函数 $\operatorname{sign}(x)$ ，我们先说数值逼近。</p>
+<p>根据$\operatorname{sign}(x) = \frac{x}{|x|}$最容易构造满足$x=0$的情况为，</p>
+<script type="math/tex; mode=display">
+\displaystyle \operatorname {sign} (x) =  \frac{x}{|x|}\approx {\frac {x}{\sqrt {x^{2}+\varepsilon ^{2}}}}</script><p>这里$\varepsilon \rightarrow 0$​。因此有，</p>
+<script type="math/tex; mode=display">
+|x| = x \operatorname{sign}(x) = {\frac {x^2}{\sqrt {x^{2}+\varepsilon ^{2}}}}</script><p>类似的思路还有很多。注意到$|x| = \max(x, -x)$​函数可以表示为logsumexp形式，因此有，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+|x| 
+&= x \operatorname{sign}(x) \newline
+&= x \times \frac{x}{|x|} \newline
+&= \frac{x^2}{\max(x, -x)} \newline
+&\approx \frac{\alpha x^2}{\log(e^{-\alpha x}+e^{\alpha x})}
+
+\end{align}</script><p>我们注意到$\sigma(x)$​的形状和符合函数很像（纯几何直觉），只不过其区间在$(0, 1)$​​，通过变换，使其区间落到$(-1, 1)$​，即</p>
+<script type="math/tex; mode=display">
+\operatorname{sign}(x) \approx \tanh(\mu x) = 2\sigma(2\mu x)-1</script><p>这里引入参数$\mu$控制$x$的饱和区间。于是有，</p>
+<script type="math/tex; mode=display">
+|x| = x \tanh(\mu x) = x\Big(2\sigma(2\mu x)-1 \Big)</script><p>类似的思路还有，</p>
+<script type="math/tex; mode=display">
+|x| \approx x \Big(  \frac{2}{(1 + e^{-x})^{\alpha}} -1\Big)</script><p>其中$\alpha \gt 0$​。</p>
+<p>Heaviside step函数也能构造，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+|x| 
+&= x \operatorname{sign}(x) \newline
+&\approx x \times \Big( 2H(x) - 1  \Big) \newline
+&\approx x \times   \tanh(kx) \newline
+&= x \times \Big( \frac{2}{1 + e^{-2kx}} - 1\Big)
+\end{align}</script><p>这里$k \rightarrow \infty$，$k$取值越大逼近效果越好。</p>
+<p>此外，考虑到$\operatorname{softsign}(x) = \frac{x}{1+ |x|}$​，有</p>
+<script type="math/tex; mode=display">
+|x| = x \operatorname{sign}(x) \approx \frac{x^2}{1+ |x|}</script><p>于是有连分数，</p>
+<script type="math/tex; mode=display">
+|x| = x \operatorname{sign}(x) \approx \frac{x^2}{1+ \frac{x^2}{1+ \frac{x^2}{1+ \frac{x^2}{1+ \frac{x^2}{1+ \frac{x^2}{1+ \dots }}}}}}</script><p>可以改写成迭代形式，</p>
+<script type="math/tex; mode=display">
+x_{i + 1} = \frac{x ^ 2}{1 + x_i}</script><p>这个形式还可以进一步推广，</p>
+<script type="math/tex; mode=display">
+\displaystyle f(x)=\frac {x}{(1+|x|^{k})^{1/k}}</script><p>于是有连分数，</p>
+<script type="math/tex; mode=display">
+|x|=\frac {x}{(1+\frac {x}{(1+\frac {x}{(1+\frac {x}{(1+\frac {x}{(1+\frac {x}{(1+\frac {x}{(1+\frac {x}{(1+|x|^{k})^{1/k}}^{k})^{1/k}}^{k})^{1/k}}^{k})^{1/k}}^{k})^{1/k}}^{k})^{1/k}}^{k})^{1/k}}^{k})^{1/k}}</script><p>好啦，感觉思路越来越怪异了。我们跳出来吧。</p>
+<h2 id="符号函数概率化逼近"><a href="#符号函数概率化逼近" class="headerlink" title="符号函数概率化逼近"></a>符号函数概率化逼近</h2><p>还可以从概率的角度构造这个偏移量，假设这个偏移服从正态分布</p>
+<script type="math/tex; mode=display">
+\operatorname{erf}(x) = \frac{1}{\sqrt{\pi}}\int_{-x}^{x}e^{-t^{2}}dt = \frac{2}{\sqrt{\pi}}\int_{0}^{x}e^{-t^{2}}dt</script><p>是一个像logistics函数图像一样的函数，易证$\operatorname{erf}(\frac{x}{\sqrt{2}}) \in (-1, 1)$​​，函数图像如下，</p>
+<p><img src="../images/math-erf-image-1.png" alt></p>
+<p>值得注意，标准正态分布的累积分布函数可以用$\operatorname{erf}(x)$表示，</p>
+<script type="math/tex; mode=display">
+\Phi(x) = \frac{1}{\sqrt{2 \pi}} \int_{-\infty}^{x} e^{\frac{-t^2}{2}} dt = \frac{1}{2} \Big(  1 + \operatorname{erf}(\frac{x}{\sqrt{2}})  \Big)</script><p>于是有</p>
+<script type="math/tex; mode=display">
+|x| \approx x \operatorname{erf}(\frac{x}{\sqrt{2}})</script><p>可视化对比abs函数的差异，</p>
+<p><img src="../images/math-abs-vs-erf-abs-1.png" alt></p>
+<p>可以看到逼近效果很好，那么接下来的思路就是使用简单的函数近似$\operatorname{erf}(\frac{x}{\sqrt{2}})$​​​​。那么怎么推呢，这里我们直接借鉴论文<a href="https://arxiv.org/abs/1606.08415" target="_blank" rel="noopener">Gaussian Error Linear Units (GELUs)</a>中的结论，注意到论文中有结论，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+\operatorname{GELU}(x) 
+&= x \Phi(x) \newline
+&= \frac{x}{2} \Big(  1 + \operatorname{erf}(\frac{x}{\sqrt{2}})  \Big) \newline
+&\approx \frac{x}{2} \Big( 1 + \tanh \left[ \sqrt{\frac{2}{\pi}} (x +  0.044715x^3)\right] \Big)
+
+\end{align}</script><p>于是有，</p>
+<script type="math/tex; mode=display">
+\operatorname{erf}(\frac{x}{\sqrt{2}}) \approx  \tanh \left[ \sqrt{\frac{2}{\pi}} (x +  0.044715x^3)\right]</script><p>因此有，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+|x|
+&= x \operatorname{sign}(x) \newline
+&\approx x \operatorname{erf}(\frac{x}{\sqrt{2}}) \newline
+&\approx x \tanh \left[ \sqrt{\frac{2}{\pi}} (x +  0.044715x^3)\right]
+\end{align}</script><p>以上推导用到正态分布的累积分布函数$\Phi_{\sigma}(x) $与误差函数$\operatorname{erf}(x)$的关系，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+\Phi_{\sigma}(x) 
+&= \int_{-\infty}^{x} \frac{1}{|\sigma|\sqrt{\pi}}e^{-(x/\sigma)^{2}}dx \newline
+&= \int_{-\infty}^{0} \frac{1}{|\sigma|\sqrt{\pi}}e^{-(x/\sigma)^{2}}dx + \int_{0}^{x} \frac{1}{|\sigma|\sqrt{\pi}}e^{-(x/\sigma)^{2}}dx \newline
+&= \frac{1}{2} + \frac{1}{2}\operatorname{erf}(\frac{x}{\sigma\sqrt{2}})
+\end{align}</script><h2 id="逼近误差"><a href="#逼近误差" class="headerlink" title="逼近误差"></a>逼近误差</h2><p>以上分析了很多关于abs函数的光滑化方法，那么如何度量这些光滑后的逼近函数对abs的精确度呢？可以考虑积分形式的全局误差。这里$f(x) = |x|$，$g(x)$是前者的光滑版本，那么逼近误差有，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+\int [f(x)-g(x,\theta)]^2 dx
+\end{align}</script><p>平方误差可以改为绝对值误差，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+\int |f(x)-g(x,\theta)| dx
+\end{align}</script><p>如果光滑函数带有参数，即$g(x,\theta)$，那么有</p>
+<script type="math/tex; mode=display">
+\begin{align}
+\min_{\theta} \int [f(x)-g(x,\theta)]^2 dx
+\end{align}</script><p>但是求积分本身是很困难的事情，尤其是上述涉及到复杂的函数。因此，绕过求积分，转化成求最值的优化方法更好，</p>
+<script type="math/tex; mode=display">
+\min_{\theta} \max_x |f(x)-g(x,\theta)|</script><p>该优化的意思在$|f(x)-g(x,\theta)|$关于$x$最大的情况下，寻找让其最小的$\theta$​。</p>
+<h2 id="实现（补充）"><a href="#实现（补充）" class="headerlink" title="实现（补充）"></a>实现（补充）</h2><p>以上关于abs函数光滑逼近的实现对比，</p>
+<p><img src="../images/abs-smooth-demo-1-1.png" alt></p>
+<p>这是后期补充的，具体实现见：<a href="https://github.com/allenwind/smooth-approximation-function" target="_blank" rel="noopener">https://github.com/allenwind/smooth-approximation-function</a></p>
+<p>可能会根据情况持续更新~</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>以上我们提出了很多abs函数光滑化方法，包括几何角度、对符号函数逼近以及逼近$\operatorname{erf}(\frac{x}{\sqrt{2}})$。</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p>[1] <a href="https://en.wikipedia.org/wiki/Sign_function" target="_blank" rel="noopener">https://en.wikipedia.org/wiki/Sign_function</a></p>
+<p>[2] <a href="https://en.wikipedia.org/wiki/Sigmoid_function" target="_blank" rel="noopener">https://en.wikipedia.org/wiki/Sigmoid_function</a></p>
+<p>[3] <a href="https://en.wikipedia.org/wiki/Heaviside_step_function" target="_blank" rel="noopener">https://en.wikipedia.org/wiki/Heaviside_step_function</a></p>
+<p>[4] <a href="https://en.wikipedia.org/wiki/Error_function" target="_blank" rel="noopener">https://en.wikipedia.org/wiki/Error_function</a></p>
+<p>[5] <a href="https://arxiv.org/pdf/1606.08415.pdf" target="_blank" rel="noopener">https://arxiv.org/pdf/1606.08415.pdf</a></p>
+<p>转载请包括本文地址：<a href="../9959">https://allenwind.github.io/blog/9959</a><br>更多文章请参考：<a href="../archives/">https://allenwind.github.io/blog/archives/</a></p>
+</div><div class="tags"><a href="/blog/tags/数学/">数学</a><a href="/blog/tags/逼近/">逼近</a></div><div class="post-nav"><a class="pre" href="/blog/9998/">Sigmoid函数导出的另外一个角度</a><a class="next" href="/blog/9905/">函数光滑近似（2）：softmax与argmax</a></div></div></div></div><div class="pure-u-1-4 hidden_mid_and_down"><div id="sidebar"><div class="widget"><form class="search-form" action="//www.google.com/search" method="get" accept-charset="utf-8" target="_blank"><input type="text" name="q" maxlength="20" placeholder="Search"><input type="hidden" name="sitesearch" value="http://allenwind.github.io/blog"></form></div><div class="widget"><div class="widget-title"><i class="fa fa-folder-o"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/blog/categories/C-C/">C/C++</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Go/">Go</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Java/">Java</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Linux/">Linux</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/NLP/">NLP</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Python/">Python</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/数学/">数学</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/数据库/">数据库</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/数据结构和算法/">数据结构和算法</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/机器学习深度学习/">机器学习深度学习</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/记录/">记录</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-star-o"> 标签</i></div><div class="tagcloud"><a href="/blog/tags/算法/" style="font-size: 15px;">算法</a> <a href="/blog/tags/C/" style="font-size: 15px;">C</a> <a href="/blog/tags/Python/" style="font-size: 15px;">Python</a> <a href="/blog/tags/设计模式/" style="font-size: 15px;">设计模式</a> <a href="/blog/tags/C语言/" style="font-size: 15px;">C语言</a> <a href="/blog/tags/数据库/" style="font-size: 15px;">数据库</a> <a href="/blog/tags/MySQL/" style="font-size: 15px;">MySQL</a> <a href="/blog/tags/ACID/" style="font-size: 15px;">ACID</a> <a href="/blog/tags/区块链/" style="font-size: 15px;">区块链</a> <a href="/blog/tags/分布式/" style="font-size: 15px;">分布式</a> <a href="/blog/tags/SQL/" style="font-size: 15px;">SQL</a> <a href="/blog/tags/NoSQL/" style="font-size: 15px;">NoSQL</a> <a href="/blog/tags/sudo/" style="font-size: 15px;">sudo</a> <a href="/blog/tags/Docker/" style="font-size: 15px;">Docker</a> <a href="/blog/tags/git/" style="font-size: 15px;">git</a> <a href="/blog/tags/Linux/" style="font-size: 15px;">Linux</a> <a href="/blog/tags/Git/" style="font-size: 15px;">Git</a> <a href="/blog/tags/gcc/" style="font-size: 15px;">gcc</a> <a href="/blog/tags/Systemd/" style="font-size: 15px;">Systemd</a> <a href="/blog/tags/Tensorflow/" style="font-size: 15px;">Tensorflow</a> <a href="/blog/tags/命令行/" style="font-size: 15px;">命令行</a> <a href="/blog/tags/网络/" style="font-size: 15px;">网络</a> <a href="/blog/tags/操作系统/" style="font-size: 15px;">操作系统</a> <a href="/blog/tags/记录/" style="font-size: 15px;">记录</a> <a href="/blog/tags/正则表达式/" style="font-size: 15px;">正则表达式</a> <a href="/blog/tags/数据结构/" style="font-size: 15px;">数据结构</a> <a href="/blog/tags/Go/" style="font-size: 15px;">Go</a> <a href="/blog/tags/go/" style="font-size: 15px;">go</a> <a href="/blog/tags/Java/" style="font-size: 15px;">Java</a> <a href="/blog/tags/LRU/" style="font-size: 15px;">LRU</a> <a href="/blog/tags/ARC/" style="font-size: 15px;">ARC</a> <a href="/blog/tags/剑指Offer/" style="font-size: 15px;">剑指Offer</a> <a href="/blog/tags/函数式/" style="font-size: 15px;">函数式</a> <a href="/blog/tags/搜索引擎/" style="font-size: 15px;">搜索引擎</a> <a href="/blog/tags/Stack/" style="font-size: 15px;">Stack</a> <a href="/blog/tags/并发编程/" style="font-size: 15px;">并发编程</a> <a href="/blog/tags/网络编程/" style="font-size: 15px;">网络编程</a> <a href="/blog/tags/并发/" style="font-size: 15px;">并发</a> <a href="/blog/tags/HTTP/" style="font-size: 15px;">HTTP</a> <a href="/blog/tags/装饰器/" style="font-size: 15px;">装饰器</a> <a href="/blog/tags/Redis/" style="font-size: 15px;">Redis</a> <a href="/blog/tags/数学/" style="font-size: 15px;">数学</a> <a href="/blog/tags/时间序列/" style="font-size: 15px;">时间序列</a> <a href="/blog/tags/投资/" style="font-size: 15px;">投资</a> <a href="/blog/tags/概率/" style="font-size: 15px;">概率</a> <a href="/blog/tags/统计/" style="font-size: 15px;">统计</a> <a href="/blog/tags/信息论/" style="font-size: 15px;">信息论</a> <a href="/blog/tags/度量/" style="font-size: 15px;">度量</a> <a href="/blog/tags/机器学习/" style="font-size: 15px;">机器学习</a> <a href="/blog/tags/贝叶斯/" style="font-size: 15px;">贝叶斯</a> <a href="/blog/tags/最小二乘法/" style="font-size: 15px;">最小二乘法</a> <a href="/blog/tags/分布/" style="font-size: 15px;">分布</a> <a href="/blog/tags/矩阵/" style="font-size: 15px;">矩阵</a> <a href="/blog/tags/深度学习/" style="font-size: 15px;">深度学习</a> <a href="/blog/tags/变分推断/" style="font-size: 15px;">变分推断</a> <a href="/blog/tags/随机/" style="font-size: 15px;">随机</a> <a href="/blog/tags/不等式/" style="font-size: 15px;">不等式</a> <a href="/blog/tags/采样/" style="font-size: 15px;">采样</a> <a href="/blog/tags/光滑/" style="font-size: 15px;">光滑</a> <a href="/blog/tags/逼近/" style="font-size: 15px;">逼近</a> <a href="/blog/tags/交叉验证/" style="font-size: 15px;">交叉验证</a> <a href="/blog/tags/特征工程/" style="font-size: 15px;">特征工程</a> <a href="/blog/tags/集成学习/" style="font-size: 15px;">集成学习</a> <a href="/blog/tags/分类/" style="font-size: 15px;">分类</a> <a href="/blog/tags/证明/" style="font-size: 15px;">证明</a> <a href="/blog/tags/损失函数/" style="font-size: 15px;">损失函数</a> <a href="/blog/tags/回归/" style="font-size: 15px;">回归</a> <a href="/blog/tags/词向量/" style="font-size: 15px;">词向量</a> <a href="/blog/tags/信息/" style="font-size: 15px;">信息</a> <a href="/blog/tags/正则化/" style="font-size: 15px;">正则化</a> <a href="/blog/tags/NLP/" style="font-size: 15px;">NLP</a> <a href="/blog/tags/Embedding/" style="font-size: 15px;">Embedding</a> <a href="/blog/tags/神经网络/" style="font-size: 15px;">神经网络</a> <a href="/blog/tags/Transformer/" style="font-size: 15px;">Transformer</a> <a href="/blog/tags/Attention/" style="font-size: 15px;">Attention</a> <a href="/blog/tags/文本分类/" style="font-size: 15px;">文本分类</a> <a href="/blog/tags/对抗训练/" style="font-size: 15px;">对抗训练</a> <a href="/blog/tags/分词/" style="font-size: 15px;">分词</a> <a href="/blog/tags/并行/" style="font-size: 15px;">并行</a> <a href="/blog/tags/图/" style="font-size: 15px;">图</a> <a href="/blog/tags/NER/" style="font-size: 15px;">NER</a> <a href="/blog/tags/HMM/" style="font-size: 15px;">HMM</a> <a href="/blog/tags/概率图/" style="font-size: 15px;">概率图</a> <a href="/blog/tags/可视化/" style="font-size: 15px;">可视化</a> <a href="/blog/tags/RNN/" style="font-size: 15px;">RNN</a> <a href="/blog/tags/LSTM/" style="font-size: 15px;">LSTM</a> <a href="/blog/tags/注意力/" style="font-size: 15px;">注意力</a> <a href="/blog/tags/序列编码/" style="font-size: 15px;">序列编码</a> <a href="/blog/tags/梯度/" style="font-size: 15px;">梯度</a> <a href="/blog/tags/磁盘故障/" style="font-size: 15px;">磁盘故障</a> <a href="/blog/tags/BERT/" style="font-size: 15px;">BERT</a> <a href="/blog/tags/CNN/" style="font-size: 15px;">CNN</a> <a href="/blog/tags/卷积/" style="font-size: 15px;">卷积</a> <a href="/blog/tags/优化/" style="font-size: 15px;">优化</a> <a href="/blog/tags/调参/" style="font-size: 15px;">调参</a> <a href="/blog/tags/Flask/" style="font-size: 15px;">Flask</a> <a href="/blog/tags/web/" style="font-size: 15px;">web</a> <a href="/blog/tags/socket/" style="font-size: 15px;">socket</a> <a href="/blog/tags/安全/" style="font-size: 15px;">安全</a> <a href="/blog/tags/协程/" style="font-size: 15px;">协程</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-file-o"> 最近文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/blog/16003/">天马行空：设计自己的激活函数</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/15887/">函数光滑近似（4）：Heaviside step函数及其应用</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/15205/">引入参数控制softmax的smooth程度</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/15110/">分析与拓展：多分类模型的输出为什么使用softmax？</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14990/">一种基于光滑逼近的正态分布采样法</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14721/">GELU由来：从狄拉克函数到GELU激活函数</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14465/">Lp范数的上下界分析</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14441/">logsumexp函数分析</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14133/">分析Mish激活函数的设计思路</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/13899/">阿尔法经济学：Shiller模型介绍</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-external-link"> 友情链接</i></div><ul></ul><a href="https://github.com/allenwind" title="My GitHub" target="_blank">My GitHub</a><ul></ul><a href="http://www.arxiv-sanity.com/" title="arxiv-sanity" target="_blank">arxiv-sanity</a><ul></ul><a href="https://arxiv.org/" title="arxiv.org" target="_blank">arxiv.org</a></div></div></div><div class="pure-u-1 pure-u-md-3-4"><div id="footer">Copyright © 2021 <a href="/blog/." rel="nofollow">Mr.Feng Blog.</a> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a><a rel="nofollow" target="_blank" href="https://github.com/tufu9441/maupassant-hexo"> Theme</a> by<a rel="nofollow" target="_blank" href="https://github.com/pagecho"> Cho.</a></div></div></div><a class="show" id="rocket" href="#top"></a><script type="text/javascript" src="/blog/js/totop.js?v=0.0.0" async></script><script type="text/javascript" src="//lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js" async></script><script type="text/javascript" src="/blog/js/fancybox.js?v=0.0.0" async></script><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css"><script type="text/x-mathjax-config">MathJax.Hub.Config({
+  tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}
+  });
+</script><script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-MML-AM_CHTML" async></script><script type="text/javascript" src="/blog/js/codeblock-resizer.js?v=0.0.0"></script><script type="text/javascript" src="/blog/js/smartresize.js?v=0.0.0"></script></div></body></html>

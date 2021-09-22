@@ -1,0 +1,117 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.9.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description" content="你好，世界！"><title>词向量系列（6）：动态词向量CoVe之ELMo | Mr.Feng Blog</title><link rel="stylesheet" type="text/css" href="/blog/css/style.css?v=0.0.0"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/normalize/8.0.1/normalize.min.css"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/pure/1.0.0/pure-min.css"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/pure/1.0.0/grids-responsive-min.css"><link rel="stylesheet" href="//lib.baomitu.com/font-awesome/4.7.0/css/font-awesome.min.css"><script type="text/javascript" src="//lib.baomitu.com/jquery/3.4.0/jquery.min.js"></script><link rel="icon" mask sizes="any" href="/blog/favicon.ico"><link rel="Shortcut Icon" type="image/x-icon" href="/blog/favicon.ico"><link rel="apple-touch-icon" href="/blog/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/blog/apple-touch-icon.png"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">词向量系列（6）：动态词向量CoVe之ELMo</h1><a id="logo" href="/blog/.">Mr.Feng Blog</a><p class="description">NLP、深度学习、机器学习、Python、Go</p></div><div id="nav-menu"><a class="current" href="/blog/."><i class="fa fa-home"> 首页</i></a><a href="/blog/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/blog/about/"><i class="fa fa-user"> 关于</i></a></div></div><div class="pure-g" id="layout"><div class="pure-u-1 pure-u-md-3-4"><div class="content_container"><div class="post"><h1 class="post-title">词向量系列（6）：动态词向量CoVe之ELMo</h1><div class="post-meta">Feb 21, 2019<span> | </span><span class="category"><a href="/blog/categories/NLP/">NLP</a></span></div><div class="clear"><div class="toc-article" id="toc"><div class="toc-title">文章目录</div><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#静态词向量与动态词向量"><span class="toc-number">1.</span> <span class="toc-text">静态词向量与动态词向量</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#ELMo模型"><span class="toc-number">2.</span> <span class="toc-text">ELMo模型</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#总结"><span class="toc-number">3.</span> <span class="toc-text">总结</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#参考"><span class="toc-number">4.</span> <span class="toc-text">参考</span></a></li></ol></div></div><div class="post-content"><p>动态词向量（CoVe）是未来的发展趋势，本篇介绍ELMo~</p>
+<a id="more"></a>
+<h2 id="静态词向量与动态词向量"><a href="#静态词向量与动态词向量" class="headerlink" title="静态词向量与动态词向量"></a>静态词向量与动态词向量</h2><p>无论是VSM、LSA还是skip-gram、CBOW所获得的词向量都是静态的，并没有考虑不同上下中词的不同语义。例如我们使用gensim训练好word2vec向量后，固定的词，不论该词所在的上下文，获得的输出向量都是一样的。</p>
+<p>动态词向量（context vectors，CoVe），或上下文词向量，本文使用动态词向量一词。动态词向量的提出可以解决VSM、LSA还是skip-gram、CBOW无法处理关联上下的问题以及一词多义问题。</p>
+<p>动态词向量，我个人认为其是NLP中未来的一个研究方向，因此，不排除以后会有更多这类文章分享。接下来继续介绍ELMo模型。</p>
+<h2 id="ELMo模型"><a href="#ELMo模型" class="headerlink" title="ELMo模型"></a>ELMo模型</h2><p>ELMo，全称 Embeddings from Language Models，来自论文<a href="https://arxiv.org/pdf/1802.05365.pdf" target="_blank" rel="noopener">Deep contextualized word representations</a>，从语言模型中获取 Embedding。比起word2vec等词向量模型，ELMo能够对单词的<strong>语法特征</strong>以及<strong>语义特征</strong>进行建模。同时，其动态特性能够让其适应不同的上下文，称为上下文相关词向量或者动态词向量。</p>
+<p>ELMo 通过双向多层神经网络语言模型的隐向量的加权平均计算得到词的向量表示，因此该词的向量化随着词所在的上下文不同而不同。这个特点解决了word2vec等方法一直无法解决的问题：多义词。</p>
+<p>ELMo的网络架构有别于其他的ngram单向语言模型，是一个Stacked bi-LSTM模型，以便学习双向特征，即上下文特征。</p>
+<p>对于单向的语言模型，其目标函数有，</p>
+<script type="math/tex; mode=display">
+\sum_{i=1}^{n} \log p(w_i|w_1, \dots, w_{i-1};\theta)</script><p>其旨在通过左侧词汇$[w_1, \dots, w_{i-1}]$预测当前词汇$w_i$，其中$\theta$是模型的参数，RNN类模型很适合对其建模。</p>
+<p>而ELMo采用双向的LSTM网络来对语言模型建模，准确来说是两个单向的LSTM网络，其中一个正向建模，另外一个逆向建模，因此训练目标可以表示为，</p>
+<script type="math/tex; mode=display">
+\sum_{i=1}^{n}\Big(\log p(w_i|w_1, \dots, w_{i-1};\theta) + \log p(w_i | w_{i+1}, \dots, w_n; \theta)  \Big)</script><p>双向的LSTM网络（图片来自nndl.github.io）为，</p>
+<p><img src="../images/bi-lstm.png" alt></p>
+<p>这里$x_i$是词$w_i$​通过Embedding层的输出，可以看到两个LSTM网络是共享Embedding层的。$y_i$输出前通过softmax归一化，以表示每个时间步输出词的概率分布。</p>
+<p>ELMo求词$w_i$的向量化由指定的第L层的输出向量$h_i^L$​​​决定，通常是两个方向的输出的拼接，</p>
+<script type="math/tex; mode=display">
+h_i = h_i^{L} \oplus h_i^{L+1}</script><p>这样的特征更全面地考虑上下文情况。</p>
+<p>ELMo通过实验证明，不同网络层特征有语义和语法上的区别。L越小，所表示的特征越接近语法特征，L越大，所表示的特征越接近语义特征。</p>
+<p>ELMo还有一种更general方法获取对应的词向量，即对所有层（一共2L+1层，L层bi-LSTM+一层Embedding）的加权平均，</p>
+<script type="math/tex; mode=display">
+w_i^{\text{ELMo}} = \gamma \sum s_{i} h_{i}^L</script><p>$\gamma$​是一个与任务相关的缩放因子。然后不同层的权重$s_i$​是可以自动学习，权重可以通过softmax归一化。这种方法的高明之处是让具体任务来决定使用<strong>底层语法特征</strong>与<strong>高层语义特征</strong>的比例。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>ELMo优点：</p>
+<ul>
+<li><p>对语法特征、语义特征建模，ELMo词向量是由双向神经网络语言模型的内部多层向量的线性加权组成</p>
+</li>
+<li><p>适应不同的上下文，ELMo词向量与传统的词向量（如：word2vec）不同。在ELMo中每个单词的词向量不再是固定的，而是单词所在的句子的函数，由单词所在的上下文决定</p>
+</li>
+</ul>
+<p>ELMo缺点：</p>
+<ul>
+<li>RNN网络架构无法并行</li>
+<li>RNN网络架构有长距离依赖问题</li>
+</ul>
+<p>文本向量总结：</p>
+<ul>
+<li>基于词共现概率论，word2vec、Glove、LSA</li>
+<li>n-gram subword，fastText</li>
+<li>基于上下文，Cove</li>
+<li>基于语言模型的动态词向量，ELMo、BERT、GPT</li>
+</ul>
+<p>这一系列的文章所讨论的模型或方法，我们可以把它们五大类：</p>
+<ul>
+<li>基于 BOW 模型，如 one-hot、TI-IDF、textrank 等</li>
+<li>基于主题模型，如 LSA、pLSA、LDA 等</li>
+<li>静态词向量（上下文独立），如 word2vec 工具（CBOW、skip-gram）、GloVe、FastText</li>
+<li>词向量之外的思考，如Embedding原理、句向量、文档向量等</li>
+<li>动态词向量（上下文相关），ELMo、Transformer、BERT 等</li>
+</ul>
+<p>下表对比常用的词向量方法的对比，虽然还没有讲到BERT，但还是那出来作为对比，</p>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th>编码方式</th>
+<th>优点</th>
+<th>缺点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>one-hot</td>
+<td>最简单的词向量化方式</td>
+<td>维度灾难、语义鸿沟</td>
+</tr>
+<tr>
+<td>随机映射</td>
+<td>使用随机向量表示词，相对便捷</td>
+<td>需要下游网络足够复杂</td>
+</tr>
+<tr>
+<td>tf-idf</td>
+<td>基于BOW，相对便捷通用</td>
+<td>BOW本身没有词序信息</td>
+</tr>
+<tr>
+<td>主题模型LSA</td>
+<td>基于全局共现矩阵分解的方法，能够有效的利用全局的统计信息</td>
+<td>在单词类比任务（如：<code>国王 vs 王后</code> 类比于<code>男人 vs 女人</code>）中表现相对较差</td>
+</tr>
+<tr>
+<td>word2vec</td>
+<td>基于局部上下文窗口的方法，在单词类比任务中表现较好</td>
+<td>因为<code>word2vec</code> 在独立的局部上下文窗口上训练，因此难以利用单词的全局统计信息</td>
+</tr>
+<tr>
+<td>GloVe</td>
+<td>同时利用共现矩阵的全局信息和局部上下文信息</td>
+<td></td>
+</tr>
+<tr>
+<td>FastText</td>
+<td>考虑subword、ngrams，一定程度上缓解OOV</td>
+<td>需要监督数据，本质上还是BOW</td>
+</tr>
+<tr>
+<td>ELMo</td>
+<td>动态词向量，考虑上下文</td>
+<td>ELMo本质上还是两个单向的LSTM的拼接</td>
+</tr>
+<tr>
+<td>BERT</td>
+<td>双向的动态词向量</td>
+<td>/</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>word2vec、ELMo都是针对序列样本进行建模，而Graph Embedding则针对图进行建模，后续如果有需要再学习这方面内容。</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p>[1] <a href="https://arxiv.org/abs/1802.05365" target="_blank" rel="noopener">Deep contextualized word representations</a></p>
+<p>[2] <a href="https://arxiv.org/abs/1902.06006" target="_blank" rel="noopener">Contextual Word Representations: A Contextual Introduction</a></p>
+<p>转载请包括本文地址：<a href="../9279">https://allenwind.github.io/blog/9279</a><br>更多文章请参考：<a href="../archives/">https://allenwind.github.io/blog/archives/</a></p>
+</div><div class="tags"><a href="/blog/tags/词向量/">词向量</a></div><div class="post-nav"><a class="pre" href="/blog/9353/">求句向量的思路探索</a><a class="next" href="/blog/9233/">词向量系列（5）：fastText快速轻量的有监督方法</a></div></div></div></div><div class="pure-u-1-4 hidden_mid_and_down"><div id="sidebar"><div class="widget"><form class="search-form" action="//www.google.com/search" method="get" accept-charset="utf-8" target="_blank"><input type="text" name="q" maxlength="20" placeholder="Search"><input type="hidden" name="sitesearch" value="http://allenwind.github.io/blog"></form></div><div class="widget"><div class="widget-title"><i class="fa fa-folder-o"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/blog/categories/C-C/">C/C++</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Go/">Go</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Java/">Java</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Linux/">Linux</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/NLP/">NLP</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Python/">Python</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/数学/">数学</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/数据库/">数据库</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/数据结构和算法/">数据结构和算法</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/机器学习深度学习/">机器学习深度学习</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/记录/">记录</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-star-o"> 标签</i></div><div class="tagcloud"><a href="/blog/tags/算法/" style="font-size: 15px;">算法</a> <a href="/blog/tags/C/" style="font-size: 15px;">C</a> <a href="/blog/tags/Python/" style="font-size: 15px;">Python</a> <a href="/blog/tags/设计模式/" style="font-size: 15px;">设计模式</a> <a href="/blog/tags/C语言/" style="font-size: 15px;">C语言</a> <a href="/blog/tags/数据库/" style="font-size: 15px;">数据库</a> <a href="/blog/tags/MySQL/" style="font-size: 15px;">MySQL</a> <a href="/blog/tags/ACID/" style="font-size: 15px;">ACID</a> <a href="/blog/tags/区块链/" style="font-size: 15px;">区块链</a> <a href="/blog/tags/分布式/" style="font-size: 15px;">分布式</a> <a href="/blog/tags/SQL/" style="font-size: 15px;">SQL</a> <a href="/blog/tags/NoSQL/" style="font-size: 15px;">NoSQL</a> <a href="/blog/tags/sudo/" style="font-size: 15px;">sudo</a> <a href="/blog/tags/Docker/" style="font-size: 15px;">Docker</a> <a href="/blog/tags/git/" style="font-size: 15px;">git</a> <a href="/blog/tags/Linux/" style="font-size: 15px;">Linux</a> <a href="/blog/tags/Git/" style="font-size: 15px;">Git</a> <a href="/blog/tags/gcc/" style="font-size: 15px;">gcc</a> <a href="/blog/tags/Systemd/" style="font-size: 15px;">Systemd</a> <a href="/blog/tags/Tensorflow/" style="font-size: 15px;">Tensorflow</a> <a href="/blog/tags/命令行/" style="font-size: 15px;">命令行</a> <a href="/blog/tags/网络/" style="font-size: 15px;">网络</a> <a href="/blog/tags/操作系统/" style="font-size: 15px;">操作系统</a> <a href="/blog/tags/记录/" style="font-size: 15px;">记录</a> <a href="/blog/tags/正则表达式/" style="font-size: 15px;">正则表达式</a> <a href="/blog/tags/数据结构/" style="font-size: 15px;">数据结构</a> <a href="/blog/tags/Go/" style="font-size: 15px;">Go</a> <a href="/blog/tags/go/" style="font-size: 15px;">go</a> <a href="/blog/tags/Java/" style="font-size: 15px;">Java</a> <a href="/blog/tags/LRU/" style="font-size: 15px;">LRU</a> <a href="/blog/tags/ARC/" style="font-size: 15px;">ARC</a> <a href="/blog/tags/剑指Offer/" style="font-size: 15px;">剑指Offer</a> <a href="/blog/tags/函数式/" style="font-size: 15px;">函数式</a> <a href="/blog/tags/搜索引擎/" style="font-size: 15px;">搜索引擎</a> <a href="/blog/tags/Stack/" style="font-size: 15px;">Stack</a> <a href="/blog/tags/并发编程/" style="font-size: 15px;">并发编程</a> <a href="/blog/tags/网络编程/" style="font-size: 15px;">网络编程</a> <a href="/blog/tags/并发/" style="font-size: 15px;">并发</a> <a href="/blog/tags/HTTP/" style="font-size: 15px;">HTTP</a> <a href="/blog/tags/装饰器/" style="font-size: 15px;">装饰器</a> <a href="/blog/tags/Redis/" style="font-size: 15px;">Redis</a> <a href="/blog/tags/数学/" style="font-size: 15px;">数学</a> <a href="/blog/tags/时间序列/" style="font-size: 15px;">时间序列</a> <a href="/blog/tags/投资/" style="font-size: 15px;">投资</a> <a href="/blog/tags/概率/" style="font-size: 15px;">概率</a> <a href="/blog/tags/统计/" style="font-size: 15px;">统计</a> <a href="/blog/tags/信息论/" style="font-size: 15px;">信息论</a> <a href="/blog/tags/度量/" style="font-size: 15px;">度量</a> <a href="/blog/tags/机器学习/" style="font-size: 15px;">机器学习</a> <a href="/blog/tags/贝叶斯/" style="font-size: 15px;">贝叶斯</a> <a href="/blog/tags/最小二乘法/" style="font-size: 15px;">最小二乘法</a> <a href="/blog/tags/分布/" style="font-size: 15px;">分布</a> <a href="/blog/tags/矩阵/" style="font-size: 15px;">矩阵</a> <a href="/blog/tags/深度学习/" style="font-size: 15px;">深度学习</a> <a href="/blog/tags/变分推断/" style="font-size: 15px;">变分推断</a> <a href="/blog/tags/随机/" style="font-size: 15px;">随机</a> <a href="/blog/tags/不等式/" style="font-size: 15px;">不等式</a> <a href="/blog/tags/采样/" style="font-size: 15px;">采样</a> <a href="/blog/tags/光滑/" style="font-size: 15px;">光滑</a> <a href="/blog/tags/逼近/" style="font-size: 15px;">逼近</a> <a href="/blog/tags/交叉验证/" style="font-size: 15px;">交叉验证</a> <a href="/blog/tags/特征工程/" style="font-size: 15px;">特征工程</a> <a href="/blog/tags/集成学习/" style="font-size: 15px;">集成学习</a> <a href="/blog/tags/分类/" style="font-size: 15px;">分类</a> <a href="/blog/tags/证明/" style="font-size: 15px;">证明</a> <a href="/blog/tags/损失函数/" style="font-size: 15px;">损失函数</a> <a href="/blog/tags/回归/" style="font-size: 15px;">回归</a> <a href="/blog/tags/词向量/" style="font-size: 15px;">词向量</a> <a href="/blog/tags/信息/" style="font-size: 15px;">信息</a> <a href="/blog/tags/正则化/" style="font-size: 15px;">正则化</a> <a href="/blog/tags/NLP/" style="font-size: 15px;">NLP</a> <a href="/blog/tags/Embedding/" style="font-size: 15px;">Embedding</a> <a href="/blog/tags/神经网络/" style="font-size: 15px;">神经网络</a> <a href="/blog/tags/Transformer/" style="font-size: 15px;">Transformer</a> <a href="/blog/tags/Attention/" style="font-size: 15px;">Attention</a> <a href="/blog/tags/文本分类/" style="font-size: 15px;">文本分类</a> <a href="/blog/tags/对抗训练/" style="font-size: 15px;">对抗训练</a> <a href="/blog/tags/分词/" style="font-size: 15px;">分词</a> <a href="/blog/tags/并行/" style="font-size: 15px;">并行</a> <a href="/blog/tags/图/" style="font-size: 15px;">图</a> <a href="/blog/tags/NER/" style="font-size: 15px;">NER</a> <a href="/blog/tags/HMM/" style="font-size: 15px;">HMM</a> <a href="/blog/tags/概率图/" style="font-size: 15px;">概率图</a> <a href="/blog/tags/可视化/" style="font-size: 15px;">可视化</a> <a href="/blog/tags/RNN/" style="font-size: 15px;">RNN</a> <a href="/blog/tags/LSTM/" style="font-size: 15px;">LSTM</a> <a href="/blog/tags/注意力/" style="font-size: 15px;">注意力</a> <a href="/blog/tags/序列编码/" style="font-size: 15px;">序列编码</a> <a href="/blog/tags/梯度/" style="font-size: 15px;">梯度</a> <a href="/blog/tags/磁盘故障/" style="font-size: 15px;">磁盘故障</a> <a href="/blog/tags/BERT/" style="font-size: 15px;">BERT</a> <a href="/blog/tags/CNN/" style="font-size: 15px;">CNN</a> <a href="/blog/tags/卷积/" style="font-size: 15px;">卷积</a> <a href="/blog/tags/优化/" style="font-size: 15px;">优化</a> <a href="/blog/tags/调参/" style="font-size: 15px;">调参</a> <a href="/blog/tags/Flask/" style="font-size: 15px;">Flask</a> <a href="/blog/tags/web/" style="font-size: 15px;">web</a> <a href="/blog/tags/socket/" style="font-size: 15px;">socket</a> <a href="/blog/tags/安全/" style="font-size: 15px;">安全</a> <a href="/blog/tags/协程/" style="font-size: 15px;">协程</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-file-o"> 最近文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/blog/16003/">天马行空：设计自己的激活函数</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/15887/">函数光滑近似（4）：Heaviside step函数及其应用</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/15205/">引入参数控制softmax的smooth程度</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/15110/">分析与拓展：多分类模型的输出为什么使用softmax？</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14990/">一种基于光滑逼近的正态分布采样法</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14721/">GELU由来：从狄拉克函数到GELU激活函数</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14465/">Lp范数的上下界分析</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14441/">logsumexp函数分析</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14133/">分析Mish激活函数的设计思路</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/13899/">阿尔法经济学：Shiller模型介绍</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-external-link"> 友情链接</i></div><ul></ul><a href="https://github.com/allenwind" title="My GitHub" target="_blank">My GitHub</a><ul></ul><a href="http://www.arxiv-sanity.com/" title="arxiv-sanity" target="_blank">arxiv-sanity</a><ul></ul><a href="https://arxiv.org/" title="arxiv.org" target="_blank">arxiv.org</a></div></div></div><div class="pure-u-1 pure-u-md-3-4"><div id="footer">Copyright © 2021 <a href="/blog/." rel="nofollow">Mr.Feng Blog.</a> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a><a rel="nofollow" target="_blank" href="https://github.com/tufu9441/maupassant-hexo"> Theme</a> by<a rel="nofollow" target="_blank" href="https://github.com/pagecho"> Cho.</a></div></div></div><a class="show" id="rocket" href="#top"></a><script type="text/javascript" src="/blog/js/totop.js?v=0.0.0" async></script><script type="text/javascript" src="//lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js" async></script><script type="text/javascript" src="/blog/js/fancybox.js?v=0.0.0" async></script><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css"><script type="text/x-mathjax-config">MathJax.Hub.Config({
+  tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}
+  });
+</script><script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-MML-AM_CHTML" async></script><script type="text/javascript" src="/blog/js/codeblock-resizer.js?v=0.0.0"></script><script type="text/javascript" src="/blog/js/smartresize.js?v=0.0.0"></script></div></body></html>

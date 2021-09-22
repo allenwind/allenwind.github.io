@@ -1,0 +1,133 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.9.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description" content="你好，世界！"><title>NLP中的对抗训练：从概念、原理到实践 | Mr.Feng Blog</title><link rel="stylesheet" type="text/css" href="/blog/css/style.css?v=0.0.0"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/normalize/8.0.1/normalize.min.css"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/pure/1.0.0/pure-min.css"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/pure/1.0.0/grids-responsive-min.css"><link rel="stylesheet" href="//lib.baomitu.com/font-awesome/4.7.0/css/font-awesome.min.css"><script type="text/javascript" src="//lib.baomitu.com/jquery/3.4.0/jquery.min.js"></script><link rel="icon" mask sizes="any" href="/blog/favicon.ico"><link rel="Shortcut Icon" type="image/x-icon" href="/blog/favicon.ico"><link rel="apple-touch-icon" href="/blog/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/blog/apple-touch-icon.png"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">NLP中的对抗训练：从概念、原理到实践</h1><a id="logo" href="/blog/.">Mr.Feng Blog</a><p class="description">NLP、深度学习、机器学习、Python、Go</p></div><div id="nav-menu"><a class="current" href="/blog/."><i class="fa fa-home"> 首页</i></a><a href="/blog/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/blog/about/"><i class="fa fa-user"> 关于</i></a></div></div><div class="pure-g" id="layout"><div class="pure-u-1 pure-u-md-3-4"><div class="content_container"><div class="post"><h1 class="post-title">NLP中的对抗训练：从概念、原理到实践</h1><div class="post-meta">Oct 29, 2020<span> | </span><span class="category"><a href="/blog/categories/NLP/">NLP</a></span></div><div class="clear"><div class="toc-article" id="toc"><div class="toc-title">文章目录</div><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#基本概念"><span class="toc-number">1.</span> <span class="toc-text">基本概念</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#样本或标签上的随机噪声"><span class="toc-number">2.</span> <span class="toc-text">样本或标签上的随机噪声</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#对抗训练"><span class="toc-number">3.</span> <span class="toc-text">对抗训练</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#梯度惩罚"><span class="toc-number">4.</span> <span class="toc-text">梯度惩罚</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#对抗训练在NLP中的应用"><span class="toc-number">5.</span> <span class="toc-text">对抗训练在NLP中的应用</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#实现"><span class="toc-number">6.</span> <span class="toc-text">实现</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#总结"><span class="toc-number">7.</span> <span class="toc-text">总结</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#参考"><span class="toc-number">8.</span> <span class="toc-text">参考</span></a></li></ol></div></div><div class="post-content"><p>说道对抗训练容易让人联想到GAN这类生成模型，不过本文说的是一种<strong>提高模型稳健性</strong>的模型训练方法。这种方法最初出现在CV中，稍加修改可以引入到NLP中。本文先介绍对抗训练相关知识，然后讲述对抗训练作为<strong>正则化手段</strong>在NLP的Embedding中的应用。</p>
+<a id="more"></a>
+<p>在现实世界中，健壮性关乎模型落地的质量，健壮性差面临在某些场景面临巨大的风险。对抗训练（Adversarial Training）能够提升模型的健壮性。所谓的对抗训练是指在模型训练时添加小扰动使模型的稳健性提升，这种技巧在CV中用来防御对抗攻击，提高对对抗样本的鲁棒性，另外也可以理解成一种正则化方法，提高泛化能力。在NLP中，对抗训练也不失为好的正则化方法，让模型更稳健。</p>
+<h2 id="基本概念"><a href="#基本概念" class="headerlink" title="基本概念"></a>基本概念</h2><p>首先来简单介绍几个关于对抗训练相关的术语。</p>
+<p><strong>鲁棒性（Robustness）</strong>：又称为稳健性、健壮性，模型在对输入的扰动或添加不确定的情况下仍能保持输出的不变的特征。类似地，在计算机程序设计中，指程序在执行时处理错误、算法在遭遇输入、运算等异常时继续正常运行的能力。这个概念在系统设计中很重要，可以参考<a href="https://en.wikipedia.org/wiki/Robustness_(computer_science" target="_blank" rel="noopener">维基百科词条</a>)。</p>
+<p><strong>白盒攻击</strong>：攻击者可以获得模型的全部信息，包括模型架构、参数。</p>
+<p><strong>黑盒攻击</strong>：攻击者只有模型的部分信息或全然无知。需要注意，无论是白盒攻击还是黑盒攻击都旨在不改变模型和训练数据的情况下完成攻击操作。</p>
+<p><strong>灰盒攻击</strong>：攻击者可以访问模型，但无法访问任何有关对抗防御方法的相关信息。</p>
+<p><strong>目标攻击</strong>：指构造的对抗样本能被模型错误地分到某个目标类别上。例如添加一个关于类别$y_t$扰动$\delta x_{y_t}$使得模型输出错误的类别$y_t$，</p>
+<script type="math/tex; mode=display">
+f(x+\Delta x_{y_{t}};w) = y_{t}</script><p><strong>非目标攻击</strong>：指构造的对抗样本能被模型错误地分到其他类别即可。</p>
+<p>显然，一个稳健性强的模型应该添加扰动后不改变其对样本的预测标签，即</p>
+<script type="math/tex; mode=display">
+f(x_{\hat{y}}+\Delta x_{y_{t}}; w) = \hat{y}</script><p>输入样本$x_{\hat{y}}$在扰动$\delta x_{y_t}$下，模型依旧能够得到正确的判别$\hat{y}$</p>
+<p>以上的攻击方法（白盒攻击，黑盒攻击）和（目标攻击，非目标攻击）两两组合可以构成四种攻击方式，本文的重点在<strong>白盒非目标攻击</strong>上。</p>
+<p><strong>对抗样本</strong>：在自然样本的基础上添加<strong>微小的扰动</strong>称为<strong>对抗扰动</strong>，使模型获得<strong>完全不同（错误）的预测</strong>。微小的扰动并不是数学上的定义，可以理解为在人类感知上观察不到的差别。<strong>对抗扰动</strong>需要满足两个条件：</p>
+<ul>
+<li><p>（1）扰动是是否微小，以至于人类感官不到或者在某种度量下差异可以忽略不计。对于图像来说，添加扰动后视觉上察觉不出差异；对于文本来说，添加扰动后文本语义不会改变。</p>
+</li>
+<li><p>（2）让模型产生错误的预测。例如把正确类别判别为其他类别。</p>
+</li>
+</ul>
+<p>对抗扰动可以分为两种：连续的对抗扰动（例如图像中叠加对抗扰动）和离散的对抗扰动（例如文本序列中字符的更替、增删）。一个好的对抗扰动应该使得原样本与对抗样本在一定的度量下差异很小。对比扰动前后的差异可以使用常见的度量距离，如欧几里得距离等等，其问题本身可以看做是原原本与对抗样本的文本语义匹配问题，这个可以参考过去的文章<a href="../11001">文本匹配的经典方法</a>。</p>
+<p>比较直观的对扰动的理解是在语音和图像上，下图摘自<a href="https://arxiv.org/pdf/1811.07018.pdf" target="_blank" rel="noopener">Protecting Voice Controlled Systems Using Sound Source Identification Based on Acoustic Cues</a>，</p>
+<p><img src="../images/voice_image_noise_vs.png" alt></p>
+<p><strong>对抗攻击</strong>：构造对抗样本的方法，让模型做出更多错误的判别。</p>
+<p><strong>对抗防御</strong>：能够识别对抗样本的方法或模型，可以理解为对抗-对抗攻击。而<strong>对抗训练</strong>就是对抗防御的基本方法，在训练阶段的对抗防御。此外还有隐藏梯度，添加随机噪声等。</p>
+<p><strong>对抗样本检测</strong>：检测一个样本是对抗样本还是自然样本。</p>
+<h2 id="样本或标签上的随机噪声"><a href="#样本或标签上的随机噪声" class="headerlink" title="样本或标签上的随机噪声"></a>样本或标签上的随机噪声</h2><p>我们都知道，普通的模型训练可以表示为最小化损失函数，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+\min_{w}\mathbb{E}_{(x,y) \sim \mathcal{D}} \left[ 
+L(x, y ; w) 
+\right]
+\end{align}</script><p>有时候为让模型泛化能力更强，在样本（或者中间层参数）上添加高斯噪声$\varepsilon \sim N(\varepsilon)$，</p>
+<script type="math/tex; mode=display">
+\min_{\theta} \mathbb{E}_{(x,y)\sim \mathcal{D}}
+\Big[L\big(f(x + \varepsilon), y; w\big) \Big]</script><p>像Dropout就可以理解为给样本添加噪声；还有一些数据扩充方法，如随机Mask一些字、随机替换一些字词也可以看做是给样本添加噪声。</p>
+<p>需要注意噪声除了添加到样本上，噪声$\varepsilon$​还可以添加到标签上，</p>
+<script type="math/tex; mode=display">
+\min_{\theta} \mathbb{E}_{(x,y)\sim \mathcal{D}}
+\Big[L\big(f(x), y  + \varepsilon; w\big) \Big]</script><p>即我们所谓的标签平滑，就一定规则下给标签添加噪声，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+\operatorname{one-hot}_s(C_k) 
+&= \operatorname{one-hot}(C_k) + \boldsymbol{\varepsilon} \newline
+&= [0, \dots, 1, \dots, 0] + [\frac{\epsilon}{K-1}, \dots,-\epsilon,\dots,\frac{\epsilon}{K-1}] \newline
+& = [\frac{\epsilon}{K-1}, \dots,1-\epsilon,\dots,\frac{\epsilon}{K-1}]
+\end{align}</script><p>于是往样本或标签上添加噪声可以统一写成，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+\min_{w}\mathbb{E}_{(x,y) \sim \mathcal{D}, \varepsilon \sim p(\varepsilon), \delta \sim q(\delta)}
+\Big[ 
+L\big(f(x + \varepsilon), y + \delta ; w\big) 
+\Big]
+\end{align}</script><p>对抗训练可以看做是带目标的给样本添加噪声的方法。直观上说，无论是给样本还是标签添加噪声，都是希望模型能够抵御一定程度的随机扰动，从而降低对输入数据的局部依赖或对参数的过度敏感，进而起到正则化作用避免过拟合，提高模型的泛化能力。</p>
+<h2 id="对抗训练"><a href="#对抗训练" class="headerlink" title="对抗训练"></a>对抗训练</h2><p>上述噪声的添加对loss并没有很强的目的性，导致$x + \varepsilon$是个普通的样本，直观来说，添加噪声后$L(f(x + \varepsilon), y; w)$可以增大或减少，无法起到扰动作用。而<strong>对抗攻击的目标则十分明显，奔着让模型犯错的目的去</strong>，因此loss总会增大。既然对抗攻击就是在自然样本的基础上添加微小的扰动使模型获得完全不同的预测（即让loss增大），即</p>
+<script type="math/tex; mode=display">
+\max_{\Delta x\in\Omega}L(x+\Delta x, y ; w)</script><p>注意到扰动$\Delta x$是有约束的，因为它要求<strong>微小的扰动</strong>以至于在人类感知上观察不到的差别。根据L约束有，</p>
+<script type="math/tex; mode=display">
+\Vert f(x+\Delta x)-f(x)\Vert \leq L \Vert \Delta x\Vert</script><p>那么我们在普通训练时也直接构造添加扰动的样本去让模型识别，这样不就能够让模型获得判别对抗样本的能力，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+\min_{w}\mathbb{E}_{(x,y) \sim \mathcal{D}} \left[ 
+{\color{red}{\max_{\Delta x\in\Omega}L(x+\Delta x, y ; w) }} 
+\right]
+\end{align}</script><p>其中红色部分表示找到扰动$\Delta x$​使模型的损失增大。上式的意思是，对于输入添加扰动让Loss增大，对于参数通过优化算法让Loss减少。寻找让上式成立的$\Delta x$​的方法则成了对抗训练的核心问题。目前常见的方法有：</p>
+<ul>
+<li>FGM</li>
+<li>FGSM</li>
+<li>PGD</li>
+</ul>
+<p>优化上式就是反复执行max-min的过程，知道最优，可以求得模型参数$w$。现在的问题是如何快速求解上式红色部分，即寻找$\Delta x \sim \Omega$，使$L(x+\Delta x, y ; w)$增大。根据泰勒级数有，</p>
+<script type="math/tex; mode=display">
+L(x+\Delta x, y ; w) \approx L(x, y ; w) + \Delta x \cdot \nabla_x L(x, y; w)</script><p>为让$L(x+\Delta x, y ; w)$增大，选择$\nabla_x L(x, y; w)$的相同方向即可。这种方法称为 Fast Gradient Sign Method（FGSM）（可参看论文<a href="https://arxiv.org/abs/1412.6572" target="_blank" rel="noopener">Explaining and Harnessing Adversarial Examples</a>）使用如下方法计算扰动，</p>
+<script type="math/tex; mode=display">
+\Delta x = \epsilon \cdot \operatorname{sign}(\nabla_x L(x, y; w))</script><p>其中$\epsilon=0.25$可以作为默认参数。其实就是梯度上升的思路（类比下GD导出的思路，梯度的正方向让损失增大）。通常还会对扰动进行范数归一化，这种方法称为 Fast Gradient Method（FGM），</p>
+<script type="math/tex; mode=display">
+\Delta x = \epsilon \cdot \frac{\nabla_x L(x, y; w)}{\Vert \nabla_x L(x, y; w) \Vert_{2}}</script><p>获得$\Delta x \sim \Omega$的计算思路后，对抗训练可以化为普通训练，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+\min_{w}\mathbb{E}_{(x,y) \sim \mathcal{D}} \left[ 
+L(x+ {\color{red} \Delta x }, y ; w)
+\right]
+\end{align}</script><p>需要注意FGSM、FGM的做法并不能保证找到约束内的最优扰动。Projected Gradient Descent 思路是通过多次迭代，找到比FGM更优的扰动，</p>
+<script type="math/tex; mode=display">
+\Delta x_{t+1} = \alpha \cdot \frac{g_{t}}{ \Vert g_{t} \Vert_{2} }</script><p>以上就是对抗训练的大致原理。同时也介绍了若干具体方法。</p>
+<h2 id="梯度惩罚"><a href="#梯度惩罚" class="headerlink" title="梯度惩罚"></a>梯度惩罚</h2><p>对$L(x+\Delta x, y ; w) $进行泰勒展开，并代入扰动$\Delta x =\epsilon \nabla_x L(x, y; w)$，有</p>
+<script type="math/tex; mode=display">
+\begin{align}
+\nabla_w L(x+\Delta x, y ; w) 
+&\approx \nabla_w \Big( L(x, y ; w) + \Delta x \cdot \nabla_x L(x, y; w) \Big) \newline
+&\approx \nabla_w \Big( L(x, y ; w) + \epsilon \nabla_x L(x, y; w) \cdot \nabla_x L(x, y; w) \Big) \newline
+&\approx \nabla_w \Big( L(x, y ; w) + \frac{1}{2}\epsilon \Vert \nabla_x L(x, y; w)  \Vert^2 \Big) \; \color{red}{ \text{注意这里是二次} }
+\end{align}</script><p>这里需要转转弯，因为是二次，因此在梯度符号下添加一个$\frac{1}{2}$。也就是说，对样本添加扰动，近似于在Loss上添加乘法项，</p>
+<script type="math/tex; mode=display">
+\frac{1}{2}\epsilon \Vert \nabla_x L(x, y; w)  \Vert^2</script><p>我们把这个称为梯度惩罚。从</p>
+<script type="math/tex; mode=display">
+L(x+\Delta x, y ; w) \approx L(x, y ; w) + \Delta x \cdot \nabla_x L(x, y; w)</script><p>可以看到，好的模型应该对$\Delta x$不敏感，因此对抗训练尽可能使得，</p>
+<script type="math/tex; mode=display">
+\Vert\nabla_x L(x,y;w)\Vert^2 \rightarrow 0</script><h2 id="对抗训练在NLP中的应用"><a href="#对抗训练在NLP中的应用" class="headerlink" title="对抗训练在NLP中的应用"></a>对抗训练在NLP中的应用</h2><p>以上就是对抗训练的基本思想和概念。对于图像这类连续样本来说，对抗训练很容易实现，但是对于NLP离散文本如何处理？因为本文是离散的符号序列。这里的关键是如何对离散的文本添加对抗扰动。在NLP任务中，添加对抗扰动的方法：</p>
+<ul>
+<li><p>在样本即文本序列上做扰动，添加、删除、替换字符或词</p>
+</li>
+<li><p>在Embedding层输出文本序列向量上做扰动</p>
+</li>
+<li><p>对Embedding参数矩阵做扰动，这个很好理解，相当于对图像添加对抗扰动，也是最容易实现的方式</p>
+</li>
+</ul>
+<p>第一种方法最直观，但是由于文本序列是离散的，难以参与梯度优化。第三种方式就好好理解，相当于把Embedding当做图像，并添加对抗扰动，这也是最容易实现的方式，但是在Embedding上对抗扰动也会损失对抗多样性。</p>
+<p>因此，我们直接考虑在Embedding上进行对抗扰动的方案，但是，等等！直接在Embedding上添加扰动，对抗样本无法对应到具体的word或chapater。对抗样本${\color{red} x+ \Delta x }$在图像上是具有意义的，因为图像本身就是实数矩阵。那么在NLP中如何理解${\color{red} x+ \Delta x }$？</p>
+<p>例如中文字符“好”，对于的ID为$k$，那么获得的词向量为$\operatorname{Embedding}(x)$​，添加对抗扰动后，</p>
+<script type="math/tex; mode=display">
+\operatorname{Embedding}(k) + \Delta x</script><p>如何理解这个结果呢？它似乎很难对应回词汇表中具体的某个中文字符。这确实是第三中方案的问题！如果我们不纠结这一点，直接把对抗训练当做一种正则化手段，那么实践中发现还是有一定的提升。</p>
+<h2 id="实现"><a href="#实现" class="headerlink" title="实现"></a>实现</h2><p>对于Tensorflow框架来说，实现对抗训练直接重写<code>tf.keras.Model</code>的<code>train_step</code>方法即可。</p>
+<p>文本相关的实现和实验：<a href="https://github.com/allenwind/text-adversarial-training" target="_blank" rel="noopener">text-adversarial-training</a>。</p>
+<p>图像相关的实现和实验：<a href="https://github.com/allenwind/image-adversarial-training" target="_blank" rel="noopener">image-adversarial-training</a>。</p>
+<p>在实验中也发现一些现象，例如（使用FGSM）扰动的程度不同，模型会做出不同的错误判别。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>对抗训练一方面提高模型对恶意攻击的稳健性，另外一方面是作为正则化手段提高模型的泛化能力。可以预见到，对抗训练是一种有趣且有意义的模型调优技巧，相信以后可以在这方面展开更多的学习和研究。</p>
+<p>除了以上内容外，对抗训练的内容还有很多，例如对抗训练结合BERT的工作，<a href="https://arxiv.org/pdf/2004.09984.pdf" target="_blank" rel="noopener">BERT-ATTACK: Adversarial Attack Against BERT Using BERT</a></p>
+<p>对抗训练获得的Embedding是否优于普通训练获得的Embedding？简单的分析是，在NLP中，Embedding的好坏对下游的任务起到关键性作用，既然对抗训练能够提升任务性能，那么Embedding本身是否也是优于原来的Embedding？</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p>[1] <a href="https://en.wikipedia.org/wiki/Adversarial_machine_learning" target="_blank" rel="noopener">https://en.wikipedia.org/wiki/Adversarial_machine_learning</a></p>
+<p>[2] Towards Deep Learning Models Resistant to Adversarial Attacks</p>
+<p>[3] <a href="http://arxiv.org/abs/1312.6199" target="_blank" rel="noopener">http://arxiv.org/abs/1312.6199</a></p>
+<p>[4] <a href="https://arxiv.org/abs/1412.6572" target="_blank" rel="noopener">Explaining and Harnessing Adversarial Examples</a></p>
+<p>[5] <a href="https://arxiv.org/abs/2005.14108" target="_blank" rel="noopener">Adversarial Attacks and Defense on Texts: A Survey</a></p>
+<p>[6] <a href="https://arxiv.org/abs/1909.11764" target="_blank" rel="noopener">FreeLB: Enhanced Adversarial Training for Natural Language Understanding</a></p>
+<p>[7] <a href="https://arxiv.org/abs/1901.06796" target="_blank" rel="noopener">Adversarial Attacks on Deep Learning Models in Natural Language Processing: A Survey</a></p>
+<p>转载请包括本文地址：<a href="../12833">https://allenwind.github.io/blog/12833</a><br>更多文章请参考：<a href="../archives/">https://allenwind.github.io/blog/archives/</a></p>
+</div><div class="tags"><a href="/blog/tags/Tensorflow/">Tensorflow</a><a href="/blog/tags/词向量/">词向量</a><a href="/blog/tags/对抗训练/">对抗训练</a></div><div class="post-nav"><a class="pre" href="/blog/12982/">使用神经网络进行分布变换</a><a class="next" href="/blog/12638/">漫谈注意力机制（七）：Transformer模型之BERT、BERT-wwm、RoBERTa、ALBERT简述</a></div></div></div></div><div class="pure-u-1-4 hidden_mid_and_down"><div id="sidebar"><div class="widget"><form class="search-form" action="//www.google.com/search" method="get" accept-charset="utf-8" target="_blank"><input type="text" name="q" maxlength="20" placeholder="Search"><input type="hidden" name="sitesearch" value="http://allenwind.github.io/blog"></form></div><div class="widget"><div class="widget-title"><i class="fa fa-folder-o"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/blog/categories/C-C/">C/C++</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Go/">Go</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Java/">Java</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Linux/">Linux</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/NLP/">NLP</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Python/">Python</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/数学/">数学</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/数据库/">数据库</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/数据结构和算法/">数据结构和算法</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/机器学习深度学习/">机器学习深度学习</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/记录/">记录</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-star-o"> 标签</i></div><div class="tagcloud"><a href="/blog/tags/算法/" style="font-size: 15px;">算法</a> <a href="/blog/tags/C/" style="font-size: 15px;">C</a> <a href="/blog/tags/Python/" style="font-size: 15px;">Python</a> <a href="/blog/tags/设计模式/" style="font-size: 15px;">设计模式</a> <a href="/blog/tags/C语言/" style="font-size: 15px;">C语言</a> <a href="/blog/tags/数据库/" style="font-size: 15px;">数据库</a> <a href="/blog/tags/MySQL/" style="font-size: 15px;">MySQL</a> <a href="/blog/tags/ACID/" style="font-size: 15px;">ACID</a> <a href="/blog/tags/区块链/" style="font-size: 15px;">区块链</a> <a href="/blog/tags/分布式/" style="font-size: 15px;">分布式</a> <a href="/blog/tags/SQL/" style="font-size: 15px;">SQL</a> <a href="/blog/tags/NoSQL/" style="font-size: 15px;">NoSQL</a> <a href="/blog/tags/sudo/" style="font-size: 15px;">sudo</a> <a href="/blog/tags/Docker/" style="font-size: 15px;">Docker</a> <a href="/blog/tags/git/" style="font-size: 15px;">git</a> <a href="/blog/tags/Linux/" style="font-size: 15px;">Linux</a> <a href="/blog/tags/Git/" style="font-size: 15px;">Git</a> <a href="/blog/tags/gcc/" style="font-size: 15px;">gcc</a> <a href="/blog/tags/Systemd/" style="font-size: 15px;">Systemd</a> <a href="/blog/tags/Tensorflow/" style="font-size: 15px;">Tensorflow</a> <a href="/blog/tags/命令行/" style="font-size: 15px;">命令行</a> <a href="/blog/tags/网络/" style="font-size: 15px;">网络</a> <a href="/blog/tags/操作系统/" style="font-size: 15px;">操作系统</a> <a href="/blog/tags/记录/" style="font-size: 15px;">记录</a> <a href="/blog/tags/正则表达式/" style="font-size: 15px;">正则表达式</a> <a href="/blog/tags/数据结构/" style="font-size: 15px;">数据结构</a> <a href="/blog/tags/Go/" style="font-size: 15px;">Go</a> <a href="/blog/tags/go/" style="font-size: 15px;">go</a> <a href="/blog/tags/Java/" style="font-size: 15px;">Java</a> <a href="/blog/tags/LRU/" style="font-size: 15px;">LRU</a> <a href="/blog/tags/ARC/" style="font-size: 15px;">ARC</a> <a href="/blog/tags/剑指Offer/" style="font-size: 15px;">剑指Offer</a> <a href="/blog/tags/函数式/" style="font-size: 15px;">函数式</a> <a href="/blog/tags/搜索引擎/" style="font-size: 15px;">搜索引擎</a> <a href="/blog/tags/Stack/" style="font-size: 15px;">Stack</a> <a href="/blog/tags/并发编程/" style="font-size: 15px;">并发编程</a> <a href="/blog/tags/网络编程/" style="font-size: 15px;">网络编程</a> <a href="/blog/tags/并发/" style="font-size: 15px;">并发</a> <a href="/blog/tags/HTTP/" style="font-size: 15px;">HTTP</a> <a href="/blog/tags/装饰器/" style="font-size: 15px;">装饰器</a> <a href="/blog/tags/Redis/" style="font-size: 15px;">Redis</a> <a href="/blog/tags/数学/" style="font-size: 15px;">数学</a> <a href="/blog/tags/时间序列/" style="font-size: 15px;">时间序列</a> <a href="/blog/tags/投资/" style="font-size: 15px;">投资</a> <a href="/blog/tags/概率/" style="font-size: 15px;">概率</a> <a href="/blog/tags/统计/" style="font-size: 15px;">统计</a> <a href="/blog/tags/信息论/" style="font-size: 15px;">信息论</a> <a href="/blog/tags/度量/" style="font-size: 15px;">度量</a> <a href="/blog/tags/机器学习/" style="font-size: 15px;">机器学习</a> <a href="/blog/tags/贝叶斯/" style="font-size: 15px;">贝叶斯</a> <a href="/blog/tags/最小二乘法/" style="font-size: 15px;">最小二乘法</a> <a href="/blog/tags/分布/" style="font-size: 15px;">分布</a> <a href="/blog/tags/矩阵/" style="font-size: 15px;">矩阵</a> <a href="/blog/tags/深度学习/" style="font-size: 15px;">深度学习</a> <a href="/blog/tags/变分推断/" style="font-size: 15px;">变分推断</a> <a href="/blog/tags/随机/" style="font-size: 15px;">随机</a> <a href="/blog/tags/不等式/" style="font-size: 15px;">不等式</a> <a href="/blog/tags/采样/" style="font-size: 15px;">采样</a> <a href="/blog/tags/光滑/" style="font-size: 15px;">光滑</a> <a href="/blog/tags/逼近/" style="font-size: 15px;">逼近</a> <a href="/blog/tags/交叉验证/" style="font-size: 15px;">交叉验证</a> <a href="/blog/tags/特征工程/" style="font-size: 15px;">特征工程</a> <a href="/blog/tags/集成学习/" style="font-size: 15px;">集成学习</a> <a href="/blog/tags/分类/" style="font-size: 15px;">分类</a> <a href="/blog/tags/证明/" style="font-size: 15px;">证明</a> <a href="/blog/tags/损失函数/" style="font-size: 15px;">损失函数</a> <a href="/blog/tags/回归/" style="font-size: 15px;">回归</a> <a href="/blog/tags/词向量/" style="font-size: 15px;">词向量</a> <a href="/blog/tags/信息/" style="font-size: 15px;">信息</a> <a href="/blog/tags/正则化/" style="font-size: 15px;">正则化</a> <a href="/blog/tags/NLP/" style="font-size: 15px;">NLP</a> <a href="/blog/tags/Embedding/" style="font-size: 15px;">Embedding</a> <a href="/blog/tags/神经网络/" style="font-size: 15px;">神经网络</a> <a href="/blog/tags/Transformer/" style="font-size: 15px;">Transformer</a> <a href="/blog/tags/Attention/" style="font-size: 15px;">Attention</a> <a href="/blog/tags/文本分类/" style="font-size: 15px;">文本分类</a> <a href="/blog/tags/对抗训练/" style="font-size: 15px;">对抗训练</a> <a href="/blog/tags/分词/" style="font-size: 15px;">分词</a> <a href="/blog/tags/并行/" style="font-size: 15px;">并行</a> <a href="/blog/tags/图/" style="font-size: 15px;">图</a> <a href="/blog/tags/NER/" style="font-size: 15px;">NER</a> <a href="/blog/tags/HMM/" style="font-size: 15px;">HMM</a> <a href="/blog/tags/概率图/" style="font-size: 15px;">概率图</a> <a href="/blog/tags/可视化/" style="font-size: 15px;">可视化</a> <a href="/blog/tags/RNN/" style="font-size: 15px;">RNN</a> <a href="/blog/tags/LSTM/" style="font-size: 15px;">LSTM</a> <a href="/blog/tags/注意力/" style="font-size: 15px;">注意力</a> <a href="/blog/tags/序列编码/" style="font-size: 15px;">序列编码</a> <a href="/blog/tags/梯度/" style="font-size: 15px;">梯度</a> <a href="/blog/tags/磁盘故障/" style="font-size: 15px;">磁盘故障</a> <a href="/blog/tags/BERT/" style="font-size: 15px;">BERT</a> <a href="/blog/tags/CNN/" style="font-size: 15px;">CNN</a> <a href="/blog/tags/卷积/" style="font-size: 15px;">卷积</a> <a href="/blog/tags/优化/" style="font-size: 15px;">优化</a> <a href="/blog/tags/调参/" style="font-size: 15px;">调参</a> <a href="/blog/tags/Flask/" style="font-size: 15px;">Flask</a> <a href="/blog/tags/web/" style="font-size: 15px;">web</a> <a href="/blog/tags/socket/" style="font-size: 15px;">socket</a> <a href="/blog/tags/安全/" style="font-size: 15px;">安全</a> <a href="/blog/tags/协程/" style="font-size: 15px;">协程</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-file-o"> 最近文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/blog/16003/">天马行空：设计自己的激活函数</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/15887/">函数光滑近似（4）：Heaviside step函数及其应用</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/15205/">引入参数控制softmax的smooth程度</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/15110/">分析与拓展：多分类模型的输出为什么使用softmax？</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14990/">一种基于光滑逼近的正态分布采样法</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14721/">GELU由来：从狄拉克函数到GELU激活函数</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14465/">Lp范数的上下界分析</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14441/">logsumexp函数分析</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14133/">分析Mish激活函数的设计思路</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/13899/">阿尔法经济学：Shiller模型介绍</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-external-link"> 友情链接</i></div><ul></ul><a href="https://github.com/allenwind" title="My GitHub" target="_blank">My GitHub</a><ul></ul><a href="http://www.arxiv-sanity.com/" title="arxiv-sanity" target="_blank">arxiv-sanity</a><ul></ul><a href="https://arxiv.org/" title="arxiv.org" target="_blank">arxiv.org</a></div></div></div><div class="pure-u-1 pure-u-md-3-4"><div id="footer">Copyright © 2021 <a href="/blog/." rel="nofollow">Mr.Feng Blog.</a> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a><a rel="nofollow" target="_blank" href="https://github.com/tufu9441/maupassant-hexo"> Theme</a> by<a rel="nofollow" target="_blank" href="https://github.com/pagecho"> Cho.</a></div></div></div><a class="show" id="rocket" href="#top"></a><script type="text/javascript" src="/blog/js/totop.js?v=0.0.0" async></script><script type="text/javascript" src="//lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js" async></script><script type="text/javascript" src="/blog/js/fancybox.js?v=0.0.0" async></script><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css"><script type="text/x-mathjax-config">MathJax.Hub.Config({
+  tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}
+  });
+</script><script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-MML-AM_CHTML" async></script><script type="text/javascript" src="/blog/js/codeblock-resizer.js?v=0.0.0"></script><script type="text/javascript" src="/blog/js/smartresize.js?v=0.0.0"></script></div></body></html>

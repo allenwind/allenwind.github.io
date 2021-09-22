@@ -1,0 +1,184 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.9.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description" content="你好，世界！"><title>函数光滑近似（1）：maximum函数 | Mr.Feng Blog</title><link rel="stylesheet" type="text/css" href="/blog/css/style.css?v=0.0.0"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/normalize/8.0.1/normalize.min.css"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/pure/1.0.0/pure-min.css"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/pure/1.0.0/grids-responsive-min.css"><link rel="stylesheet" href="//lib.baomitu.com/font-awesome/4.7.0/css/font-awesome.min.css"><script type="text/javascript" src="//lib.baomitu.com/jquery/3.4.0/jquery.min.js"></script><link rel="icon" mask sizes="any" href="/blog/favicon.ico"><link rel="Shortcut Icon" type="image/x-icon" href="/blog/favicon.ico"><link rel="apple-touch-icon" href="/blog/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/blog/apple-touch-icon.png"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">函数光滑近似（1）：maximum函数</h1><a id="logo" href="/blog/.">Mr.Feng Blog</a><p class="description">NLP、深度学习、机器学习、Python、Go</p></div><div id="nav-menu"><a class="current" href="/blog/."><i class="fa fa-home"> 首页</i></a><a href="/blog/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/blog/about/"><i class="fa fa-user"> 关于</i></a></div></div><div class="pure-g" id="layout"><div class="pure-u-1 pure-u-md-3-4"><div class="content_container"><div class="post"><h1 class="post-title">函数光滑近似（1）：maximum函数</h1><div class="post-meta">Apr 8, 2019<span> | </span><span class="category"><a href="/blog/categories/数学/">数学</a></span></div><div class="clear"><div class="toc-article" id="toc"><div class="toc-title">文章目录</div><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#背景"><span class="toc-number">1.</span> <span class="toc-text">背景</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#构造max的光滑近似"><span class="toc-number">2.</span> <span class="toc-text">构造max的光滑近似</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#类似的思路"><span class="toc-number">3.</span> <span class="toc-text">类似的思路</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#logsumexp凸优化角度"><span class="toc-number">4.</span> <span class="toc-text">logsumexp凸优化角度</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#基于argmax（补充）"><span class="toc-number">5.</span> <span class="toc-text">基于argmax（补充）</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#三种近似形式"><span class="toc-number">6.</span> <span class="toc-text">三种近似形式</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#特例与可视化"><span class="toc-number">7.</span> <span class="toc-text">特例与可视化</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#L-0、L-1、L-2、L-infty-​-中的应用"><span class="toc-number">8.</span> <span class="toc-text">$L_0、L_1、L_2、L_\infty$​ 中的应用</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#总结"><span class="toc-number">9.</span> <span class="toc-text">总结</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#参考"><span class="toc-number">10.</span> <span class="toc-text">参考</span></a></li></ol></div></div><div class="post-content"><p>函数的可微性在深度学习中很重要，因为在优化阶段，涉及到梯度的计算。但是深度学习中很多操作，如 max、argmax 等，无法求解梯度。为此，寻找这类操作的光滑近或次梯度似能够很好地解决梯度求解问题。当然这里并不是谈及深度学习中梯度计算的问题，而是探索常用函数如max、argmax、abs的光滑近似。预计会写一个系列，这里首先来谈谈max函数的光滑近似。</p>
+<a id="more"></a>
+<h2 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h2><p>在深度学习中，如果一个操作用$f$表示，可能还会涉及到可学习的参数$\boldsymbol{A}$，那么在神经网络模型训练阶段涉及到该操作（可以理解成是函数）的梯度计算</p>
+<script type="math/tex; mode=display">
+f(\boldsymbol{x}, \boldsymbol{A})</script><p>$\boldsymbol{A}$ 为操作 $f$​ 有关的可学习的参数。有些情况下该操作并非光滑，不能直接计算梯度。这里举个例子：CNN 中的 Pooling 操作，不涉及可学习的参数。而 maxout 操作则涉及可学习的参数。</p>
+<p>为了获得近似的梯度，让神经网络可训练下去，一种方法是寻求<strong>次梯度</strong>，可参看<a href="../7779/#关于次梯度">谈谈神经网络中的激活函数</a>，另外一种方法是构造该操作的光滑近似。本系列就是围绕光滑近似问题展开，对不可导的函数（操作）进行光滑近似（函数光滑逼近）。</p>
+<p>RELU激活函数在$x=0$处不可导，那么是不是对于深度学习模型来说就无法进行误差逆向传播优化？事实上，在工程上，有一种叫做<strong>次梯度</strong>的解决方案。我们都知道，绝对值函数$f(x) = |x|$在 $x=0$ 不可微，但是对称可导（Symmetric derivative）</p>
+<script type="math/tex; mode=display">
+\begin{align}
+f_{s}(0) 
+&= \lim_{x \rightarrow 0}\frac{f(0+x)-f(0-x)}{2x} \newline
+&= \lim_{x \rightarrow 0}\frac{|x|-|-x|}{2h}
+\newline
+&= 0
+\end{align}</script><p>在深度学习中，可以使用此方法作为不可导点的梯度计算。</p>
+<p>就以RELU函数为例，当$x \gt 0$时，梯度为1，当$x \lt 0$时梯度为0。而0这个位置不存在梯度，而次梯度即选择$[0, 1]$​区间中的任意值。在实现时，一般会选择一个区间内的固定值。</p>
+<p>不过我们还是回到光滑近似这个思路上。</p>
+<h2 id="构造max的光滑近似"><a href="#构造max的光滑近似" class="headerlink" title="构造max的光滑近似"></a>构造max的光滑近似</h2><p>注意到 max 函数是一个凸函数，即</p>
+<script type="math/tex; mode=display">
+\begin{align}
+\max(\lambda \boldsymbol{x}_{i} + (1-\lambda) \boldsymbol{x}_{j}) \le \lambda \max(\boldsymbol{x}_{i}) + (1-\lambda)\max(\boldsymbol{x}_{j})
+\end{align}</script><p>我们也可以从其函数图像中直观感受其凸性。同时，max具有这样的性质，</p>
+<script type="math/tex; mode=display">
+\max(\alpha \boldsymbol{x}) = \alpha  \max(\boldsymbol{x}),\quad \alpha \gt 0</script><p>最容易让人想到是如下的构造，</p>
+<script type="math/tex; mode=display">
+\max(x,y)=\frac{|x+y|+|x-y|}{2}</script><p>只需要高中的数学知识即可。但是绝对值本身还是不够光滑，在原点不可导。比较曲折的思路是在这个基础上解决abs函数的光滑性近似问题，另外还要考虑从二元到多元的推广。不过这里暂不从这个思路展开。从平方开发的角度看，有如下简单的近似，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+\max(x,y)
+&= \frac{|x+y|+|x-y|}{2} \newline
+&= \frac{1}{2}\Big((x + y) + \sqrt{ (x - y)^2}   \Big) \newline
+&\approx \frac{1}{2}\Big((x + y) + \sqrt{ (x - y)^2 + \alpha}   \Big) ,\quad \alpha \to 0
+\end{align}</script><p>这个近似是基于$|x-y| = \sqrt{(x-y)^2}$，相当简洁。</p>
+<p>根据 max 函数的定义，假设有数据$x_1, \dots, x_n$​，其中$x_j$​最大，不难有</p>
+<script type="math/tex; mode=display">
+\begin{align}x_{j} 
+&= \max(x_{1},x_{2},\dots,x_{n}) \newline
+&= \log{e^{x_{j}}} \newline
+&\leq \log ({\sum_{i=1}^{n}e^{x_{i}}} )  \newline
+&\leq \log (n\,e^{x_{j}}) \newline
+&= \log{n} + x_{j} \newline
+&= \max(x_{1},\dots,x_{n}) + \log{n}
+\end{align}</script><p>于是有</p>
+<script type="math/tex; mode=display">
+\max(x_{1},x_{2},\dots,x_{n}) \le \log ({\sum_{i=1}^{n}e^{x_{i}}} ) \le \max(x_{1},\dots,x_{n}) + \log{n}</script><p>添加一个参数 $\alpha \gt 0$ 做缩放因子，有</p>
+<script type="math/tex; mode=display">
+\begin{align}x_{j} &= \max(x_{1},x_{2},\dots,x_{n}) \newline
+&= \log{e^{\frac{\alpha x_{j}}{\alpha}}} \newline
+&= \log \Big((e^{\alpha x_j})^{\frac{1}{\alpha}} \Big) \newline
+&= \frac{1}{\alpha} \log{e^{\alpha x_{j}}} \newline
+&\leq \frac{1}{\alpha} \log ({\sum_{i=1}^{n}e^{\alpha x_{i}}} )  \newline
+&\leq \frac{1}{\alpha} \log (n\,e^{\alpha x_{j}}) \newline
+&= \frac{\log{n}}{\alpha} + x_{j} \newline
+&= \max(x_{1},\dots,x_{n}) + \frac{\log{n}}{\alpha}
+\end{align}</script><p>所以有</p>
+<script type="math/tex; mode=display">
+\max(x_{1},\dots,x_{n}) \leq \frac{1}{\alpha}\log(\sum_{i=1}^{n}e^{\alpha x_{i}}) \leq \max(x_{1},\dots,x_{n}) + \frac{\log{n}}{\alpha}</script><p>取$n=2,\alpha=2$​我们有特例，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+|x| 
+&= \max\{-x, x \} \newline
+&\le \frac{1}{2}  \log( e^{2x} + e^{-2x})
+\end{align}</script><p>通过<a href="https://en.wikipedia.org/wiki/Squeeze_theorem" target="_blank" rel="noopener">squeeze theorem</a>有，</p>
+<script type="math/tex; mode=display">
+\begin{align}\underset{\alpha \rightarrow \infty}{\lim} \frac{1}{\alpha} \log( \sum_{i=1}^{n}e^{\alpha x_{i}}) = \max(x_{1},\dots,x_{n})\end{align}</script><p>于是，我们可以拿该近似进行神经网络训练。因此，当$\alpha$为较大的参数时，有近似，</p>
+<script type="math/tex; mode=display">
+\max(x_{1},\dots,x_{n}) \approx \frac{1}{\alpha} \log( \sum_{i=1}^{n}e^{\alpha x_{i}})</script><p>上式左边部分函数当$\alpha=1$​​时，有一个特别顾名思义的名称，称为为 logsumexp。有趣的是，max的近似logsumexp的梯度梯度就是 softmax 函数，</p>
+<script type="math/tex; mode=display">
+\frac{\partial}{\partial x_{i}} (\frac{1}{\alpha} \log(\sum_{i=1}^{n}e^{\alpha x_{i}})) = \frac{e^{\alpha x_{i}}}{ \displaystyle \sum_{i=1}^{n}e^{\alpha x_{i}}}</script><p>也就是说，max 函数的上述光滑近似的梯度是 softmax 函数。我们容易误以为softmax是max的soft化，其实这是误解，正确答案是softmax是onehot(argmax)的soft化，下一篇会写到。</p>
+<h2 id="类似的思路"><a href="#类似的思路" class="headerlink" title="类似的思路"></a>类似的思路</h2><p>按照上述类似的思路，假设$k \gt 0$有</p>
+<script type="math/tex; mode=display">
+\begin{align}x_{j} &= \max(x_{1},x_{2},\dots,x_{n}) \newline
+&= (x_{j}^{k})^{\frac{1}{k}} \newline
+&\le (\sum_{i=1}x_{i}^{k})^{\frac{1}{k}} \newline
+&\le (n \,x_{j}^k)^{\frac{1}{k}} \newline
+&= n^{\frac{1}{k}} x_{j} \newline
+&= n^{\frac{1}{k}} \max(x_{1},x_{2},\dots,x_{n})
+\end{align}</script><p>其中 $k \neq 0$，于是有</p>
+<script type="math/tex; mode=display">
+\max(x_{1},x_{2},\dots,x_{n}) \le (\sum_{i=1}x_{i}^{k})^{\frac{1}{k}} \le n^{\frac{1}{k}} \max(x_{1},x_{2},\dots,x_{n})</script><p>中间部分如果加上模不就是 $L_{p}$ 范数吗？没错，我们后期讨论。当 $k \rightarrow \infty$ 时，$n^{\frac{1}{k}}=1$，因此，</p>
+<script type="math/tex; mode=display">
+\max(x_{1},x_{2},\dots,x_{n}) \approx (\sum_{i=1}^{n}x_{i}^{k})^{\frac{1}{k}}</script><p>对于上述的二维情况，如下，</p>
+<script type="math/tex; mode=display">
+\text{max}(x,y) = \lim_{k \rightarrow \infty}  \left(x^{k} +y^{k}\right)^{\frac{1}{k}}</script><p>我们把 $e^{x_{i}}$ 替换层 $x_{i}$ 上式依然成立，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+\underset{\alpha \rightarrow \infty}{\lim} \frac{1}{\alpha} \log( \sum_{i=1}^{n}x_{i}^{\alpha}) 
+= \max(x_{1},\dots,x_{n})
+\end{align}</script><p>利用上述思路，还可以构造更多光滑逼近。</p>
+<p>依据上述两个类似的思路，我们也有一些有趣的结论。易知，</p>
+<script type="math/tex; mode=display">
+\sum_{i=1}^{n}\frac{1}{|x_i|} \geqslant \max(\frac{1}{|x_1|},...,\frac{1}{|x_n|}) \\</script><p>易知$\max - \min$的关系，</p>
+<script type="math/tex; mode=display">
+\max(\frac{1}{|x_1|},...,\frac{1}{|x_n|}) = \frac{1}{\min(|x_1|,...,|x_n|)} \\</script><p>对上述不等式左右两边分别取倒数，改变符号，</p>
+<script type="math/tex; mode=display">
+\frac{1}{\displaystyle \sum_{i=1}^{n}\frac{1}{|x_i|}} \leqslant \min(|x_1|,...,|x_n|)</script><p>也就是说$|x_1|,…,|x_n|$的最小值大于其调和平均。</p>
+<h2 id="logsumexp凸优化角度"><a href="#logsumexp凸优化角度" class="headerlink" title="logsumexp凸优化角度"></a>logsumexp凸优化角度</h2><p>从凸优化的角度，考虑到logsumexp的凸性，因此有</p>
+<script type="math/tex; mode=display">
+\begin{align}
+f(x_{1},x_{2},\dots,x_{n}) &=
+\frac{1}{\alpha}\log(\sum_{i=1}^{n}e^{\alpha x_{i}}) \newline
+&= \frac{1}{\alpha}\log(n \times \frac{1}{n}\sum_{i=1}^{n}e^{\alpha x_{i}}) \newline
+&\le \frac{\log(n)}{\alpha} + \frac{1}{\alpha}\log(\sum_{i=1}^{n}\frac{1}{n} \times e^{\alpha x_{i}}) \newline
+&\le  \frac{\log(n)}{\alpha} + \frac{1}{n} \sum_{i=1}^{n}x_{i} \newline 
+&\le \frac{\log(n)}{\alpha} +  \max(x_{1},x_{2},\dots,x_{n})
+\end{align}</script><p>另一方面，假设有数据$x_1, \dots, x_n$，其中$x_j$最大，有</p>
+<script type="math/tex; mode=display">
+\begin{align}
+f(x_{1},x_{2},\dots,x_{n}) &=
+\frac{1}{\alpha}\log(\sum_{i=1}^{n}e^{\alpha x_{i}}) \newline
+&\ge \frac{1}{\alpha}\log(e^{\alpha x_{j}}) \newline
+&= \max(x_{1},\dots,x_{n})
+\end{align}</script><p>因此有，</p>
+<script type="math/tex; mode=display">
+\max(x_{1},\dots,x_{n}) \le \frac{1}{\alpha}\log(\sum_{i=1}^{n}e^{\alpha x_{i}})
+\le \frac{\log(n)}{\alpha} +  \max(x_{1},x_{2},\dots,x_{n})</script><p>这结果也就是形式一。</p>
+<h2 id="基于argmax（补充）"><a href="#基于argmax（补充）" class="headerlink" title="基于argmax（补充）"></a>基于argmax（补充）</h2><p>在本系列的第二篇<a href="../9905">函数光滑近似（2）：softmax与argmax</a>我们知道，</p>
+<script type="math/tex; mode=display">
+\operatorname{one-hot}\big(\arg \max(\boldsymbol{x})\big) \approx \frac{\displaystyle \sum_{i=1}^{n} e^{\alpha x_{i}}}{\displaystyle \sum_{i=1}^{n}e^{\alpha x_{i}}}</script><p>即带参数的softmax形式。基于这个结论我们也获得max的另外一种光滑近似，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+\max(\boldsymbol{x})
+&= \boldsymbol{x}_{\arg\max(\boldsymbol{x})} \newline
+&= \boldsymbol{x} \otimes \operatorname{one-hot}[\arg \max(\boldsymbol{x})] \newline
+&= \sum_{i=1}^{n} x_i \times \operatorname{one-hot}[\arg \max(\boldsymbol{x})]_{[i]} \newline
+&\approx \sum_{i=1}^{n} \frac{e^{\alpha x_{i}}}{\displaystyle \sum_{i=1}^{n}e^{\alpha x_{i}}} x_{i} \\
+&= \frac{\displaystyle \sum_{i=1}^{n}x_{i} e^{\alpha x_{i}}}{\displaystyle \sum_{i=1}^{n}e^{\alpha x_{i}}}
+\end{align}</script><p>有三个关键点：</p>
+<ul>
+<li>如果$\alpha = 0$，则上式右侧为均值</li>
+<li>如果$\alpha = +\infty$，则上式右侧为$\max(\boldsymbol{x})$</li>
+<li>如果$\alpha = -\infty$，则上式右侧为$\min(\boldsymbol{x})$</li>
+</ul>
+<p>取$x_1 = 0, x_2 = x, \alpha=1$​有特例一，</p>
+<script type="math/tex; mode=display">
+\max(0, x) \approx \frac{x e^x}{1 + e^x} = x \sigma(x)</script><p>取$x_1 = -x, x_2 = x$，有特例二，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+|x| &= \max\{-x, x \} \newline
+&\approx \frac{x(e^{\alpha x} - e^{-\alpha x})}{e^{\alpha x} + e^{-\alpha x}} \newline
+&= x \tanh(\alpha x)
+\end{align}</script><h2 id="三种近似形式"><a href="#三种近似形式" class="headerlink" title="三种近似形式"></a>三种近似形式</h2><p>通过以上推导，我们活动两种关于$\max(x_{1},\dots,x_{n})$的近似形式。</p>
+<p>形式一，</p>
+<script type="math/tex; mode=display">
+\max(x_{1},\dots,x_{n}) \approx \frac{1}{\alpha} \log( \sum_{i=1}^{n}e^{\alpha x_{i}}) \;,\; \alpha \gt 0</script><p>形式二，</p>
+<script type="math/tex; mode=display">
+\max(x_{1},x_{2},\dots,x_{n}) \approx \Big(\sum_{i=1}^{n}|x|_{i}^{k} \Big)^{\frac{1}{k}} \;,\; k \gt 0</script><p>形式三，</p>
+<script type="math/tex; mode=display">
+\max(x_{1},x_{2},\dots,x_{n}) \approx \frac{\displaystyle \sum_{i=1}^{n}x_{i} e^{\alpha x_{i}}}{\displaystyle \sum_{i=1}^{n}e^{\alpha x_{i}}}, \; \alpha \gt 0</script><p>由于</p>
+<script type="math/tex; mode=display">
+\min(\boldsymbol{x}) = - \max(-\boldsymbol{x})</script><p>$\min$的光滑近似可以由$\max$​导出。</p>
+<h2 id="特例与可视化"><a href="#特例与可视化" class="headerlink" title="特例与可视化"></a>特例与可视化</h2><p>上述形式一取$n=2$的特例，即二维情况</p>
+<script type="math/tex; mode=display">
+\max(x,y) = \lim_{\alpha \rightarrow +\infty} \frac{\log{\left( e^{\alpha x} +e^{\alpha y}\right)}}{\alpha}</script><p>使用matplotlib绘图制作，</p>
+<p><img src="../images/max-soft-plot-3d-1.png" alt></p>
+<p>对于形式一，取$\alpha=1$， $n=2$，$x_1 = 0, x_2 = x$，则relu函数有，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+\text{relu}(x) &= \max\{0, x\} \newline
+&\approx \log(1+e^{x})
+\end{align}</script><p>可以看到，softplus 不就是 relu 的光滑近似吗？也就是说softplus是relu关于max的光滑近似。类似地，Hinge loss也带有max函数，可以使用max的光滑近似获得该loss的光滑表示。</p>
+<h2 id="L-0、L-1、L-2、L-infty-​-中的应用"><a href="#L-0、L-1、L-2、L-infty-​-中的应用" class="headerlink" title="$L_0、L_1、L_2、L_\infty$​ 中的应用"></a>$L_0、L_1、L_2、L_\infty$​ 中的应用</h2><p>以上推导我们得到这样的结果，</p>
+<script type="math/tex; mode=display">
+\max(x_{1},x_{2},\dots,x_{n}) \approx (\sum_{i=1}^{n}x_{i}^{k})^{\frac{1}{k}}</script><p>事实上，在推导过程中稍加处理即可把右式变成范数形式，即</p>
+<script type="math/tex; mode=display">
+\begin{align}x_{j} 
+&= \max(x_{1},x_{2},\dots,x_{n}) \newline
+&= (x_{j}^{k})^{\frac{1}{k}} \newline
+&\le \Big(\sum_{i=1} |x_{i} |^{k} \Big)^{\frac{1}{k}} \newline
+&\le (n \,x_{j}^k)^{\frac{1}{k}} \newline
+&= n^{\frac{1}{k}} x_{j} \newline
+&= n^{\frac{1}{k}} \max(|x_{1}|,|x_{2}|,\dots,|x_{n}|)
+\end{align}</script><p>因此，有，</p>
+<script type="math/tex; mode=display">
+(\sum_{i=1}^{n}|x_{i}|^{k})^{\frac{1}{k}} \approx \max(|x_{1}|,|x_{2}|,\dots,|x_{n}|)</script><p>这里建立了Lp范数与max的关系。因此，$L_\infty$取$|x_{1}|,|x_{2}|,\dots,|x_{n}|$中最大值，在距离度量中对应Chebyshev距离；$L_0$取非零个数。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>本文使用简单的思路导出max函数的光滑近似的两种形式，并讨论着两种形式的一些应用。</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p>[1] <a href="https://en.wikipedia.org/wiki/Heaviside_step_function" target="_blank" rel="noopener">https://en.wikipedia.org/wiki/Heaviside_step_function</a></p>
+<p>[2] <a href="https://www.elen.ucl.ac.be/Proceedings/esann/esannpdf/es2014-153.pdf" target="_blank" rel="noopener">https://www.elen.ucl.ac.be/Proceedings/esann/esannpdf/es2014-153.pdf</a></p>
+<p>[3] <a href="https://en.wikipedia.org/wiki/Squeeze_theorem" target="_blank" rel="noopener">squeeze theorem</a></p>
+<p>转载请包括本文地址：<a href="../9831">https://allenwind.github.io/blog/9831</a><br>更多文章请参考：<a href="../archives/">https://allenwind.github.io/blog/archives/</a></p>
+</div><div class="tags"><a href="/blog/tags/数学/">数学</a><a href="/blog/tags/逼近/">逼近</a></div><div class="post-nav"><a class="pre" href="/blog/9905/">函数光滑近似（2）：softmax与argmax</a><a class="next" href="/blog/9782/">古典音乐列表</a></div></div></div></div><div class="pure-u-1-4 hidden_mid_and_down"><div id="sidebar"><div class="widget"><form class="search-form" action="//www.google.com/search" method="get" accept-charset="utf-8" target="_blank"><input type="text" name="q" maxlength="20" placeholder="Search"><input type="hidden" name="sitesearch" value="http://allenwind.github.io/blog"></form></div><div class="widget"><div class="widget-title"><i class="fa fa-folder-o"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/blog/categories/C-C/">C/C++</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Go/">Go</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Java/">Java</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Linux/">Linux</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/NLP/">NLP</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Python/">Python</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/数学/">数学</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/数据库/">数据库</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/数据结构和算法/">数据结构和算法</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/机器学习深度学习/">机器学习深度学习</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/记录/">记录</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-star-o"> 标签</i></div><div class="tagcloud"><a href="/blog/tags/算法/" style="font-size: 15px;">算法</a> <a href="/blog/tags/C/" style="font-size: 15px;">C</a> <a href="/blog/tags/Python/" style="font-size: 15px;">Python</a> <a href="/blog/tags/设计模式/" style="font-size: 15px;">设计模式</a> <a href="/blog/tags/C语言/" style="font-size: 15px;">C语言</a> <a href="/blog/tags/数据库/" style="font-size: 15px;">数据库</a> <a href="/blog/tags/MySQL/" style="font-size: 15px;">MySQL</a> <a href="/blog/tags/ACID/" style="font-size: 15px;">ACID</a> <a href="/blog/tags/区块链/" style="font-size: 15px;">区块链</a> <a href="/blog/tags/分布式/" style="font-size: 15px;">分布式</a> <a href="/blog/tags/SQL/" style="font-size: 15px;">SQL</a> <a href="/blog/tags/NoSQL/" style="font-size: 15px;">NoSQL</a> <a href="/blog/tags/sudo/" style="font-size: 15px;">sudo</a> <a href="/blog/tags/Docker/" style="font-size: 15px;">Docker</a> <a href="/blog/tags/git/" style="font-size: 15px;">git</a> <a href="/blog/tags/Linux/" style="font-size: 15px;">Linux</a> <a href="/blog/tags/Git/" style="font-size: 15px;">Git</a> <a href="/blog/tags/gcc/" style="font-size: 15px;">gcc</a> <a href="/blog/tags/Systemd/" style="font-size: 15px;">Systemd</a> <a href="/blog/tags/Tensorflow/" style="font-size: 15px;">Tensorflow</a> <a href="/blog/tags/命令行/" style="font-size: 15px;">命令行</a> <a href="/blog/tags/网络/" style="font-size: 15px;">网络</a> <a href="/blog/tags/操作系统/" style="font-size: 15px;">操作系统</a> <a href="/blog/tags/记录/" style="font-size: 15px;">记录</a> <a href="/blog/tags/正则表达式/" style="font-size: 15px;">正则表达式</a> <a href="/blog/tags/数据结构/" style="font-size: 15px;">数据结构</a> <a href="/blog/tags/Go/" style="font-size: 15px;">Go</a> <a href="/blog/tags/go/" style="font-size: 15px;">go</a> <a href="/blog/tags/Java/" style="font-size: 15px;">Java</a> <a href="/blog/tags/LRU/" style="font-size: 15px;">LRU</a> <a href="/blog/tags/ARC/" style="font-size: 15px;">ARC</a> <a href="/blog/tags/剑指Offer/" style="font-size: 15px;">剑指Offer</a> <a href="/blog/tags/函数式/" style="font-size: 15px;">函数式</a> <a href="/blog/tags/搜索引擎/" style="font-size: 15px;">搜索引擎</a> <a href="/blog/tags/Stack/" style="font-size: 15px;">Stack</a> <a href="/blog/tags/并发编程/" style="font-size: 15px;">并发编程</a> <a href="/blog/tags/网络编程/" style="font-size: 15px;">网络编程</a> <a href="/blog/tags/并发/" style="font-size: 15px;">并发</a> <a href="/blog/tags/HTTP/" style="font-size: 15px;">HTTP</a> <a href="/blog/tags/装饰器/" style="font-size: 15px;">装饰器</a> <a href="/blog/tags/Redis/" style="font-size: 15px;">Redis</a> <a href="/blog/tags/数学/" style="font-size: 15px;">数学</a> <a href="/blog/tags/时间序列/" style="font-size: 15px;">时间序列</a> <a href="/blog/tags/投资/" style="font-size: 15px;">投资</a> <a href="/blog/tags/概率/" style="font-size: 15px;">概率</a> <a href="/blog/tags/统计/" style="font-size: 15px;">统计</a> <a href="/blog/tags/信息论/" style="font-size: 15px;">信息论</a> <a href="/blog/tags/度量/" style="font-size: 15px;">度量</a> <a href="/blog/tags/机器学习/" style="font-size: 15px;">机器学习</a> <a href="/blog/tags/贝叶斯/" style="font-size: 15px;">贝叶斯</a> <a href="/blog/tags/最小二乘法/" style="font-size: 15px;">最小二乘法</a> <a href="/blog/tags/分布/" style="font-size: 15px;">分布</a> <a href="/blog/tags/矩阵/" style="font-size: 15px;">矩阵</a> <a href="/blog/tags/深度学习/" style="font-size: 15px;">深度学习</a> <a href="/blog/tags/变分推断/" style="font-size: 15px;">变分推断</a> <a href="/blog/tags/随机/" style="font-size: 15px;">随机</a> <a href="/blog/tags/不等式/" style="font-size: 15px;">不等式</a> <a href="/blog/tags/采样/" style="font-size: 15px;">采样</a> <a href="/blog/tags/光滑/" style="font-size: 15px;">光滑</a> <a href="/blog/tags/逼近/" style="font-size: 15px;">逼近</a> <a href="/blog/tags/交叉验证/" style="font-size: 15px;">交叉验证</a> <a href="/blog/tags/特征工程/" style="font-size: 15px;">特征工程</a> <a href="/blog/tags/集成学习/" style="font-size: 15px;">集成学习</a> <a href="/blog/tags/分类/" style="font-size: 15px;">分类</a> <a href="/blog/tags/证明/" style="font-size: 15px;">证明</a> <a href="/blog/tags/损失函数/" style="font-size: 15px;">损失函数</a> <a href="/blog/tags/回归/" style="font-size: 15px;">回归</a> <a href="/blog/tags/词向量/" style="font-size: 15px;">词向量</a> <a href="/blog/tags/信息/" style="font-size: 15px;">信息</a> <a href="/blog/tags/正则化/" style="font-size: 15px;">正则化</a> <a href="/blog/tags/NLP/" style="font-size: 15px;">NLP</a> <a href="/blog/tags/Embedding/" style="font-size: 15px;">Embedding</a> <a href="/blog/tags/神经网络/" style="font-size: 15px;">神经网络</a> <a href="/blog/tags/Transformer/" style="font-size: 15px;">Transformer</a> <a href="/blog/tags/Attention/" style="font-size: 15px;">Attention</a> <a href="/blog/tags/文本分类/" style="font-size: 15px;">文本分类</a> <a href="/blog/tags/对抗训练/" style="font-size: 15px;">对抗训练</a> <a href="/blog/tags/分词/" style="font-size: 15px;">分词</a> <a href="/blog/tags/并行/" style="font-size: 15px;">并行</a> <a href="/blog/tags/图/" style="font-size: 15px;">图</a> <a href="/blog/tags/NER/" style="font-size: 15px;">NER</a> <a href="/blog/tags/HMM/" style="font-size: 15px;">HMM</a> <a href="/blog/tags/概率图/" style="font-size: 15px;">概率图</a> <a href="/blog/tags/可视化/" style="font-size: 15px;">可视化</a> <a href="/blog/tags/RNN/" style="font-size: 15px;">RNN</a> <a href="/blog/tags/LSTM/" style="font-size: 15px;">LSTM</a> <a href="/blog/tags/注意力/" style="font-size: 15px;">注意力</a> <a href="/blog/tags/序列编码/" style="font-size: 15px;">序列编码</a> <a href="/blog/tags/梯度/" style="font-size: 15px;">梯度</a> <a href="/blog/tags/磁盘故障/" style="font-size: 15px;">磁盘故障</a> <a href="/blog/tags/BERT/" style="font-size: 15px;">BERT</a> <a href="/blog/tags/CNN/" style="font-size: 15px;">CNN</a> <a href="/blog/tags/卷积/" style="font-size: 15px;">卷积</a> <a href="/blog/tags/优化/" style="font-size: 15px;">优化</a> <a href="/blog/tags/调参/" style="font-size: 15px;">调参</a> <a href="/blog/tags/Flask/" style="font-size: 15px;">Flask</a> <a href="/blog/tags/web/" style="font-size: 15px;">web</a> <a href="/blog/tags/socket/" style="font-size: 15px;">socket</a> <a href="/blog/tags/安全/" style="font-size: 15px;">安全</a> <a href="/blog/tags/协程/" style="font-size: 15px;">协程</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-file-o"> 最近文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/blog/16003/">天马行空：设计自己的激活函数</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/15887/">函数光滑近似（4）：Heaviside step函数及其应用</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/15205/">引入参数控制softmax的smooth程度</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/15110/">分析与拓展：多分类模型的输出为什么使用softmax？</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14990/">一种基于光滑逼近的正态分布采样法</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14721/">GELU由来：从狄拉克函数到GELU激活函数</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14465/">Lp范数的上下界分析</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14441/">logsumexp函数分析</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14133/">分析Mish激活函数的设计思路</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/13899/">阿尔法经济学：Shiller模型介绍</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-external-link"> 友情链接</i></div><ul></ul><a href="https://github.com/allenwind" title="My GitHub" target="_blank">My GitHub</a><ul></ul><a href="http://www.arxiv-sanity.com/" title="arxiv-sanity" target="_blank">arxiv-sanity</a><ul></ul><a href="https://arxiv.org/" title="arxiv.org" target="_blank">arxiv.org</a></div></div></div><div class="pure-u-1 pure-u-md-3-4"><div id="footer">Copyright © 2021 <a href="/blog/." rel="nofollow">Mr.Feng Blog.</a> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a><a rel="nofollow" target="_blank" href="https://github.com/tufu9441/maupassant-hexo"> Theme</a> by<a rel="nofollow" target="_blank" href="https://github.com/pagecho"> Cho.</a></div></div></div><a class="show" id="rocket" href="#top"></a><script type="text/javascript" src="/blog/js/totop.js?v=0.0.0" async></script><script type="text/javascript" src="//lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js" async></script><script type="text/javascript" src="/blog/js/fancybox.js?v=0.0.0" async></script><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css"><script type="text/x-mathjax-config">MathJax.Hub.Config({
+  tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}
+  });
+</script><script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-MML-AM_CHTML" async></script><script type="text/javascript" src="/blog/js/codeblock-resizer.js?v=0.0.0"></script><script type="text/javascript" src="/blog/js/smartresize.js?v=0.0.0"></script></div></body></html>

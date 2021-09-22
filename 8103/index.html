@@ -1,0 +1,139 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.9.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description" content="你好，世界！"><title>简述语义匹配的发展 | Mr.Feng Blog</title><link rel="stylesheet" type="text/css" href="/blog/css/style.css?v=0.0.0"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/normalize/8.0.1/normalize.min.css"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/pure/1.0.0/pure-min.css"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/pure/1.0.0/grids-responsive-min.css"><link rel="stylesheet" href="//lib.baomitu.com/font-awesome/4.7.0/css/font-awesome.min.css"><script type="text/javascript" src="//lib.baomitu.com/jquery/3.4.0/jquery.min.js"></script><link rel="icon" mask sizes="any" href="/blog/favicon.ico"><link rel="Shortcut Icon" type="image/x-icon" href="/blog/favicon.ico"><link rel="apple-touch-icon" href="/blog/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/blog/apple-touch-icon.png"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">简述语义匹配的发展</h1><a id="logo" href="/blog/.">Mr.Feng Blog</a><p class="description">NLP、深度学习、机器学习、Python、Go</p></div><div id="nav-menu"><a class="current" href="/blog/."><i class="fa fa-home"> 首页</i></a><a href="/blog/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/blog/about/"><i class="fa fa-user"> 关于</i></a></div></div><div class="pure-g" id="layout"><div class="pure-u-1 pure-u-md-3-4"><div class="content_container"><div class="post"><h1 class="post-title">简述语义匹配的发展</h1><div class="post-meta">Dec 5, 2018<span> | </span><span class="category"><a href="/blog/categories/NLP/">NLP</a></span></div><div class="clear"><div class="toc-article" id="toc"><div class="toc-title">文章目录</div><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#语义匹配"><span class="toc-number">1.</span> <span class="toc-text">语义匹配</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#VSM与经典方法"><span class="toc-number">2.</span> <span class="toc-text">VSM与经典方法</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#矩阵分解和主题模型"><span class="toc-number">3.</span> <span class="toc-text">矩阵分解和主题模型</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#机器学习方法"><span class="toc-number">4.</span> <span class="toc-text">机器学习方法</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#深度学习"><span class="toc-number">5.</span> <span class="toc-text">深度学习</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#文本匹配-深度学习的好处"><span class="toc-number">5.1.</span> <span class="toc-text">文本匹配+深度学习的好处</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#基于表示"><span class="toc-number">5.2.</span> <span class="toc-text">基于表示</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#基于交互"><span class="toc-number">5.3.</span> <span class="toc-text">基于交互</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#混合表示与交互"><span class="toc-number">5.4.</span> <span class="toc-text">混合表示与交互</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#度量匹配性"><span class="toc-number">5.5.</span> <span class="toc-text">度量匹配性</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#总结"><span class="toc-number">6.</span> <span class="toc-text">总结</span></a></li></ol></div></div><div class="post-content"><p>最近在学习NLP的时候发现，语义匹配是一个相对有趣的子领域。表面上看是计算两个句子的相似度，但是在具体的场景中，可以完成排序、搜索等工程性很重的功能。这里梳理一下语义匹配的发展。后期有机会在深入这个领域。</p>
+<a id="more"></a>
+<p><strong>注</strong>：更新一下表格内容。</p>
+<h2 id="语义匹配"><a href="#语义匹配" class="headerlink" title="语义匹配"></a>语义匹配</h2><p>语义匹配可以简单地表述为，输入两个句子A和B判断，判断它们之间的关系。这个关系包括相似性、蕴含等等。通常来说，判断两个句子的语义相似性是匹配中最常见的情况。语义匹配可以形式化为，</p>
+<script type="math/tex; mode=display">
+\operatorname{match}(A, B) = f(\psi(A), \psi(B))</script><p>其中，$\psi$表示特征提取器，即复杂把问题转化为向量，$f$表示匹配模型和匹配度量，最后结果输出匹配关系，如相似程度。也就是说，语义匹配关键做两件事情：语义表示、相似度量。</p>
+<p>这里把语义匹配任务可以分为四大类，并整理成表格，</p>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th>Tasks</th>
+<th>Source Text</th>
+<th>Target Text</th>
+<th>解释</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ad-hoc Information Retrieval</td>
+<td>query</td>
+<td>document (title/content)</td>
+<td>根据查询项返回和其相关的文档，如常见的搜索引擎</td>
+</tr>
+<tr>
+<td>Community Question Answer</td>
+<td>问题</td>
+<td>问题或答案</td>
+<td>根据问题查找答案或根据问题查找已有的问题以服用答案</td>
+</tr>
+<tr>
+<td>Paraphrase Indentification</td>
+<td>短文本</td>
+<td>短文本或短文本集合</td>
+<td>判断两个句子是否有相同的语义</td>
+</tr>
+<tr>
+<td>Natural Language Inference</td>
+<td>前提</td>
+<td>结论</td>
+<td>语言推理任务，根据前提判断结论（假设）是否正确（蕴含）或错误（矛盾）或不确定（中性）</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>在神经网络前，语义匹配已经发展处很丰富的内容，包括VSM、主题模型思路等等。</p>
+<h2 id="VSM与经典方法"><a href="#VSM与经典方法" class="headerlink" title="VSM与经典方法"></a>VSM与经典方法</h2><p>向量中每个元素的计算使用 tf-idf 等方式，获得向量后，通过距离度量或相似性度量计算方式计算，常见有：</p>
+<ul>
+<li>欧几里得距离</li>
+<li>余弦相似度</li>
+<li>海明距离</li>
+<li>Jaccard</li>
+<li>Levenshtein 编辑距离</li>
+<li>BM25</li>
+<li>SIF</li>
+<li>EMD</li>
+</ul>
+<p>Jaccard 是字符方法，并没有利用文本的语义信息。VSM 解决表示的问题且足够简单，但是并语义问题并没有解决。随着词典增大，向量的维度增大，表示更稀疏。</p>
+<p>代表性模型有 BM25</p>
+<script type="math/tex; mode=display">
+\displaystyle {\text{score}}(D,Q)=\sum _{i=1}^{n}{\text{IDF}}(q_{i})\cdot {\frac {f(q_{i},D)\cdot (k_{1}+1)}{f(q_{i},D)+k_{1}\cdot \left(1-b+b\cdot {\frac {|D|}{\text{avgdl}}}\right)}}</script><p>其中，</p>
+<script type="math/tex; mode=display">
+\text{IDF}(q_i) =\log \frac{N - n(q_i) + 0.5}{n(q_i) + 0.5}</script><p>当然，比较方便的做法是词$q_i$的IDF值直接在idf词典中获取。</p>
+<p>$\text{avgdl}$表示文本的平均常见，$b$和$k_1$是超参数，根据经验调节。$f(q_{i},D)$为句子Q中的词$q_i$​与句子D的匹配度，这里使用词$q_i$在句子D中出现的频率来表示。</p>
+<p>事实上，结合jieba分词，BM25的Python实现比上式清晰多了，</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">bm25_similar</span><span class="params">(text1, text2, s_avg=<span class="number">10</span>, k1=<span class="number">2.0</span>, b=<span class="number">0.75</span>)</span>:</span></span><br><span class="line">    <span class="string">"""s_avg是句子的平均长度，根据语料统计。k1,b是调节因子，根据经验调整。"""</span></span><br><span class="line">    bm25 = <span class="number">0.0</span></span><br><span class="line">    sl = len(text2)</span><br><span class="line">    <span class="keyword">for</span> w <span class="keyword">in</span> jieba.lcut(text1):</span><br><span class="line">        w_idf = idf_dict.get(w, <span class="number">1</span>)</span><br><span class="line">        bm25_ra = text2.count(w) * (k1 + <span class="number">1</span>)</span><br><span class="line">        bm25_rb = text2.count(w) + k1 * (<span class="number">1</span> - b + b * sl / s_avg)</span><br><span class="line">        bm25 += w_idf * bm25_ra / bm25_rb</span><br><span class="line">    <span class="keyword">return</span> bm25</span><br></pre></td></tr></table></figure>
+<p>注意到，这里的实现需要事先准备好idf词典。在实践中，需要注意idf词典与句子对集的match程度。</p>
+<h2 id="矩阵分解和主题模型"><a href="#矩阵分解和主题模型" class="headerlink" title="矩阵分解和主题模型"></a>矩阵分解和主题模型</h2><p>为解决 VSM 高维度、语义信息难刻画的问题，可以从数学入手。通过 VSM 获得的高维稀疏文档-词共现矩阵 $D_{档,单词}$，然后对词-文档共现矩阵进行矩阵分方法SVD，获得如下的形式</p>
+<script type="math/tex; mode=display">
+D_{档,单词} = P_{文档,主题}\Sigma_{主题}Q^\top_{主题,单词}</script><p>这样，表达文档的维度变小了，也有了潜在语义（主题）。获得文档-主题矩阵后，就可以计算文档之间的相似度，例如文档$D_i$与文档$D_j$，相似度计算，</p>
+<script type="math/tex; mode=display">
+\operatorname{sim}(D_i, D_j) = \frac{P_i \cdot P_j}{\|P_i\| \|P_j\|}</script><p>$P_i$表示文档$D_i$在文档-主题矩阵$P$中的第$i$行，即文档的向量表示。</p>
+<p>矩阵分解 LSA，减少文档表示的维度，得到的是潜语义，但是这种分解是基于数学的，无法理解文档的生成原理。</p>
+<p>在矩阵分解的基础上引入概率解释，于是出现两类模型：</p>
+<ul>
+<li>基于频率主义的方法，以 pLSA 为代表</li>
+<li>基于贝叶斯主义的方法，以 LDA 为代表</li>
+</ul>
+<p>这两种方法解决基于矩阵分解无法理解文档生成原理的问题。</p>
+<script type="math/tex; mode=display">
+D_{文档,单词} = P_{文档,主题}\Sigma_{主题}Q^\top_{主题,单词}</script><p>这个分解更一般化。</p>
+<h2 id="机器学习方法"><a href="#机器学习方法" class="headerlink" title="机器学习方法"></a>机器学习方法</h2><p>经典的思路是，作为二分类问题，</p>
+<script type="math/tex; mode=display">
+\text{label}_{0, 1} \leftarrow (s_{1}, s_{2})</script><p>训练模型判断句子相似或不相似。另外的思路，</p>
+<script type="math/tex; mode=display">
+\text{label}_{0, 1} \leftarrow (s, s^{-}, s^{+})</script><p>机器学习方法用于文本匹配的流程，</p>
+<p><img src="../images/ml-pipe.png" alt></p>
+<p>不过机器学习本身也有不少局限，机器学习的局限：</p>
+<ul>
+<li>模型性能依赖人工特征，复杂任务设计特征费时费力。同时，特征的学习和分类器是解耦的，因此，人工提取特征需要反复尝试才知道是否有利于下游的分类器。</li>
+<li>数据稀疏问题</li>
+<li>无法处理OOV</li>
+<li>选择性偏好：某些算法偏好于选择某类函数，归纳偏置</li>
+<li>各个模块之间解耦，误差传播导致更大的误差某一个模块的输出导致下一模块造成误差无法反馈</li>
+</ul>
+<p>机器学习中的分类器是浅层学习器，特征需要人类经验来获得，导致很多的机器学习问题变成了特征工程问题。这不禁让人问道，能否把特征提取自动化。答案就是深度神经玩两个。深度学习方法，是目前主流的相似、匹配方法，接下来继续深入。</p>
+<h2 id="深度学习"><a href="#深度学习" class="headerlink" title="深度学习"></a>深度学习</h2><p>无论是one-hot编码还是CountVector，特征数为词汇表的大小，全局全连接网络直接导致参数过大而OOM，即便有足够的内存，稀疏的特征只会让网络收敛非常缓慢，因为每次只更新极少数的参数。特征之间存在语义鸿沟，无法发现更丰富的语义，如相似性。</p>
+<p>局部表示的向量，可以通过神经网络“映射”到低维空间中，这个操作称为 Embedding。这里“映射”只是一个查表操作，后期我们再展开。</p>
+<p>因此，这里表示学习可以理解为，从局部表示开始，借助 Embedding 以及多层神经网络结构学习到一个好的分布式表示。</p>
+<h3 id="文本匹配-深度学习的好处"><a href="#文本匹配-深度学习的好处" class="headerlink" title="文本匹配+深度学习的好处"></a>文本匹配+深度学习的好处</h3><p>端到端，直接将原始数据和标签作为网络的输入、输出，不需要考虑机器学习中提到的分词、去停用词、特征提取等方法。深度学习可以让“特征工程”和下游的分类器紧耦合，表现出端到端。</p>
+<p>优势：</p>
+<ul>
+<li><p>把词表示为稠密向量</p>
+</li>
+<li><p>自动的特征提取</p>
+</li>
+<li><p>端到端，各个模块之间紧耦合，训练和推断时模型作为整体运作。</p>
+</li>
+<li><p>通过误差逆向传播减少个模块的误差</p>
+</li>
+</ul>
+<p>深度学习时代，相似度量不一定人为设置，可以让网络学习出来，表现为表示 + 相似度量这样的架构。例如，通过RNN、CNN等工具获得句子的向量序列，然后使用某种度量方法比较这两个向量序列的差异。</p>
+<p>语义匹配的基本思路，文本的表示（交互）、定义相似度、根据相似度优化目标。</p>
+<h3 id="基于表示"><a href="#基于表示" class="headerlink" title="基于表示"></a>基于表示</h3><p>基于表示，</p>
+<script type="math/tex; mode=display">
+F(T_{1}, T_{2}) = F(\Phi(T_{1}), \Phi(T_{2}))</script><p>一般来说，特征提取$\Phi$​对于两个句子来说是公用的，除非两个句子是不同语言。基于表示的好处是，特征可以提前计算获取。基于表示的方法的核心是如何获取更好的句向量（sentence Embedding）表示。</p>
+<h3 id="基于交互"><a href="#基于交互" class="headerlink" title="基于交互"></a>基于交互</h3><p>在Attention提出来后，各种基于交互的匹配模型也相继提出，基于交互的模型可以如下表示，</p>
+<script type="math/tex; mode=display">
+F(T_{1}, T_{2}) = F(\Phi_{1}(T_{1}, T_{2}),\dots,\Phi_{n}(T_{1}, T_{2}))</script><p>其中$\Phi_{i}$是交互结构，基于交互的模型可以有多种不同的交互结构。这类交互本身是否按照人们设计的那样work就不得而知了，一方面是Attention本身的解释性也有待研究。各种花式交互的方法让人眼花缭乱，我个人还是遵循这样的原则，追求建模手段的泛化，简单适用的方法推广到更多的场景中，而不是在模型上泛化，在某些数据集上表现亮眼，而换个数据集就无力了。</p>
+<p>交互本身消耗更大的计算资源，每次匹配都在交互上消耗大量计算资源，而交互本身是无法预先准备。在简单的场景下，我本人更青睐基于表示的方法。</p>
+<h3 id="混合表示与交互"><a href="#混合表示与交互" class="headerlink" title="混合表示与交互"></a>混合表示与交互</h3><p>把表示和交互混合在一起获得更复杂表示能力更强的模型是很直观的思路，</p>
+<script type="math/tex; mode=display">
+F(T_{1}, T_{2}) = F(\Phi_{1}(T_{1}), \Phi_{1}(T_{2}),\Phi_{2}(T_{1}, T_{2}))</script><h3 id="度量匹配性"><a href="#度量匹配性" class="headerlink" title="度量匹配性"></a>度量匹配性</h3><p>使用常见的相似性度量或距离度量，如余弦相似度、欧几里得距离，以上相似方法本身是存在<strong>偏置</strong>，集模型默认是计算相似关系，但是我们并不一定是要计算相似，而是其他的匹配关系，如自然语言推理任务中，需要知道的是是否具有<strong>蕴含关系</strong>，等等。为此，结合Dense甚至更复杂的网络结构直接把匹配度量（关系）给学习下来。例如，$u,v$是学习到的句向量表示，那么匹配度量可以是，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+o_{1} &= \operatorname{Dense}(|u-v|, u \otimes v,  \frac{u+v}{2},  [u;v]) \\
+o_{2} &= \operatorname{Dense}(|u-v|, u \otimes v,  \frac{u+v}{2},  [v;u]) \\
+o &= \frac{o_{1} + o_{2}}{2}
+\end{align}</script><p>输出$o$为匹配度（相似度）。使用类似Mahalanobis距离度量，</p>
+<script type="math/tex; mode=display">
+o = u\boldsymbol{W}v^{\top}</script><p>或者Tanimoto测度，</p>
+<script type="math/tex; mode=display">
+o = \frac{u\cdot v^{\top}}{u\cdot u^{\top} + v\cdot v^{\top} + u\cdot v^{\top}}</script><p>以上$o_{1},o_{2}$也可以使用这两者测度。发挥想象力去设计丰富但简洁的融合方式，并验证性能效果。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>以上简单梳理一下语义匹配从VSM、主题模型到机器学习和深度学习方法的思路。</p>
+<p>转载请包括本文地址：<a href="../8103">https://allenwind.github.io/blog/8103</a><br>更多文章请参考：<a href="../archives/">https://allenwind.github.io/blog/archives/</a></p>
+</div><div class="tags"><a href="/blog/tags/机器学习/">机器学习</a><a href="/blog/tags/NLP/">NLP</a></div><div class="post-nav"><a class="pre" href="/blog/8233/">词向量系列（1）：VSM与词袋模型</a><a class="next" href="/blog/7890/">深入理解CNN及其网络架构设计</a></div></div></div></div><div class="pure-u-1-4 hidden_mid_and_down"><div id="sidebar"><div class="widget"><form class="search-form" action="//www.google.com/search" method="get" accept-charset="utf-8" target="_blank"><input type="text" name="q" maxlength="20" placeholder="Search"><input type="hidden" name="sitesearch" value="http://allenwind.github.io/blog"></form></div><div class="widget"><div class="widget-title"><i class="fa fa-folder-o"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/blog/categories/C-C/">C/C++</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Go/">Go</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Java/">Java</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Linux/">Linux</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/NLP/">NLP</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Python/">Python</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/数学/">数学</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/数据库/">数据库</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/数据结构和算法/">数据结构和算法</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/机器学习深度学习/">机器学习深度学习</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/记录/">记录</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-star-o"> 标签</i></div><div class="tagcloud"><a href="/blog/tags/算法/" style="font-size: 15px;">算法</a> <a href="/blog/tags/C/" style="font-size: 15px;">C</a> <a href="/blog/tags/Python/" style="font-size: 15px;">Python</a> <a href="/blog/tags/设计模式/" style="font-size: 15px;">设计模式</a> <a href="/blog/tags/C语言/" style="font-size: 15px;">C语言</a> <a href="/blog/tags/数据库/" style="font-size: 15px;">数据库</a> <a href="/blog/tags/MySQL/" style="font-size: 15px;">MySQL</a> <a href="/blog/tags/ACID/" style="font-size: 15px;">ACID</a> <a href="/blog/tags/区块链/" style="font-size: 15px;">区块链</a> <a href="/blog/tags/分布式/" style="font-size: 15px;">分布式</a> <a href="/blog/tags/SQL/" style="font-size: 15px;">SQL</a> <a href="/blog/tags/NoSQL/" style="font-size: 15px;">NoSQL</a> <a href="/blog/tags/sudo/" style="font-size: 15px;">sudo</a> <a href="/blog/tags/Docker/" style="font-size: 15px;">Docker</a> <a href="/blog/tags/git/" style="font-size: 15px;">git</a> <a href="/blog/tags/Linux/" style="font-size: 15px;">Linux</a> <a href="/blog/tags/Git/" style="font-size: 15px;">Git</a> <a href="/blog/tags/gcc/" style="font-size: 15px;">gcc</a> <a href="/blog/tags/Systemd/" style="font-size: 15px;">Systemd</a> <a href="/blog/tags/Tensorflow/" style="font-size: 15px;">Tensorflow</a> <a href="/blog/tags/命令行/" style="font-size: 15px;">命令行</a> <a href="/blog/tags/网络/" style="font-size: 15px;">网络</a> <a href="/blog/tags/操作系统/" style="font-size: 15px;">操作系统</a> <a href="/blog/tags/记录/" style="font-size: 15px;">记录</a> <a href="/blog/tags/正则表达式/" style="font-size: 15px;">正则表达式</a> <a href="/blog/tags/数据结构/" style="font-size: 15px;">数据结构</a> <a href="/blog/tags/Go/" style="font-size: 15px;">Go</a> <a href="/blog/tags/go/" style="font-size: 15px;">go</a> <a href="/blog/tags/Java/" style="font-size: 15px;">Java</a> <a href="/blog/tags/LRU/" style="font-size: 15px;">LRU</a> <a href="/blog/tags/ARC/" style="font-size: 15px;">ARC</a> <a href="/blog/tags/剑指Offer/" style="font-size: 15px;">剑指Offer</a> <a href="/blog/tags/函数式/" style="font-size: 15px;">函数式</a> <a href="/blog/tags/搜索引擎/" style="font-size: 15px;">搜索引擎</a> <a href="/blog/tags/Stack/" style="font-size: 15px;">Stack</a> <a href="/blog/tags/并发编程/" style="font-size: 15px;">并发编程</a> <a href="/blog/tags/网络编程/" style="font-size: 15px;">网络编程</a> <a href="/blog/tags/并发/" style="font-size: 15px;">并发</a> <a href="/blog/tags/HTTP/" style="font-size: 15px;">HTTP</a> <a href="/blog/tags/装饰器/" style="font-size: 15px;">装饰器</a> <a href="/blog/tags/Redis/" style="font-size: 15px;">Redis</a> <a href="/blog/tags/数学/" style="font-size: 15px;">数学</a> <a href="/blog/tags/时间序列/" style="font-size: 15px;">时间序列</a> <a href="/blog/tags/投资/" style="font-size: 15px;">投资</a> <a href="/blog/tags/概率/" style="font-size: 15px;">概率</a> <a href="/blog/tags/统计/" style="font-size: 15px;">统计</a> <a href="/blog/tags/信息论/" style="font-size: 15px;">信息论</a> <a href="/blog/tags/度量/" style="font-size: 15px;">度量</a> <a href="/blog/tags/机器学习/" style="font-size: 15px;">机器学习</a> <a href="/blog/tags/贝叶斯/" style="font-size: 15px;">贝叶斯</a> <a href="/blog/tags/最小二乘法/" style="font-size: 15px;">最小二乘法</a> <a href="/blog/tags/分布/" style="font-size: 15px;">分布</a> <a href="/blog/tags/矩阵/" style="font-size: 15px;">矩阵</a> <a href="/blog/tags/深度学习/" style="font-size: 15px;">深度学习</a> <a href="/blog/tags/变分推断/" style="font-size: 15px;">变分推断</a> <a href="/blog/tags/随机/" style="font-size: 15px;">随机</a> <a href="/blog/tags/不等式/" style="font-size: 15px;">不等式</a> <a href="/blog/tags/采样/" style="font-size: 15px;">采样</a> <a href="/blog/tags/光滑/" style="font-size: 15px;">光滑</a> <a href="/blog/tags/逼近/" style="font-size: 15px;">逼近</a> <a href="/blog/tags/交叉验证/" style="font-size: 15px;">交叉验证</a> <a href="/blog/tags/特征工程/" style="font-size: 15px;">特征工程</a> <a href="/blog/tags/集成学习/" style="font-size: 15px;">集成学习</a> <a href="/blog/tags/分类/" style="font-size: 15px;">分类</a> <a href="/blog/tags/证明/" style="font-size: 15px;">证明</a> <a href="/blog/tags/损失函数/" style="font-size: 15px;">损失函数</a> <a href="/blog/tags/回归/" style="font-size: 15px;">回归</a> <a href="/blog/tags/词向量/" style="font-size: 15px;">词向量</a> <a href="/blog/tags/信息/" style="font-size: 15px;">信息</a> <a href="/blog/tags/正则化/" style="font-size: 15px;">正则化</a> <a href="/blog/tags/NLP/" style="font-size: 15px;">NLP</a> <a href="/blog/tags/Embedding/" style="font-size: 15px;">Embedding</a> <a href="/blog/tags/神经网络/" style="font-size: 15px;">神经网络</a> <a href="/blog/tags/Transformer/" style="font-size: 15px;">Transformer</a> <a href="/blog/tags/Attention/" style="font-size: 15px;">Attention</a> <a href="/blog/tags/文本分类/" style="font-size: 15px;">文本分类</a> <a href="/blog/tags/对抗训练/" style="font-size: 15px;">对抗训练</a> <a href="/blog/tags/分词/" style="font-size: 15px;">分词</a> <a href="/blog/tags/并行/" style="font-size: 15px;">并行</a> <a href="/blog/tags/图/" style="font-size: 15px;">图</a> <a href="/blog/tags/NER/" style="font-size: 15px;">NER</a> <a href="/blog/tags/HMM/" style="font-size: 15px;">HMM</a> <a href="/blog/tags/概率图/" style="font-size: 15px;">概率图</a> <a href="/blog/tags/可视化/" style="font-size: 15px;">可视化</a> <a href="/blog/tags/RNN/" style="font-size: 15px;">RNN</a> <a href="/blog/tags/LSTM/" style="font-size: 15px;">LSTM</a> <a href="/blog/tags/注意力/" style="font-size: 15px;">注意力</a> <a href="/blog/tags/序列编码/" style="font-size: 15px;">序列编码</a> <a href="/blog/tags/梯度/" style="font-size: 15px;">梯度</a> <a href="/blog/tags/磁盘故障/" style="font-size: 15px;">磁盘故障</a> <a href="/blog/tags/BERT/" style="font-size: 15px;">BERT</a> <a href="/blog/tags/CNN/" style="font-size: 15px;">CNN</a> <a href="/blog/tags/卷积/" style="font-size: 15px;">卷积</a> <a href="/blog/tags/优化/" style="font-size: 15px;">优化</a> <a href="/blog/tags/调参/" style="font-size: 15px;">调参</a> <a href="/blog/tags/Flask/" style="font-size: 15px;">Flask</a> <a href="/blog/tags/web/" style="font-size: 15px;">web</a> <a href="/blog/tags/socket/" style="font-size: 15px;">socket</a> <a href="/blog/tags/安全/" style="font-size: 15px;">安全</a> <a href="/blog/tags/协程/" style="font-size: 15px;">协程</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-file-o"> 最近文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/blog/16003/">天马行空：设计自己的激活函数</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/15887/">函数光滑近似（4）：Heaviside step函数及其应用</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/15205/">引入参数控制softmax的smooth程度</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/15110/">分析与拓展：多分类模型的输出为什么使用softmax？</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14990/">一种基于光滑逼近的正态分布采样法</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14721/">GELU由来：从狄拉克函数到GELU激活函数</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14465/">Lp范数的上下界分析</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14441/">logsumexp函数分析</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14133/">分析Mish激活函数的设计思路</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/13899/">阿尔法经济学：Shiller模型介绍</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-external-link"> 友情链接</i></div><ul></ul><a href="https://github.com/allenwind" title="My GitHub" target="_blank">My GitHub</a><ul></ul><a href="http://www.arxiv-sanity.com/" title="arxiv-sanity" target="_blank">arxiv-sanity</a><ul></ul><a href="https://arxiv.org/" title="arxiv.org" target="_blank">arxiv.org</a></div></div></div><div class="pure-u-1 pure-u-md-3-4"><div id="footer">Copyright © 2021 <a href="/blog/." rel="nofollow">Mr.Feng Blog.</a> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a><a rel="nofollow" target="_blank" href="https://github.com/tufu9441/maupassant-hexo"> Theme</a> by<a rel="nofollow" target="_blank" href="https://github.com/pagecho"> Cho.</a></div></div></div><a class="show" id="rocket" href="#top"></a><script type="text/javascript" src="/blog/js/totop.js?v=0.0.0" async></script><script type="text/javascript" src="//lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js" async></script><script type="text/javascript" src="/blog/js/fancybox.js?v=0.0.0" async></script><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css"><script type="text/x-mathjax-config">MathJax.Hub.Config({
+  tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}
+  });
+</script><script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-MML-AM_CHTML" async></script><script type="text/javascript" src="/blog/js/codeblock-resizer.js?v=0.0.0"></script><script type="text/javascript" src="/blog/js/smartresize.js?v=0.0.0"></script></div></body></html>

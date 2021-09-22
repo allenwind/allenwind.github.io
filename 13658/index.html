@@ -1,0 +1,119 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.9.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description" content="你好，世界！"><title>形形色色的Sigmoid（S型）函数 | Mr.Feng Blog</title><link rel="stylesheet" type="text/css" href="/blog/css/style.css?v=0.0.0"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/normalize/8.0.1/normalize.min.css"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/pure/1.0.0/pure-min.css"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/pure/1.0.0/grids-responsive-min.css"><link rel="stylesheet" href="//lib.baomitu.com/font-awesome/4.7.0/css/font-awesome.min.css"><script type="text/javascript" src="//lib.baomitu.com/jquery/3.4.0/jquery.min.js"></script><link rel="icon" mask sizes="any" href="/blog/favicon.ico"><link rel="Shortcut Icon" type="image/x-icon" href="/blog/favicon.ico"><link rel="apple-touch-icon" href="/blog/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/blog/apple-touch-icon.png"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">形形色色的Sigmoid（S型）函数</h1><a id="logo" href="/blog/.">Mr.Feng Blog</a><p class="description">NLP、深度学习、机器学习、Python、Go</p></div><div id="nav-menu"><a class="current" href="/blog/."><i class="fa fa-home"> 首页</i></a><a href="/blog/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/blog/about/"><i class="fa fa-user"> 关于</i></a></div></div><div class="pure-g" id="layout"><div class="pure-u-1 pure-u-md-3-4"><div class="content_container"><div class="post"><h1 class="post-title">形形色色的Sigmoid（S型）函数</h1><div class="post-meta">Mar 20, 2021<span> | </span><span class="category"><a href="/blog/categories/数学/">数学</a></span></div><div class="clear"><div class="toc-article" id="toc"><div class="toc-title">文章目录</div><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#形形色色的Sigmoid函数"><span class="toc-number">1.</span> <span class="toc-text">形形色色的Sigmoid函数</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#指数形式"><span class="toc-number">1.1.</span> <span class="toc-text">指数形式</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#代数函数"><span class="toc-number">1.2.</span> <span class="toc-text">代数函数</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#从误差函数出发"><span class="toc-number">1.3.</span> <span class="toc-text">从误差函数出发</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#逼近符号函数"><span class="toc-number">1.4.</span> <span class="toc-text">逼近符号函数</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#逼近阶跃（Heaviside-step）函数"><span class="toc-number">1.5.</span> <span class="toc-text">逼近阶跃（Heaviside step）函数</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#总结"><span class="toc-number">2.</span> <span class="toc-text">总结</span></a></li></ol></div></div><div class="post-content"><p>Sigmoid函数指S型的函数，盘点一下都有哪些？</p>
+<a id="more"></a>
+<p>Sigmoid函数指S型的函数，在一段区间内较快增长，该区间外区域饱和。</p>
+<h2 id="形形色色的Sigmoid函数"><a href="#形形色色的Sigmoid函数" class="headerlink" title="形形色色的Sigmoid函数"></a>形形色色的Sigmoid函数</h2><p>形形色色的Sigmoid函数，我们可以大致分为指数类型、代数类型以及基于误差函数逼近等思路。S性函数有一个特点就是，当$x$较小时，有</p>
+<script type="math/tex; mode=display">
+S(x) \approx x</script><p>例如当$x$较小时，$\tanh(x) \approx x$。</p>
+<h3 id="指数形式"><a href="#指数形式" class="headerlink" title="指数形式"></a>指数形式</h3><p>Logistic函数，</p>
+<script type="math/tex; mode=display">
+\sigma(x) = \frac{1}{1 + e^{-x}} = \frac{e^{x}}{1 + e^{x}}</script><p>这种形式的函数事实上来自增长模型，微分方程表示为，</p>
+<script type="math/tex; mode=display">
+\frac {dP}{dt}=r \times P\times \left(1-{\frac {P}{K}}\right)</script><p>$P$为种群数量，$r$为增长率，$K$为环境容量，方程解得，</p>
+<script type="math/tex; mode=display">
+P(t)=\frac {K \times P_{0}e^{rt}}{K+P_{0}\left(e^{rt}-1\right)}=\frac {K}{1+\left({\frac {K-P_{0}}{P_{0}}}\right)e^{-rt}}</script><p>把参数简约掉，就得到Logistic函数。过去的文章也提供光滑近似的导出思路，见<a href="../9998/">Sigmoid函数导出的另外一个角度</a>。</p>
+<p>Logit，顾名思义<strong>log it</strong>，对$\operatorname{odds}(p)$​取对数变换，</p>
+<script type="math/tex; mode=display">
+\operatorname{logits}(p) = \log(\operatorname{odds}(p)) = \log \frac{p}{1-p}</script><p>这里$\text{odds}(p) = \frac{p}{1-p}$，于是$\operatorname{logits}(p)  \in [-\infty, +\infty]$没有上下限，于是可以方便地进行建模。例如最简单的线性模型，</p>
+<script type="math/tex; mode=display">
+\operatorname{logits}(p) = \log(\frac{p}{1-p}) = x</script><p>因此有，</p>
+<script type="math/tex; mode=display">
+p(x) = \frac{1}{1 + e^{-x}}</script><p>这个函数其实很漂亮，其导数可以用自身来表示，</p>
+<script type="math/tex; mode=display">
+\frac {\mathrm {d} }{\mathrm {d} x}\sigma(x)={\frac {e^{x}\cdot (1+e^{x})-e^{x}\cdot e^{x}}{(1+e^{x})^{2}}}={\frac {e^{x}}{(1+e^{x})^{2}}}=\sigma(x){\big (}1-\sigma(x){\big )}</script><p>可以在里面添加一个参数控制增长的陡峭程度，</p>
+<script type="math/tex; mode=display">
+\sigma_k(x) = \frac{1}{1 + e^{-kx}}</script><p>广义的Logistic函数，</p>
+<script type="math/tex; mode=display">
+f(x) = \frac{1}{(1 + e^{-x})^{\alpha}} \;,\;\alpha \gt 0</script><p>$\tanh(x)$，</p>
+<script type="math/tex; mode=display">
+f(x)=\tanh x=\frac {e^{x}-e^{-x}}{e^{x}+e^{-x}}</script><p>事实上，我们注意到，</p>
+<script type="math/tex; mode=display">
+\tanh(x) = 2\sigma(2x) - 1</script><p>同上，可以添加参数控制增长区间内的陡峭程度，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+f_k(x) 
+&= \tanh(kx) \newline
+&= \frac {e^{kx}-e^{-kx}}{e^{kx}+e^{-kx}}
+\end{align}</script><p>这些S型函数都是基于$f(x) = e^{x}$，因此具有很好的梯度特性。</p>
+<h3 id="代数函数"><a href="#代数函数" class="headerlink" title="代数函数"></a>代数函数</h3><p>纯粹的代数函数也可以构造S型函数，如</p>
+<script type="math/tex; mode=display">
+f(x)=\frac {x}{(1+|x|^{k})^{1/k}}</script><p>特殊形式如取$k=2$，有，</p>
+<script type="math/tex; mode=display">
+f(x)=\frac {x}{(1+|x|^{2})^{1/2}}</script><p>其出发点其实是逼近$\displaystyle \operatorname {sign} (x) =  \frac{x}{|x|}$这种形式。</p>
+<h3 id="从误差函数出发"><a href="#从误差函数出发" class="headerlink" title="从误差函数出发"></a>从误差函数出发</h3><p>误差函数，</p>
+<script type="math/tex; mode=display">
+\operatorname{erf}(x) = \frac{1}{\sqrt{\pi}}\int_{-x}^{x}e^{-t^{2}}dt = \frac{2}{\sqrt{\pi}}\int_{0}^{x}e^{-t^{2}}dt</script><p>是一个像logistics函数图像一样的函数，易证$\operatorname{erf}(\frac{x}{\sqrt{2}}) \in (-1, 1)$​​，函数图像如下，</p>
+<p><img src="../images/math-erf-image-1.png" alt></p>
+<p>该函数有一个有趣的性质，</p>
+<script type="math/tex; mode=display">
+\operatorname {erf} \left(\operatorname {erf} ^{-1}x\right)=x</script><p>误差函数的定义是积分形式，无法直接用初等函数直接计算。这里我们对其进行逼近。$\operatorname{erf}(\frac{x}{\sqrt{2}})$图像最容易让人联想到的函数是$\tanh(x)$，它们之间的区别就在陡峭程度上。容易推导GELU与正态分布的累积分布函数$\Phi_{\sigma}(x) $或误差函数$\operatorname{erf}(x)$​的关系，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+\operatorname{GELU}(x) 
+&= x \Phi(x) \newline
+&= x \times \int_{-\infty}^{x} \frac{1}{|\sigma|\sqrt{\pi}}e^{-(x/\sigma)^{2}}dx \newline
+&= x \times \Big[ \int_{-\infty}^{0} \frac{1}{|\sigma|\sqrt{\pi}}e^{-(x/\sigma)^{2}}dx + \int_{0}^{x} \frac{1}{|\sigma|\sqrt{\pi}}e^{-(x/\sigma)^{2}}dx \Big]_{\sigma=1}\newline
+&= \frac{x}{2} \Big(  1 + \operatorname{erf}(\frac{x}{\sqrt{2}})  \Big)
+\end{align}</script><p>这里我们直接借鉴论文<a href="https://arxiv.org/abs/1606.08415" target="_blank" rel="noopener">Gaussian Error Linear Units (GELUs)</a>中的结论，注意到论文中有结论，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+\operatorname{GELU}(x)
+&= x \Phi(x) \newline
+&= \frac{x}{2} \Big(  1 + \operatorname{erf}(\frac{x}{\sqrt{2}})  \Big) \newline
+&\approx \frac{x}{2} \Big( 1 + \tanh \left[ \sqrt{\frac{2}{\pi}} (x +  0.044715x^3)\right] \Big)
+\end{align}</script><p>于是有，</p>
+<script type="math/tex; mode=display">
+\operatorname{erf}(\frac{x}{\sqrt{2}}) \approx  \tanh \left[ \sqrt{\frac{2}{\pi}} (x +  0.044715x^3)\right]</script><p>这个近似形式上还是关于$e^x$，因此能否用$\sigma(\alpha x)$​来逼近呢？答案是可以的，可参看以上论文。</p>
+<h3 id="逼近符号函数"><a href="#逼近符号函数" class="headerlink" title="逼近符号函数"></a>逼近符号函数</h3><p>不严格来说，符合函数也可以看做是S型函数，</p>
+<script type="math/tex; mode=display">
+\displaystyle \operatorname {sign}(x) =\begin{cases}-1&\;{\text{if }}x<0,\\0&\;{\text{if }}x=0,\\1&\;{\text{if }}x>0.\end{cases}</script><p>由于$\displaystyle \operatorname {sign} (x) =  \frac{x}{|x|}$​，因此可以构造很多光滑版本，如，</p>
+<script type="math/tex; mode=display">
+\displaystyle \operatorname {sign} (x) =  \frac{x}{|x|}\approx {\frac {x}{\sqrt {x^{2}+\varepsilon ^{2}}}}</script><p>其中$\varepsilon$​​是一个接近0的数。稍微推广一下，</p>
+<script type="math/tex; mode=display">
+\displaystyle \operatorname {sign} (x) =  \frac{x}{|x|}
+\approx \frac {x}{\sqrt[\leftroot{-1}\uproot{2}2k] {x^{2k}+\varepsilon ^{2k}}}</script><p>其实就是上述$\displaystyle f(x)=\frac {x}{(1+|x|^{k})^{1/k}}$​​​这种形式。此外还可以在$|x|$上修改，例如，</p>
+<script type="math/tex; mode=display">
+\displaystyle \operatorname {sign} (x) =  \frac{x}{|x|}\approx \frac{x}{\sqrt{x^{2}+\frac{\mu}{e^{x}}}}</script><p>不过这种S型是不对称的，因为$e^x$​的增长并不是平缓的。于是，可以改造为对称形式，</p>
+<script type="math/tex; mode=display">
+\displaystyle \operatorname {sign} (x) =  \frac{x}{|x|}\approx \frac{x}{\sqrt{x^{2}+\frac{\mu}{e^{x}+e^{-x}}}}</script><p>还有一种比较优雅的做法，注意到max函数可以表示为logsumexp形式，</p>
+<script type="math/tex; mode=display">
+|x| = \max(x, -x) \approx \frac{1}{\alpha}\log(e^{-\alpha x}+e^{\alpha x})</script><p>于是有，</p>
+<script type="math/tex; mode=display">
+\displaystyle \operatorname {sign} (x) =  \frac{x}{|x|}\approx \frac{\alpha x}{\log(e^{-\alpha x}+e^{\alpha x})}</script><p>其中$\alpha$是一个较大的数。</p>
+<h3 id="逼近阶跃（Heaviside-step）函数"><a href="#逼近阶跃（Heaviside-step）函数" class="headerlink" title="逼近阶跃（Heaviside step）函数"></a>逼近阶跃（Heaviside step）函数</h3><p>类似地，还有阶跃（Heaviside step）函数，其实和符号函数很像，前者把$x \lt 0$部分向上平移一个单位，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+H(x)
+&= \frac {d}{dx}\max\{0, x\} \newline
+&=
+\begin{cases}
+1,&\;x>0\\
+0,&\;x\leq 0
+\end{cases} \newline
+&\approx \frac{1}{2} + \frac{1}{2} \tanh(kx) \newline
+&= \frac{1}{1 + e^{-2kx}}
+\end{align}</script><p>其光滑形式就是参数化的Logistic函数$\displaystyle \sigma_k(x) = \frac{1}{1 + e^{-kx}}$。Heaviside step函数还有一种关于狄拉克函数（dirac function）的定义，</p>
+<script type="math/tex; mode=display">
+\displaystyle H(x)=\int _{-\infty }^{x}{\delta (s)}\,ds</script><p>其中狄拉克函数为，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+\delta(x) =\left\{\begin{matrix}
++\infty &\;\;x = 0\\ 
+0 & \;\; x \neq 0
+\end{matrix}\right.
+\end{align}</script><p>狄拉克函数满足，</p>
+<script type="math/tex; mode=display">
+\int_{-\infty}^{\infty}\delta(x)dx = 1</script><p>狄拉克函数使用正态分布逼近，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+\delta_{\sigma}(x) = \frac{1}{|\sigma|\sqrt{\pi}}e^{-(x/\sigma)^{2}}
+\end{align}</script><p>因此其积分，即正态分布的累积分布函数可以作为$H(x)$​​的光滑近似。标准正态分布的累积分布函数可以用$\operatorname{erf}(x)$​​​表示，</p>
+<script type="math/tex; mode=display">
+\Phi(x) = \frac{1}{\sqrt{2 \pi}} \int_{-\infty}^{x} e^{\frac{-t^2}{2}} dt = \frac{1}{2} \Big(  1 + \operatorname{erf}(\frac{x}{\sqrt{2}})  \Big) \in (0, 1)</script><p>因此，对于一般正态分布函数，其累积分布函数为，</p>
+<script type="math/tex; mode=display">
+F(x)=\Phi \left({\frac {x-\mu }{\sigma }}\right)={\frac {1}{2}}\left[1+\operatorname {erf} \left({\frac {x-\mu }{\sigma {\sqrt {2}}}}\right)\right]_{\mu=0}</script><p>其中$\mu = 0$，$\sigma$控制S形状以不同程度逼近$\displaystyle H(x)$。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>本文总结了形形色色的S型函数，那么你心中完美的S型函数是谁呢？</p>
+<p>转载请包括本文地址：<a href="../13658">https://allenwind.github.io/blog/13658</a><br>更多文章请参考：<a href="../archives/">https://allenwind.github.io/blog/archives/</a></p>
+</div><div class="tags"><a href="/blog/tags/数学/">数学</a><a href="/blog/tags/逼近/">逼近</a></div><div class="post-nav"><a class="pre" href="/blog/13899/">阿尔法经济学：Shiller模型介绍</a><a class="next" href="/blog/13588/">NER任务的深度总结</a></div></div></div></div><div class="pure-u-1-4 hidden_mid_and_down"><div id="sidebar"><div class="widget"><form class="search-form" action="//www.google.com/search" method="get" accept-charset="utf-8" target="_blank"><input type="text" name="q" maxlength="20" placeholder="Search"><input type="hidden" name="sitesearch" value="http://allenwind.github.io/blog"></form></div><div class="widget"><div class="widget-title"><i class="fa fa-folder-o"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/blog/categories/C-C/">C/C++</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Go/">Go</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Java/">Java</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Linux/">Linux</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/NLP/">NLP</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Python/">Python</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/数学/">数学</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/数据库/">数据库</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/数据结构和算法/">数据结构和算法</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/机器学习深度学习/">机器学习深度学习</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/记录/">记录</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-star-o"> 标签</i></div><div class="tagcloud"><a href="/blog/tags/算法/" style="font-size: 15px;">算法</a> <a href="/blog/tags/C/" style="font-size: 15px;">C</a> <a href="/blog/tags/Python/" style="font-size: 15px;">Python</a> <a href="/blog/tags/设计模式/" style="font-size: 15px;">设计模式</a> <a href="/blog/tags/C语言/" style="font-size: 15px;">C语言</a> <a href="/blog/tags/数据库/" style="font-size: 15px;">数据库</a> <a href="/blog/tags/MySQL/" style="font-size: 15px;">MySQL</a> <a href="/blog/tags/ACID/" style="font-size: 15px;">ACID</a> <a href="/blog/tags/区块链/" style="font-size: 15px;">区块链</a> <a href="/blog/tags/分布式/" style="font-size: 15px;">分布式</a> <a href="/blog/tags/SQL/" style="font-size: 15px;">SQL</a> <a href="/blog/tags/NoSQL/" style="font-size: 15px;">NoSQL</a> <a href="/blog/tags/sudo/" style="font-size: 15px;">sudo</a> <a href="/blog/tags/Docker/" style="font-size: 15px;">Docker</a> <a href="/blog/tags/git/" style="font-size: 15px;">git</a> <a href="/blog/tags/Linux/" style="font-size: 15px;">Linux</a> <a href="/blog/tags/Git/" style="font-size: 15px;">Git</a> <a href="/blog/tags/gcc/" style="font-size: 15px;">gcc</a> <a href="/blog/tags/Systemd/" style="font-size: 15px;">Systemd</a> <a href="/blog/tags/Tensorflow/" style="font-size: 15px;">Tensorflow</a> <a href="/blog/tags/命令行/" style="font-size: 15px;">命令行</a> <a href="/blog/tags/网络/" style="font-size: 15px;">网络</a> <a href="/blog/tags/操作系统/" style="font-size: 15px;">操作系统</a> <a href="/blog/tags/记录/" style="font-size: 15px;">记录</a> <a href="/blog/tags/正则表达式/" style="font-size: 15px;">正则表达式</a> <a href="/blog/tags/数据结构/" style="font-size: 15px;">数据结构</a> <a href="/blog/tags/Go/" style="font-size: 15px;">Go</a> <a href="/blog/tags/go/" style="font-size: 15px;">go</a> <a href="/blog/tags/Java/" style="font-size: 15px;">Java</a> <a href="/blog/tags/LRU/" style="font-size: 15px;">LRU</a> <a href="/blog/tags/ARC/" style="font-size: 15px;">ARC</a> <a href="/blog/tags/剑指Offer/" style="font-size: 15px;">剑指Offer</a> <a href="/blog/tags/函数式/" style="font-size: 15px;">函数式</a> <a href="/blog/tags/搜索引擎/" style="font-size: 15px;">搜索引擎</a> <a href="/blog/tags/Stack/" style="font-size: 15px;">Stack</a> <a href="/blog/tags/并发编程/" style="font-size: 15px;">并发编程</a> <a href="/blog/tags/网络编程/" style="font-size: 15px;">网络编程</a> <a href="/blog/tags/并发/" style="font-size: 15px;">并发</a> <a href="/blog/tags/HTTP/" style="font-size: 15px;">HTTP</a> <a href="/blog/tags/装饰器/" style="font-size: 15px;">装饰器</a> <a href="/blog/tags/Redis/" style="font-size: 15px;">Redis</a> <a href="/blog/tags/数学/" style="font-size: 15px;">数学</a> <a href="/blog/tags/时间序列/" style="font-size: 15px;">时间序列</a> <a href="/blog/tags/投资/" style="font-size: 15px;">投资</a> <a href="/blog/tags/概率/" style="font-size: 15px;">概率</a> <a href="/blog/tags/统计/" style="font-size: 15px;">统计</a> <a href="/blog/tags/信息论/" style="font-size: 15px;">信息论</a> <a href="/blog/tags/度量/" style="font-size: 15px;">度量</a> <a href="/blog/tags/机器学习/" style="font-size: 15px;">机器学习</a> <a href="/blog/tags/贝叶斯/" style="font-size: 15px;">贝叶斯</a> <a href="/blog/tags/最小二乘法/" style="font-size: 15px;">最小二乘法</a> <a href="/blog/tags/分布/" style="font-size: 15px;">分布</a> <a href="/blog/tags/矩阵/" style="font-size: 15px;">矩阵</a> <a href="/blog/tags/深度学习/" style="font-size: 15px;">深度学习</a> <a href="/blog/tags/变分推断/" style="font-size: 15px;">变分推断</a> <a href="/blog/tags/随机/" style="font-size: 15px;">随机</a> <a href="/blog/tags/不等式/" style="font-size: 15px;">不等式</a> <a href="/blog/tags/采样/" style="font-size: 15px;">采样</a> <a href="/blog/tags/光滑/" style="font-size: 15px;">光滑</a> <a href="/blog/tags/逼近/" style="font-size: 15px;">逼近</a> <a href="/blog/tags/交叉验证/" style="font-size: 15px;">交叉验证</a> <a href="/blog/tags/特征工程/" style="font-size: 15px;">特征工程</a> <a href="/blog/tags/集成学习/" style="font-size: 15px;">集成学习</a> <a href="/blog/tags/分类/" style="font-size: 15px;">分类</a> <a href="/blog/tags/证明/" style="font-size: 15px;">证明</a> <a href="/blog/tags/损失函数/" style="font-size: 15px;">损失函数</a> <a href="/blog/tags/回归/" style="font-size: 15px;">回归</a> <a href="/blog/tags/词向量/" style="font-size: 15px;">词向量</a> <a href="/blog/tags/信息/" style="font-size: 15px;">信息</a> <a href="/blog/tags/正则化/" style="font-size: 15px;">正则化</a> <a href="/blog/tags/NLP/" style="font-size: 15px;">NLP</a> <a href="/blog/tags/Embedding/" style="font-size: 15px;">Embedding</a> <a href="/blog/tags/神经网络/" style="font-size: 15px;">神经网络</a> <a href="/blog/tags/Transformer/" style="font-size: 15px;">Transformer</a> <a href="/blog/tags/Attention/" style="font-size: 15px;">Attention</a> <a href="/blog/tags/文本分类/" style="font-size: 15px;">文本分类</a> <a href="/blog/tags/对抗训练/" style="font-size: 15px;">对抗训练</a> <a href="/blog/tags/分词/" style="font-size: 15px;">分词</a> <a href="/blog/tags/并行/" style="font-size: 15px;">并行</a> <a href="/blog/tags/图/" style="font-size: 15px;">图</a> <a href="/blog/tags/NER/" style="font-size: 15px;">NER</a> <a href="/blog/tags/HMM/" style="font-size: 15px;">HMM</a> <a href="/blog/tags/概率图/" style="font-size: 15px;">概率图</a> <a href="/blog/tags/可视化/" style="font-size: 15px;">可视化</a> <a href="/blog/tags/RNN/" style="font-size: 15px;">RNN</a> <a href="/blog/tags/LSTM/" style="font-size: 15px;">LSTM</a> <a href="/blog/tags/注意力/" style="font-size: 15px;">注意力</a> <a href="/blog/tags/序列编码/" style="font-size: 15px;">序列编码</a> <a href="/blog/tags/梯度/" style="font-size: 15px;">梯度</a> <a href="/blog/tags/磁盘故障/" style="font-size: 15px;">磁盘故障</a> <a href="/blog/tags/BERT/" style="font-size: 15px;">BERT</a> <a href="/blog/tags/CNN/" style="font-size: 15px;">CNN</a> <a href="/blog/tags/卷积/" style="font-size: 15px;">卷积</a> <a href="/blog/tags/优化/" style="font-size: 15px;">优化</a> <a href="/blog/tags/调参/" style="font-size: 15px;">调参</a> <a href="/blog/tags/Flask/" style="font-size: 15px;">Flask</a> <a href="/blog/tags/web/" style="font-size: 15px;">web</a> <a href="/blog/tags/socket/" style="font-size: 15px;">socket</a> <a href="/blog/tags/安全/" style="font-size: 15px;">安全</a> <a href="/blog/tags/协程/" style="font-size: 15px;">协程</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-file-o"> 最近文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/blog/16003/">天马行空：设计自己的激活函数</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/15887/">函数光滑近似（4）：Heaviside step函数及其应用</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/15205/">引入参数控制softmax的smooth程度</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/15110/">分析与拓展：多分类模型的输出为什么使用softmax？</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14990/">一种基于光滑逼近的正态分布采样法</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14721/">GELU由来：从狄拉克函数到GELU激活函数</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14465/">Lp范数的上下界分析</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14441/">logsumexp函数分析</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14133/">分析Mish激活函数的设计思路</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/13899/">阿尔法经济学：Shiller模型介绍</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-external-link"> 友情链接</i></div><ul></ul><a href="https://github.com/allenwind" title="My GitHub" target="_blank">My GitHub</a><ul></ul><a href="http://www.arxiv-sanity.com/" title="arxiv-sanity" target="_blank">arxiv-sanity</a><ul></ul><a href="https://arxiv.org/" title="arxiv.org" target="_blank">arxiv.org</a></div></div></div><div class="pure-u-1 pure-u-md-3-4"><div id="footer">Copyright © 2021 <a href="/blog/." rel="nofollow">Mr.Feng Blog.</a> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a><a rel="nofollow" target="_blank" href="https://github.com/tufu9441/maupassant-hexo"> Theme</a> by<a rel="nofollow" target="_blank" href="https://github.com/pagecho"> Cho.</a></div></div></div><a class="show" id="rocket" href="#top"></a><script type="text/javascript" src="/blog/js/totop.js?v=0.0.0" async></script><script type="text/javascript" src="//lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js" async></script><script type="text/javascript" src="/blog/js/fancybox.js?v=0.0.0" async></script><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css"><script type="text/x-mathjax-config">MathJax.Hub.Config({
+  tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}
+  });
+</script><script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-MML-AM_CHTML" async></script><script type="text/javascript" src="/blog/js/codeblock-resizer.js?v=0.0.0"></script><script type="text/javascript" src="/blog/js/smartresize.js?v=0.0.0"></script></div></body></html>

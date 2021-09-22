@@ -1,0 +1,192 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.9.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description" content="你好，世界！"><title>求句向量的思路探索 | Mr.Feng Blog</title><link rel="stylesheet" type="text/css" href="/blog/css/style.css?v=0.0.0"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/normalize/8.0.1/normalize.min.css"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/pure/1.0.0/pure-min.css"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/pure/1.0.0/grids-responsive-min.css"><link rel="stylesheet" href="//lib.baomitu.com/font-awesome/4.7.0/css/font-awesome.min.css"><script type="text/javascript" src="//lib.baomitu.com/jquery/3.4.0/jquery.min.js"></script><link rel="icon" mask sizes="any" href="/blog/favicon.ico"><link rel="Shortcut Icon" type="image/x-icon" href="/blog/favicon.ico"><link rel="apple-touch-icon" href="/blog/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/blog/apple-touch-icon.png"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">求句向量的思路探索</h1><a id="logo" href="/blog/.">Mr.Feng Blog</a><p class="description">NLP、深度学习、机器学习、Python、Go</p></div><div id="nav-menu"><a class="current" href="/blog/."><i class="fa fa-home"> 首页</i></a><a href="/blog/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/blog/about/"><i class="fa fa-user"> 关于</i></a></div></div><div class="pure-g" id="layout"><div class="pure-u-1 pure-u-md-3-4"><div class="content_container"><div class="post"><h1 class="post-title">求句向量的思路探索</h1><div class="post-meta">Feb 27, 2019<span> | </span><span class="category"><a href="/blog/categories/NLP/">NLP</a></span></div><div class="clear"><div class="toc-article" id="toc"><div class="toc-title">文章目录</div><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#VSM直接获得"><span class="toc-number">1.</span> <span class="toc-text">VSM直接获得</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#基于词向量序列Pooling"><span class="toc-number">2.</span> <span class="toc-text">基于词向量序列Pooling</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#GlobalAveragePooling1D"><span class="toc-number">2.1.</span> <span class="toc-text">GlobalAveragePooling1D</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#GlobalMaxPool1D"><span class="toc-number">2.2.</span> <span class="toc-text">GlobalMaxPool1D</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#更多Pooling1D"><span class="toc-number">2.3.</span> <span class="toc-text">更多Pooling1D</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#基于词向量序列的加权平均"><span class="toc-number">3.</span> <span class="toc-text">基于词向量序列的加权平均</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#IDF加权平均"><span class="toc-number">3.1.</span> <span class="toc-text">IDF加权平均</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#SIF加权平均"><span class="toc-number">3.2.</span> <span class="toc-text">SIF加权平均</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#权重自动学习"><span class="toc-number">3.3.</span> <span class="toc-text">权重自动学习</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#基于模型的句向量"><span class="toc-number">4.</span> <span class="toc-text">基于模型的句向量</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#RNN-based"><span class="toc-number">4.1.</span> <span class="toc-text">RNN-based</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#CNN-based"><span class="toc-number">4.2.</span> <span class="toc-text">CNN-based</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Skip-Thought"><span class="toc-number">4.3.</span> <span class="toc-text">Skip-Thought</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Quick-Thought"><span class="toc-number">4.4.</span> <span class="toc-text">Quick-Thought</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#InferSent"><span class="toc-number">4.5.</span> <span class="toc-text">InferSent</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#基于预训练模型"><span class="toc-number">5.</span> <span class="toc-text">基于预训练模型</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#参考图像的方法"><span class="toc-number">6.</span> <span class="toc-text">参考图像的方法</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#补充（更新）"><span class="toc-number">7.</span> <span class="toc-text">补充（更新）</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#总结"><span class="toc-number">8.</span> <span class="toc-text">总结</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#参考"><span class="toc-number">9.</span> <span class="toc-text">参考</span></a></li></ol></div></div><div class="post-content"><p>本文介绍一些求句向量的方法。</p>
+<a id="more"></a>
+<p>所谓的句向量就是在word的粒度上，求更大粒度paragraph、sentence、document的向量化表征。在很多任务中，我们最终要面对的是如何通过词向量获得句向量，或者直接构造句向量，以便下游任务直接使用，如文本分类、文本匹配或构造复杂场景如生成任务、阅读理解任务的Attention query等等。</p>
+<p>句向量的获取方式可以分为以下几大类：</p>
+<ul>
+<li>VSM直接获得（是一个非常强的baseline）</li>
+<li>基于词向量序列Pooling</li>
+<li>基于词向量序列的加权平均</li>
+<li>基于模型，如RNN</li>
+<li>基于任务，如多任务、匹配、生成、对话</li>
+<li>基于训练策略，如最大化互信息的句向量</li>
+</ul>
+<p>从是否带监督数据可以分为：</p>
+<ul>
+<li>无监督句向量（对工业界共重要）</li>
+<li>有监督句向量</li>
+</ul>
+<p>此外，关于句向量还要考虑如下问题：</p>
+<ul>
+<li>不定长的词向量序列变为定长的句向量需要语义压缩，直觉上，这个过程肯定要丢失大量信息。如果剩下的都是对下游任务有用的信息，如何做？</li>
+<li>句子由词组成，那么句向量如何融入位置信息？</li>
+<li>在词向量的基础上，增加字符级别的信息是个很好的想法。对于英语来说，这是一个十分自然的想法，单词有词根、前缀等subword根据构词法组合而成，这些效果如何？</li>
+</ul>
+<h2 id="VSM直接获得"><a href="#VSM直接获得" class="headerlink" title="VSM直接获得"></a>VSM直接获得</h2><p>根据VSM直接获取文档或句子的定长向量表示，文档-单词矩阵，</p>
+<script type="math/tex; mode=display">
+\boldsymbol{D}_{m,n} = \begin{bmatrix}
+w_{1,1} & w_{1,2} & \dots & w_{1,n} \cr
+w_{2,1} & w_{2,2} & \dots & w_{2,n} \cr
+\vdots & \vdots & \vdots & \vdots \cr
+w_{m,1} & w_{m,2} & \dots & w_{m,n}
+\end{bmatrix}</script><p>称以上矩阵为文档-单词共现矩阵（document-word co-occurrence matrix）。获取权重具体方法包括one-hot、TF-IDF、TF、IDF等，此外为引入语序信息，可以引入n-grams。VSM获得的句向量是一个非常强的baseline。</p>
+<p>那么句子$D$​的每一行就是一个句子或文档的表示，通常获得特征维度非常高，特征大小等于词表大小，资源消耗大，词表大容易OOM。此时可以考虑对矩阵进行降维，如SVD分解，</p>
+<script type="math/tex; mode=display">
+D_{文档,单词} = P_{文档,主题}\Sigma_{主题强度}Q^\top_{单词,主题}</script><p>矩阵$P \in R^{m \times r}$，每一行表示文档的主题分布，第$i$行表示文档$i$的向量化表征，每个表征向量的维度为$r \lt n$，从而起到降维作用。</p>
+<p>不过共现矩阵本质是BOW模型，无法解决词序及其相关问题。</p>
+<h2 id="基于词向量序列Pooling"><a href="#基于词向量序列Pooling" class="headerlink" title="基于词向量序列Pooling"></a>基于词向量序列Pooling</h2><p>字ID序列通过神经网络Embedding模型（比如word2vec、或者模型中Embedding层的输出）后，获得词向量序列，</p>
+<script type="math/tex; mode=display">
+\boldsymbol{X} = [\boldsymbol{X}_{1},\boldsymbol{X}_{2}, \dots, \boldsymbol{X}_{n}] = \operatorname{Embedding}(c_1, c_2, \dots, c_n)</script><p>这里句子的长度为$n$，Pooling方法要做的事情是对不定长的词向量序列$\boldsymbol{X} = [\boldsymbol{X}_{1}, \dots, \boldsymbol{X}_{n}]$​进行信息压缩，获得定长的向量，</p>
+<script type="math/tex; mode=display">
+\boldsymbol{X}_{\text{sentence}} = \operatorname{Pooling}( [\boldsymbol{X}_{1}, \dots, \boldsymbol{X}_{n}] )</script><h3 id="GlobalAveragePooling1D"><a href="#GlobalAveragePooling1D" class="headerlink" title="GlobalAveragePooling1D"></a>GlobalAveragePooling1D</h3><p>sentence2vec的最容易想到的方法是，基于句子中词的embedding输出的词向量序列来取简单平均，</p>
+<script type="math/tex; mode=display">
+\boldsymbol{X}_{\text{sentence}} = \frac{1}{n} \sum_{i=1}^{n} \boldsymbol{X}_i</script><p>在实践上，由于句子是不定长的，因此要注意mask掉padding的影响。</p>
+<h3 id="GlobalMaxPool1D"><a href="#GlobalMaxPool1D" class="headerlink" title="GlobalMaxPool1D"></a>GlobalMaxPool1D</h3><p>还有一种容易联想到的做法是获取词向量序列中，每个维度的最大值并组合成句向量，</p>
+<script type="math/tex; mode=display">
+\boldsymbol{X}_{\text{sentence}} = \operatorname{GlobalMaxPool1D}( [\boldsymbol{X}_{1}, \dots, \boldsymbol{X}_{n}] )</script><p>GlobalMaxPool1D直观的示意图（更新）如下，</p>
+<p><img src="../images/global-max-pooling-vis-demo-1-1.png" alt></p>
+<p>此图中，获得的句向量也就是$[e_{21}, e_{42}, e_{53}, e_{64}]$​​向量。可以看做是词向量序列所构成的矩阵与某个0-1矩阵的乘积，</p>
+<script type="math/tex; mode=display">
+\boldsymbol{X}_{\text{sentence}} = \boldsymbol{X}_1 \cdot \boldsymbol{v}_1 + \cdots + \boldsymbol{X}_n \cdot \boldsymbol{v}_n</script><p>$\boldsymbol{v}_i$是一个元素取值要么为0要么为1的向量。</p>
+<h3 id="更多Pooling1D"><a href="#更多Pooling1D" class="headerlink" title="更多Pooling1D"></a>更多Pooling1D</h3><p>依据类似的思路，可以构造更多的Pooling，如LastPooling，即使用词向量序列的最后一个向量作为句向量，</p>
+<script type="math/tex; mode=display">
+\boldsymbol{X}_{\text{sentence}} = \operatorname{LastPooling1D}( [\boldsymbol{X}_{1}, \dots, \boldsymbol{X}_{n}] ) = \boldsymbol{X}_n</script><p>不过这种做法要配合具体的模型使用，如RNN由于其递归计算，最后一个时间步的输出是可以作为向量。</p>
+<p>总之，词向量序列可以通过word2vec、GloVe、FastText等模型获得，接着在向量序列中通过Pooling方法计算句向量。同时考虑，由于序列通常是不定长的，注意编程实现时的Mask处理。</p>
+<h2 id="基于词向量序列的加权平均"><a href="#基于词向量序列的加权平均" class="headerlink" title="基于词向量序列的加权平均"></a>基于词向量序列的加权平均</h2><p>Pooling方法比较粗糙或者说暴力，无论是LastPooling、MeanPooling、MaxPooling，其中LastPooling适合RNN类模型，还是其扩展本身都没有考虑词的重要性差异。其中提到的GlobalAveragePooling1D，其实就是直接平均，它并没有考虑词的重要性。更好的方式是加权平均，</p>
+<script type="math/tex; mode=display">
+\boldsymbol{X}_{\text{sentence}} = [\boldsymbol{X}_{1}, \dots, \boldsymbol{X}_{n}] \cdot [w_{1}, \dots, w_{n}] = \sum_{i=1}^{n} w_i \boldsymbol{X}_i</script><p>权重可以是：</p>
+<ul>
+<li>TF</li>
+<li>IDF</li>
+<li>TF-IDF</li>
+<li>SIF</li>
+</ul>
+<p>这些权重计算方式都是从不同角度刻画词的重要性。加权平均后，句向量可能发生均值统计漂移，这时可以通过Normaliaztion修正。</p>
+<h3 id="IDF加权平均"><a href="#IDF加权平均" class="headerlink" title="IDF加权平均"></a>IDF加权平均</h3><p>IDF平均就是对于词$c_i$，富裕其词向量$\boldsymbol{X}_i$权重为该词的IDF值，</p>
+<script type="math/tex; mode=display">
+\boldsymbol{X}_{\text{sentence}} =  \sum_{i=1}^{n} \text{idf}(c_i) \times \boldsymbol{X}_i</script><p>其中$\text{idf}(c_i)$为，</p>
+<script type="math/tex; mode=display">
+\text{idf}(c_i) = \log \frac{N}{c_i \text{在文档集中出现的次数} + 1}</script><p>IDF值一般都是通过大量语料统计获得，再应用时通过查字典的方式获得给定词的IDF值。类似的还有事TF-IDF、TF作为权重。</p>
+<p>可以从信息论角度，IDF可以作为该词的信息量的度量，</p>
+<script type="math/tex; mode=display">
+l(x) = \lceil \log \frac{1}{p_{i}} \rceil</script><p>因此，IDF加权平均倾向于对不确定性更大的词富裕更大的权重。</p>
+<h3 id="SIF加权平均"><a href="#SIF加权平均" class="headerlink" title="SIF加权平均"></a>SIF加权平均</h3><p>SIF Embedding来自论文 <a href="https://openreview.net/pdf?id=SyK00v5xx" target="_blank" rel="noopener">a simple but tough-to-beat baseline for sentence embeddings</a>，提出词向量序列的线性组合并去掉它们的第一个主成分投影来构造句向量。</p>
+<p>SIF的权重计算如下，</p>
+<script type="math/tex; mode=display">
+w_{i} = \frac{\alpha}{\alpha + f_{i}}</script><p>$f_{i}$​为item的频率，可以理解为一种smooth的期望值。更多的细节可以参考论文。</p>
+<p>此外，<a href="https://arxiv.org/abs/1803.01400" target="_blank" rel="noopener">Concatenated Power Mean Word Embeddings as Universal Cross-Lingual Sentence Representations</a>通过Power Mean方法构造词向量，DisC: A Compressed Sensing View of Unsupervised Text Embeddings, Bag-of-n-Grams, and LSTMs使用压缩感知来构造句向量，压缩感知来构造句向量的思想是，保留或挖掘最有用的特征，丢弃掉无用的特征，以此构造富特征的句向量，说白了就是去伪存真，只保留词向量序列中最有用的那一部分信息。类似的方法深挖有很多。</p>
+<p><strong>更新</strong>：如果只是单纯地想加权平均，从数学中也可以构造很多加权平均方法，可以参考我最新的文章<a href="../9606">信息聚合漫谈：加权平均思路</a>。</p>
+<p>在实践中可以尝试组合多种加权平均方法获取句向量，并拼接。不过要注意，这类方法<strong>本质上还是基于BOW思想，忽略词序信息</strong>。</p>
+<h3 id="权重自动学习"><a href="#权重自动学习" class="headerlink" title="权重自动学习"></a>权重自动学习</h3><p>既然是深度学习，重要的东西可以让网络模型自动学习，比如加权平均中的权重。这个想法很好，我们可以设计一个网络模型，来自动学习不同词的权重。用 $w(\boldsymbol{X}_i)$ 来表示该词向量的权重，于是有</p>
+<script type="math/tex; mode=display">
+\boldsymbol{X}_{\text{sentence}} =\sum_{i=1}^n w(\boldsymbol{X}_{i}) \boldsymbol{X}_i</script><p>这个权重需要考虑几点：</p>
+<ul>
+<li>不能有负权重，因为词在句子中不应该起负作用</li>
+<li>权重应该满足归一化，即权重是个概率分布</li>
+</ul>
+<p>满足非负权重和归一化这两个条件，最容易让人想到的就是softmax，于是</p>
+<script type="math/tex; mode=display">
+w(\boldsymbol{X}_i) = \frac{e^{s(\boldsymbol{X}_{i})}}{\displaystyle \sum_{i=1}^n e^{s(\boldsymbol{X}_{i})}}, i = 1, \dots, n</script><p>这个$s(\boldsymbol{X}_i)$可以是简单的Dense，</p>
+<script type="math/tex; mode=display">
+s(\boldsymbol{X}_i) = \boldsymbol{v}^{\top} \boldsymbol{X}_i</script><p>把向量$\boldsymbol{X}_i$压缩为$1\times 1$的值。</p>
+<p>在进一步，更成熟的方案是AttentionPooling1D，未归一化的权重为，</p>
+<script type="math/tex; mode=display">
+[\alpha_{1}, \dots, \alpha_{n}] = s(\boldsymbol{x})= \boldsymbol{w}^{\mathsf{T}}\tanh(\boldsymbol{WX})</script><p>$\boldsymbol{W}, \boldsymbol{w}$​都是可学习的参数。在softmax归一化后有，</p>
+<script type="math/tex; mode=display">
+(\lambda_1, \dots, \lambda_n) = \operatorname{softmax}(\boldsymbol{w}^{\mathsf{T}}\tanh(\boldsymbol{WX}))</script><p>因此有，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+\boldsymbol{X}_{\text{sentence}}
+&= \operatorname{AttentionPooling1D}(\boldsymbol{X})  \\
+&= \sum_{i=1}^{n} \lambda_{i}\boldsymbol{X}_{i} \\
+&= \operatorname{softmax}\Big[\boldsymbol{w}^{\mathsf{T}}\tanh(\boldsymbol{WX})\Big] \boldsymbol{X}
+\end{align}</script><p>AttentionPooling1D构造句向量的直观视图，</p>
+<p><img src="../images/additive-attention.png" alt="additive-attention.png"></p>
+<p>如果把 $\boldsymbol{X} = \left [\boldsymbol{x}_{1},\boldsymbol{x}_{2},\cdots,\boldsymbol{x}_{n} \right]$​ 序列打乱，在扔到这个神经网络中，得到的句向量还是一样的，这意味着AttentionPooling1D本质上还是BOW。为此，可以在Embedding上叠加位置Embedding，于是每个词向量为，</p>
+<script type="math/tex; mode=display">
+\widetilde{\boldsymbol{X}}_{i} = \boldsymbol{X}_{i} + \boldsymbol{p}_{i}</script><p>$\boldsymbol{p}_{i}$为位置$i$​的位置向量。既然万物皆Embedding，那么位置也能Embedding，一种最直接的做法就是对位置编号$i$也使用Embedding，即</p>
+<script type="math/tex; mode=display">
+\widetilde{\boldsymbol{X}}_{i} = \boldsymbol{X}_{i} + \operatorname{Embedding}(i)</script><h2 id="基于模型的句向量"><a href="#基于模型的句向量" class="headerlink" title="基于模型的句向量"></a>基于模型的句向量</h2><p>基于模型的句向量，最直接是在Embedding层后加入RNN（LSTM、GRU）、CNN，但不止这些~</p>
+<h3 id="RNN-based"><a href="#RNN-based" class="headerlink" title="RNN-based"></a>RNN-based</h3><p>RNN天生对序列具有很好的建模能力，通常可以拿最后一个时间步的隐向量或每个时间步的隐向量序列的平均或<strong>指数衰减</strong>来作为句向量，</p>
+<script type="math/tex; mode=display">
+[\boldsymbol{h}_1, \dots, \boldsymbol{h}_n] = \operatorname{RNN}([\boldsymbol{X}_{1}, \dots, \boldsymbol{X}_{n}])</script><p>于是我们拿$\boldsymbol{h}_n$​作为句向量的表征。为什么能行，因为RNN本质是递归计算，最后一步的输出已经包括所有历史序列的有效信息，</p>
+<script type="math/tex; mode=display">
+\boldsymbol{h}_{i} = \operatorname{RNN}(\boldsymbol{h}_{i-1}, \boldsymbol{X}_i)</script><p>当$i=n$​​时即获得最后一步的输出。具体的RNN编码器有：</p>
+<ul>
+<li>LSTM</li>
+<li>GRU</li>
+<li>biLSTM</li>
+</ul>
+<p>当然在理想情况下，最后一步的输出已经包括所有历史序列的有效信息，但是序列太长，RNN也是会遗忘的。另外，RNN的递归计算无法并行，获得的模型推理性能也会受到限制。</p>
+<h3 id="CNN-based"><a href="#CNN-based" class="headerlink" title="CNN-based"></a>CNN-based</h3><p>CNN易于并行能够学到n-grams信息，通过一定的技巧，如膨胀卷积学到更长距离的信息。CNN通过不断堆叠扩大感受野，结合Pooling方案，输出的序列长度变为1，改结果可以作为句向量的表征。</p>
+<h3 id="Skip-Thought"><a href="#Skip-Thought" class="headerlink" title="Skip-Thought"></a>Skip-Thought</h3><p>根据word2vec的思想，我们把word粒度提升到sentence粒度，也可以获得sentence的表示。论文<a href="https://arxiv.org/abs/1506.06726" target="_blank" rel="noopener">Skip-Thought Vectors</a>中提出通过当前sentence来预测上下文sentence的训练方法。假设有句子三元组$(s_{i-1}, s_{i}, s_{i+1})$，它通过$s_{i}$预测$(s_{i-1}, s_{i+1})$，即预测上一个句子和下一个句子。模型采用encoder-decoder架构，其中encoder对$s_{i}$进行编码，</p>
+<script type="math/tex; mode=display">
+\boldsymbol{c}_{i} = \operatorname{GRU}(\boldsymbol{x}_{i}^{(1)}, \dots, \boldsymbol{x}_{i}^{(n)})</script><p>获得上下文向量$\boldsymbol{c}_{i}$，然后使用两个部分参数共享的decoder分别预测$s_{i-1}$和$s_{i+1}$。基于这种思路的改进方案有很多，如使用更深的encoder-decoder架构，更好encoder如LSTM、Attention等。</p>
+<p>Skip-Thought方案是生成模型，且编码器使用RNN，另外还涉及生成任务即encoder-decoder架构，所以训练效率慢。</p>
+<h3 id="Quick-Thought"><a href="#Quick-Thought" class="headerlink" title="Quick-Thought"></a>Quick-Thought</h3><p><a href>Quick-Thought Vectors</a>（来自论文An efficient framework for learning sentence representations）改进Skip-Thought Vectors训练方式，后者是生成任务，前者是分类任务，在大规模语料上训练效率大大提升。</p>
+<p>Quick-Thought通过训练分类器来区分句子是前后句还是其他句子来进行参数学习。</p>
+<h3 id="InferSent"><a href="#InferSent" class="headerlink" title="InferSent"></a>InferSent</h3><p>InferSent（来自论文Supervised learning of universal sentence representations from natural language inference data）训练text matching来获取句向量，模型的架构如下，</p>
+<p><img src="../images/match-nlp.jpg" alt></p>
+<p>作者使用七中编码架构获取句向量，详细可参看论文。</p>
+<h2 id="基于预训练模型"><a href="#基于预训练模型" class="headerlink" title="基于预训练模型"></a>基于预训练模型</h2><p>这是BERT的模型架构Embedding部分，</p>
+<p><img src="../images/bert-embedding.png" alt></p>
+<p>模型的<code>[CLS]</code>的输出可以作为整个句子的向量化表征，实则上其是上一层的隐向量序列的加权平均，</p>
+<script type="math/tex; mode=display">
+\boldsymbol{h}_{cls} = \sum_{i=1}^{n} \lambda_{i,cls} \boldsymbol{x}_i</script><p>类似于BERT的其他Transformer模型，从大规模语料库中预训练上下文Embedding，然后应用在下游任务中，这大概是目前的趋势。大规模语料库加持下，运用迁移学习，下游任务往往表现很好。</p>
+<h2 id="参考图像的方法"><a href="#参考图像的方法" class="headerlink" title="参考图像的方法"></a>参考图像的方法</h2><p>Embedding层输出的词向量序列$[\boldsymbol{X}_{1}, \dots, \boldsymbol{X}_{n}]$构成一个矩阵，因此可以当做图像来处理，使用如下方法获取图像哈希：</p>
+<ul>
+<li><p>平均哈希 average hash</p>
+</li>
+<li><p>差分哈希 difference hash</p>
+</li>
+<li><p><a href="http://www.hackerfactor.com/blog/index.php?/archives/529-Kind-of-Like-That.html" target="_blank" rel="noopener">差分哈希 difference hash</a></p>
+</li>
+<li><p>感知哈希 perceptual hash</p>
+</li>
+<li><p>小波哈希 wavelet hash</p>
+</li>
+<li><p><a href="https://www.kaggle.com/c/avito-duplicate-ads-detection/" target="_blank" rel="noopener">小波哈希 wavelet hash</a></p>
+</li>
+</ul>
+<p>该哈希值作为句向量表征。</p>
+<h2 id="补充（更新）"><a href="#补充（更新）" class="headerlink" title="补充（更新）"></a>补充（更新）</h2><p>以上提及方案的部分实现见：<a href="https://github.com/allenwind/sentence-embedding" target="_blank" rel="noopener">https://github.com/allenwind/sentence-embedding</a></p>
+<p>可能根据需要持续更新~</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>以上我们谈了很多获取句向量的方法，获取方式可以分为以下几大类：</p>
+<ul>
+<li>VSM直接获得（是一个非常强的baseline）</li>
+<li>基于词向量序列Pooling</li>
+<li>基于词向量序列的加权平均</li>
+<li>基于模型，如RNN</li>
+<li>基于任务，如多任务、匹配、生成、对话</li>
+<li>基于训练策略，如最大化互信息的句向量</li>
+</ul>
+<p>从是否带监督数据可以分为：</p>
+<ul>
+<li>无监督句向量（对工业界共重要）</li>
+<li>有监督句向量</li>
+</ul>
+<p>具体方法包括各种Pooling、各种加权平均方法以及Skip-Thoughts、Quick-Thoughts、InferSent等等。</p>
+<p>留下几个问题：</p>
+<ul>
+<li>sentence2vec，那么sentence是否可以用矩阵表示即sentence2mat？</li>
+<li>类似，词可以向量化表征，词是否也可以用矩阵表征？</li>
+<li>Embedding都是1D，是否可以推广，即Embedding2D</li>
+</ul>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p>[1] ELMo:Embeddings from Language Models</p>
+<p>[2] Skip-Thought Vectors</p>
+<p>[3] Learning General Purpose Distributed Sentence Representations via Large Scale Multi-task Learning</p>
+<p>[4] Universal Sentence Encode</p>
+<p>[5] Deep Averaging Network</p>
+<p>[6] Concatenated p-mean Word Embeddings</p>
+<p>[7] Learning Semantic Textual Similarity from Conversations</p>
+<p>[8] Supervised Learning of Universal Sentence Representations from Natural Language Inference Data</p>
+<p>[9] <a href="https://github.com/UKPLab/sentence-transformers" target="_blank" rel="noopener">https://github.com/UKPLab/sentence-transformers</a></p>
+<p>[10] <a href="https://github.com/Separius/awesome-sentence-embedding" target="_blank" rel="noopener">https://github.com/Separius/awesome-sentence-embedding</a></p>
+<p>[11] <a href="https://arxiv.org/abs/1710.06524" target="_blank" rel="noopener">https://arxiv.org/abs/1710.06524</a></p>
+<p>[12] <a href="http://www.cs.cmu.edu/~jwieting/" target="_blank" rel="noopener">http://www.cs.cmu.edu/~jwieting/</a></p>
+<p>[13] <a href="https://arxiv.org/abs/1805.04032" target="_blank" rel="noopener">From Word to Sense Embeddings: A Survey on Vector Representations of Meaning</a></p>
+<p>[14] <a href="https://en.wikipedia.org/wiki/Generalized_mean" target="_blank" rel="noopener">https://en.wikipedia.org/wiki/Generalized_mean</a></p>
+<p>[15] <a href="https://github.com/Embedding/Chinese-Word-Vectors" target="_blank" rel="noopener">https://github.com/Embedding/Chinese-Word-Vectors</a></p>
+</div><div class="tags"><a href="/blog/tags/词向量/">词向量</a><a href="/blog/tags/NLP/">NLP</a><a href="/blog/tags/Embedding/">Embedding</a></div><div class="post-nav"><a class="pre" href="/blog/9405/">如何评估词向量化的优劣？</a><a class="next" href="/blog/9279/">词向量系列（6）：动态词向量CoVe之ELMo</a></div></div></div></div><div class="pure-u-1-4 hidden_mid_and_down"><div id="sidebar"><div class="widget"><form class="search-form" action="//www.google.com/search" method="get" accept-charset="utf-8" target="_blank"><input type="text" name="q" maxlength="20" placeholder="Search"><input type="hidden" name="sitesearch" value="http://allenwind.github.io/blog"></form></div><div class="widget"><div class="widget-title"><i class="fa fa-folder-o"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/blog/categories/C-C/">C/C++</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Go/">Go</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Java/">Java</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Linux/">Linux</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/NLP/">NLP</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Python/">Python</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/数学/">数学</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/数据库/">数据库</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/数据结构和算法/">数据结构和算法</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/机器学习深度学习/">机器学习深度学习</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/记录/">记录</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-star-o"> 标签</i></div><div class="tagcloud"><a href="/blog/tags/算法/" style="font-size: 15px;">算法</a> <a href="/blog/tags/C/" style="font-size: 15px;">C</a> <a href="/blog/tags/Python/" style="font-size: 15px;">Python</a> <a href="/blog/tags/设计模式/" style="font-size: 15px;">设计模式</a> <a href="/blog/tags/C语言/" style="font-size: 15px;">C语言</a> <a href="/blog/tags/数据库/" style="font-size: 15px;">数据库</a> <a href="/blog/tags/MySQL/" style="font-size: 15px;">MySQL</a> <a href="/blog/tags/ACID/" style="font-size: 15px;">ACID</a> <a href="/blog/tags/区块链/" style="font-size: 15px;">区块链</a> <a href="/blog/tags/分布式/" style="font-size: 15px;">分布式</a> <a href="/blog/tags/SQL/" style="font-size: 15px;">SQL</a> <a href="/blog/tags/NoSQL/" style="font-size: 15px;">NoSQL</a> <a href="/blog/tags/sudo/" style="font-size: 15px;">sudo</a> <a href="/blog/tags/Docker/" style="font-size: 15px;">Docker</a> <a href="/blog/tags/git/" style="font-size: 15px;">git</a> <a href="/blog/tags/Linux/" style="font-size: 15px;">Linux</a> <a href="/blog/tags/Git/" style="font-size: 15px;">Git</a> <a href="/blog/tags/gcc/" style="font-size: 15px;">gcc</a> <a href="/blog/tags/Systemd/" style="font-size: 15px;">Systemd</a> <a href="/blog/tags/Tensorflow/" style="font-size: 15px;">Tensorflow</a> <a href="/blog/tags/命令行/" style="font-size: 15px;">命令行</a> <a href="/blog/tags/网络/" style="font-size: 15px;">网络</a> <a href="/blog/tags/操作系统/" style="font-size: 15px;">操作系统</a> <a href="/blog/tags/记录/" style="font-size: 15px;">记录</a> <a href="/blog/tags/正则表达式/" style="font-size: 15px;">正则表达式</a> <a href="/blog/tags/数据结构/" style="font-size: 15px;">数据结构</a> <a href="/blog/tags/Go/" style="font-size: 15px;">Go</a> <a href="/blog/tags/go/" style="font-size: 15px;">go</a> <a href="/blog/tags/Java/" style="font-size: 15px;">Java</a> <a href="/blog/tags/LRU/" style="font-size: 15px;">LRU</a> <a href="/blog/tags/ARC/" style="font-size: 15px;">ARC</a> <a href="/blog/tags/剑指Offer/" style="font-size: 15px;">剑指Offer</a> <a href="/blog/tags/函数式/" style="font-size: 15px;">函数式</a> <a href="/blog/tags/搜索引擎/" style="font-size: 15px;">搜索引擎</a> <a href="/blog/tags/Stack/" style="font-size: 15px;">Stack</a> <a href="/blog/tags/并发编程/" style="font-size: 15px;">并发编程</a> <a href="/blog/tags/网络编程/" style="font-size: 15px;">网络编程</a> <a href="/blog/tags/并发/" style="font-size: 15px;">并发</a> <a href="/blog/tags/HTTP/" style="font-size: 15px;">HTTP</a> <a href="/blog/tags/装饰器/" style="font-size: 15px;">装饰器</a> <a href="/blog/tags/Redis/" style="font-size: 15px;">Redis</a> <a href="/blog/tags/数学/" style="font-size: 15px;">数学</a> <a href="/blog/tags/时间序列/" style="font-size: 15px;">时间序列</a> <a href="/blog/tags/投资/" style="font-size: 15px;">投资</a> <a href="/blog/tags/概率/" style="font-size: 15px;">概率</a> <a href="/blog/tags/统计/" style="font-size: 15px;">统计</a> <a href="/blog/tags/信息论/" style="font-size: 15px;">信息论</a> <a href="/blog/tags/度量/" style="font-size: 15px;">度量</a> <a href="/blog/tags/机器学习/" style="font-size: 15px;">机器学习</a> <a href="/blog/tags/贝叶斯/" style="font-size: 15px;">贝叶斯</a> <a href="/blog/tags/最小二乘法/" style="font-size: 15px;">最小二乘法</a> <a href="/blog/tags/分布/" style="font-size: 15px;">分布</a> <a href="/blog/tags/矩阵/" style="font-size: 15px;">矩阵</a> <a href="/blog/tags/深度学习/" style="font-size: 15px;">深度学习</a> <a href="/blog/tags/变分推断/" style="font-size: 15px;">变分推断</a> <a href="/blog/tags/随机/" style="font-size: 15px;">随机</a> <a href="/blog/tags/不等式/" style="font-size: 15px;">不等式</a> <a href="/blog/tags/采样/" style="font-size: 15px;">采样</a> <a href="/blog/tags/光滑/" style="font-size: 15px;">光滑</a> <a href="/blog/tags/逼近/" style="font-size: 15px;">逼近</a> <a href="/blog/tags/交叉验证/" style="font-size: 15px;">交叉验证</a> <a href="/blog/tags/特征工程/" style="font-size: 15px;">特征工程</a> <a href="/blog/tags/集成学习/" style="font-size: 15px;">集成学习</a> <a href="/blog/tags/分类/" style="font-size: 15px;">分类</a> <a href="/blog/tags/证明/" style="font-size: 15px;">证明</a> <a href="/blog/tags/损失函数/" style="font-size: 15px;">损失函数</a> <a href="/blog/tags/回归/" style="font-size: 15px;">回归</a> <a href="/blog/tags/词向量/" style="font-size: 15px;">词向量</a> <a href="/blog/tags/信息/" style="font-size: 15px;">信息</a> <a href="/blog/tags/正则化/" style="font-size: 15px;">正则化</a> <a href="/blog/tags/NLP/" style="font-size: 15px;">NLP</a> <a href="/blog/tags/Embedding/" style="font-size: 15px;">Embedding</a> <a href="/blog/tags/神经网络/" style="font-size: 15px;">神经网络</a> <a href="/blog/tags/Transformer/" style="font-size: 15px;">Transformer</a> <a href="/blog/tags/Attention/" style="font-size: 15px;">Attention</a> <a href="/blog/tags/文本分类/" style="font-size: 15px;">文本分类</a> <a href="/blog/tags/对抗训练/" style="font-size: 15px;">对抗训练</a> <a href="/blog/tags/分词/" style="font-size: 15px;">分词</a> <a href="/blog/tags/并行/" style="font-size: 15px;">并行</a> <a href="/blog/tags/图/" style="font-size: 15px;">图</a> <a href="/blog/tags/NER/" style="font-size: 15px;">NER</a> <a href="/blog/tags/HMM/" style="font-size: 15px;">HMM</a> <a href="/blog/tags/概率图/" style="font-size: 15px;">概率图</a> <a href="/blog/tags/可视化/" style="font-size: 15px;">可视化</a> <a href="/blog/tags/RNN/" style="font-size: 15px;">RNN</a> <a href="/blog/tags/LSTM/" style="font-size: 15px;">LSTM</a> <a href="/blog/tags/注意力/" style="font-size: 15px;">注意力</a> <a href="/blog/tags/序列编码/" style="font-size: 15px;">序列编码</a> <a href="/blog/tags/梯度/" style="font-size: 15px;">梯度</a> <a href="/blog/tags/磁盘故障/" style="font-size: 15px;">磁盘故障</a> <a href="/blog/tags/BERT/" style="font-size: 15px;">BERT</a> <a href="/blog/tags/CNN/" style="font-size: 15px;">CNN</a> <a href="/blog/tags/卷积/" style="font-size: 15px;">卷积</a> <a href="/blog/tags/优化/" style="font-size: 15px;">优化</a> <a href="/blog/tags/调参/" style="font-size: 15px;">调参</a> <a href="/blog/tags/Flask/" style="font-size: 15px;">Flask</a> <a href="/blog/tags/web/" style="font-size: 15px;">web</a> <a href="/blog/tags/socket/" style="font-size: 15px;">socket</a> <a href="/blog/tags/安全/" style="font-size: 15px;">安全</a> <a href="/blog/tags/协程/" style="font-size: 15px;">协程</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-file-o"> 最近文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/blog/16003/">天马行空：设计自己的激活函数</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/15887/">函数光滑近似（4）：Heaviside step函数及其应用</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/15205/">引入参数控制softmax的smooth程度</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/15110/">分析与拓展：多分类模型的输出为什么使用softmax？</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14990/">一种基于光滑逼近的正态分布采样法</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14721/">GELU由来：从狄拉克函数到GELU激活函数</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14465/">Lp范数的上下界分析</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14441/">logsumexp函数分析</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14133/">分析Mish激活函数的设计思路</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/13899/">阿尔法经济学：Shiller模型介绍</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-external-link"> 友情链接</i></div><ul></ul><a href="https://github.com/allenwind" title="My GitHub" target="_blank">My GitHub</a><ul></ul><a href="http://www.arxiv-sanity.com/" title="arxiv-sanity" target="_blank">arxiv-sanity</a><ul></ul><a href="https://arxiv.org/" title="arxiv.org" target="_blank">arxiv.org</a></div></div></div><div class="pure-u-1 pure-u-md-3-4"><div id="footer">Copyright © 2021 <a href="/blog/." rel="nofollow">Mr.Feng Blog.</a> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a><a rel="nofollow" target="_blank" href="https://github.com/tufu9441/maupassant-hexo"> Theme</a> by<a rel="nofollow" target="_blank" href="https://github.com/pagecho"> Cho.</a></div></div></div><a class="show" id="rocket" href="#top"></a><script type="text/javascript" src="/blog/js/totop.js?v=0.0.0" async></script><script type="text/javascript" src="//lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js" async></script><script type="text/javascript" src="/blog/js/fancybox.js?v=0.0.0" async></script><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css"><script type="text/x-mathjax-config">MathJax.Hub.Config({
+  tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}
+  });
+</script><script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-MML-AM_CHTML" async></script><script type="text/javascript" src="/blog/js/codeblock-resizer.js?v=0.0.0"></script><script type="text/javascript" src="/blog/js/smartresize.js?v=0.0.0"></script></div></body></html>

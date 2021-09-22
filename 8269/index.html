@@ -1,0 +1,287 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.9.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description" content="你好，世界！"><title>中文分词详解：从词典匹配到深度学习方法 | Mr.Feng Blog</title><link rel="stylesheet" type="text/css" href="/blog/css/style.css?v=0.0.0"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/normalize/8.0.1/normalize.min.css"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/pure/1.0.0/pure-min.css"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/pure/1.0.0/grids-responsive-min.css"><link rel="stylesheet" href="//lib.baomitu.com/font-awesome/4.7.0/css/font-awesome.min.css"><script type="text/javascript" src="//lib.baomitu.com/jquery/3.4.0/jquery.min.js"></script><link rel="icon" mask sizes="any" href="/blog/favicon.ico"><link rel="Shortcut Icon" type="image/x-icon" href="/blog/favicon.ico"><link rel="apple-touch-icon" href="/blog/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/blog/apple-touch-icon.png"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">中文分词详解：从词典匹配到深度学习方法</h1><a id="logo" href="/blog/.">Mr.Feng Blog</a><p class="description">NLP、深度学习、机器学习、Python、Go</p></div><div id="nav-menu"><a class="current" href="/blog/."><i class="fa fa-home"> 首页</i></a><a href="/blog/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/blog/about/"><i class="fa fa-user"> 关于</i></a></div></div><div class="pure-g" id="layout"><div class="pure-u-1 pure-u-md-3-4"><div class="content_container"><div class="post"><h1 class="post-title">中文分词详解：从词典匹配到深度学习方法</h1><div class="post-meta">Dec 12, 2018<span> | </span><span class="category"><a href="/blog/categories/NLP/">NLP</a></span></div><div class="clear"><div class="toc-article" id="toc"><div class="toc-title">文章目录</div><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#分词的意义"><span class="toc-number">1.</span> <span class="toc-text">分词的意义</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#中文分词的难点"><span class="toc-number">2.</span> <span class="toc-text">中文分词的难点</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#歧义的三种类型"><span class="toc-number">2.1.</span> <span class="toc-text">歧义的三种类型</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#真歧义"><span class="toc-number">2.2.</span> <span class="toc-text">真歧义</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#未登录词"><span class="toc-number">2.3.</span> <span class="toc-text">未登录词</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#分词规范"><span class="toc-number">2.4.</span> <span class="toc-text">分词规范</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#词典分词及其相关策略"><span class="toc-number">3.</span> <span class="toc-text">词典分词及其相关策略</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#完全切分"><span class="toc-number">3.1.</span> <span class="toc-text">完全切分</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#正向最长匹配"><span class="toc-number">3.2.</span> <span class="toc-text">正向最长匹配</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#逆向最长匹配"><span class="toc-number">3.3.</span> <span class="toc-text">逆向最长匹配</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#双向最长匹配"><span class="toc-number">3.4.</span> <span class="toc-text">双向最长匹配</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#词典分词结合词频信息"><span class="toc-number">4.</span> <span class="toc-text">词典分词结合词频信息</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#最短路径分词算法"><span class="toc-number">4.1.</span> <span class="toc-text">最短路径分词算法</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#最大概率组合"><span class="toc-number">4.2.</span> <span class="toc-text">最大概率组合</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#哈希索引、Trie树和AC自动机"><span class="toc-number">5.</span> <span class="toc-text">哈希索引、Trie树和AC自动机</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#前缀词典与哈希索引"><span class="toc-number">5.1.</span> <span class="toc-text">前缀词典与哈希索引</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Trie树"><span class="toc-number">5.2.</span> <span class="toc-text">Trie树</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#AC自动机"><span class="toc-number">5.3.</span> <span class="toc-text">AC自动机</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#序列标注思路"><span class="toc-number">6.</span> <span class="toc-text">序列标注思路</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#BMES标注集"><span class="toc-number">6.1.</span> <span class="toc-text">BMES标注集</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#HMM-amp-MEMM"><span class="toc-number">6.2.</span> <span class="toc-text">HMM &amp; MEMM</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#MLP-逐位置softmax"><span class="toc-number">6.3.</span> <span class="toc-text">MLP + 逐位置softmax</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#深度模型-CRF"><span class="toc-number">6.4.</span> <span class="toc-text">深度模型 + CRF</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#序列标注中的数据增强"><span class="toc-number">6.5.</span> <span class="toc-text">序列标注中的数据增强</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#评估方法"><span class="toc-number">7.</span> <span class="toc-text">评估方法</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#工程实践"><span class="toc-number">8.</span> <span class="toc-text">工程实践</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#实现（更新）"><span class="toc-number">9.</span> <span class="toc-text">实现（更新）</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#对比和总结"><span class="toc-number">10.</span> <span class="toc-text">对比和总结</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#参考"><span class="toc-number">11.</span> <span class="toc-text">参考</span></a></li></ol></div></div><div class="post-content"><p>词法分析、句法分析和语义分析是NLP的三大任务系。其中词法分析包括分词（word tokenization）、词性标注和命名实体识别，今天这里梳理中文分词（chinese word segment，CWS）的思路和方法。我们知道，在英语中，单词之间的自然分界符是空格，这样便于切分。然而，中文中词与词之间并没有这样天然的特点，因此，对文本以词汇粒度进行划分，中文比英文要复杂得多困难很多。</p>
+<p><strong>更新</strong>：更新或添加部分分词算法和一些补充链接。</p>
+<a id="more"></a>
+<p>在NLP任务中，尤其是使用机器学习的NLP任务，大多数时候我们遇到分词的问题，今天我们打算谈谈常见的分词算法。首先谈谈分词的意义。</p>
+<h2 id="分词的意义"><a href="#分词的意义" class="headerlink" title="分词的意义"></a>分词的意义</h2><p>引入分词的最直接原因是，能够解决字的一字多义的问题。从词出发更准确反映语义信息。</p>
+<p>分词可以理解为一种人工特征工程，引入更高层次的特征，让模型直接从word-level学起，降低模型的学习难度。从信息论的角度看，分词有利于降低熵，由于信息量减少了，于是利于降低模型的学习成本。这给我们一个模型选择的思路，当模型不太复杂的时候，分词辅助。</p>
+<p>此外，分词后便于引入word2vec等模型的词向量。在一些无监督场景，将分词作为文本挖掘如关键词提取的第一步，好的分词结果有利于下一步获得好的结果。获得分词后，直接使用word2vec等词向量工具获得词的向量化，这样可以避免从头开始训练词向量。</p>
+<p>因此分词的作用有三点：</p>
+<ul>
+<li>缓解一字多义问题</li>
+<li>让模型从word-level学习，降低模型学习难度，可以理解成是先验知识的引入</li>
+<li>便于引入预训练模型的信息，如引入word2vec的词向量</li>
+</ul>
+<p>当然，模型足够复杂时，能够学习到隐含的word-level级别的信息，分词也不是必须的。如果在具体的任务中需要分词，还需要考虑分词的准确性，错误率高的分词引入太多的噪声，反而对下游任务不利。影响分词准确性有三大点：歧义、OOV、分词规范不统一。下面展开。</p>
+<h2 id="中文分词的难点"><a href="#中文分词的难点" class="headerlink" title="中文分词的难点"></a>中文分词的难点</h2><p>中文分词（chinese word segment，cws）有三大难度：</p>
+<ul>
+<li>歧义（真歧义、组合歧义、交集歧义）</li>
+<li>未登录词，即新词（如地面、人名、专业术语）</li>
+<li>分词规范不统一（如“上海浦东”，可以当做一个词，也可以分为“上海”和“浦东”）</li>
+</ul>
+<h3 id="歧义的三种类型"><a href="#歧义的三种类型" class="headerlink" title="歧义的三种类型"></a>歧义的三种类型</h3><p>歧义就是不同切分带来不同的语义效果，歧义有三种：</p>
+<ul>
+<li>交集型歧义</li>
+<li>组合型歧义</li>
+<li>真歧义</li>
+</ul>
+<p><strong>交集型歧义</strong>，是指ABC有如下切分模式：</p>
+<ul>
+<li><p>ABC -&gt; AB/C</p>
+</li>
+<li><p>ABC -&gt; A/BC</p>
+</li>
+</ul>
+<p>例如，”独立自主和平等互利的原则”可以切分为”独立自主/和/平等互利的原则”以及”独立自主/和平/等互利的原则”；“欢迎新老师生前来就餐” 可以切分为“欢迎/新老/师生/前来/就餐”或“欢迎/新老师/生前/来/就餐”  。</p>
+<p><strong>组合型歧义</strong>，是指如下切分模式：</p>
+<ul>
+<li>ABC -&gt; ABC</li>
+<li>ABC -&gt; AB/C</li>
+</ul>
+<p>例如，在句子“将军任命了一名中将”中，“中将”是个词，但在句子“产量三年中将增长两倍”中，“中将”就不再是词。</p>
+<p>这两种歧义没有人类知识去理解是难正确切分。还有一种歧义是真歧义，人类本身也理解也难。</p>
+<h3 id="真歧义"><a href="#真歧义" class="headerlink" title="真歧义"></a>真歧义</h3><p>例如“乒乓球拍卖完了”，人类本身也无法区分是“乒乓球拍/卖完了”还是“乒乓球/拍卖/完了”。</p>
+<h3 id="未登录词"><a href="#未登录词" class="headerlink" title="未登录词"></a>未登录词</h3><p>模型训练时没有学习过或词表中没有的词。对于使用词表的分词算法，未登录词往往是致命的。自然语言一直在更新迭代，分词算法能够识别未登录词相当重要。对于一些char-level的模型来说，不需要分词，那么OOV是一个可以绕开的问题。但是更多情况是，分词是需要的，尤其是使用word2vec等词向量场景。</p>
+<h3 id="分词规范"><a href="#分词规范" class="headerlink" title="分词规范"></a>分词规范</h3><p>尽管《信息处理用现代词汉语分词规范》提供分词规范，但是受限于日常使用习惯和人为主观因素。比如，AB可以成词，A和B也可以单独成词，如“上海浦东”成一个词，“上海”、“浦东”也单独成词，但不同标准结果不同，两种分词方法本质上都没有错。</p>
+<p>现阶段的分词算法及其实现如jieba，往往性能以及很好，但是也无办法达到100%分词准确，主要原因还是以上几点。设计分词算法或者根据场景考虑使用哪种分词算法时，往往需要考虑以上几点。</p>
+<p>接下来介绍分词算法的基本思想，在我看来，分词算法可以分为四大类：</p>
+<ul>
+<li>直接基于现成词典的匹配</li>
+<li>结合词典和词词频信息的动态规划</li>
+<li>序列标注思路，即对字进行BMES标注，从标注中切分出词</li>
+<li>无监督方法，也就是新词发现算法，既没有词典也没有序列标注数据</li>
+</ul>
+<p>本文先介绍前三类方法，新词发现算法后续后续后机会再探索总结。</p>
+<h2 id="词典分词及其相关策略"><a href="#词典分词及其相关策略" class="headerlink" title="词典分词及其相关策略"></a>词典分词及其相关策略</h2><p>词典匹配的分词方法根据文本的扫描方向可以分为：正向和逆向；根据词的匹配策略可以分为：最长词优先和最短词优先。具体地，常见的基于词典匹配的分词方法：</p>
+<ul>
+<li>完全切分匹配（扫描句子，只要组成词就切分）</li>
+<li>正向最长匹配</li>
+<li>逆向最长匹配</li>
+<li>正向最小匹配（汉语中通常是成词出现，因此较少用）</li>
+<li>逆向最小匹配</li>
+<li>双向最长匹配（正向最长匹配+逆向最长匹配，并使用最少切分策略即<strong>选择词数更少</strong>的结果，或者其他策略）</li>
+</ul>
+<p>这些方法本质上是查词典，为避免无效的扫描，提高分词速度，可以添加约束，如词的最大长度，遇到停用词跳出循环等等。这些方法简单、快速，并且只需要一个足够大的词典即可。</p>
+<h3 id="完全切分"><a href="#完全切分" class="headerlink" title="完全切分"></a>完全切分</h3><p>完全切分严格来说不算是分词，而是查词。它正向遍历所有窗口大小的ngram，如果能够匹配词典中的词，那么就作为一个切分输出。真是因为如此，完全切分不满足分词的完整性，即分词结果无法还原原来的句子。使用Python容易实现，</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">fully_segment</span><span class="params">(text, words)</span>:</span></span><br><span class="line">    <span class="comment"># 完全切分，常用在搜索引擎或细粒度场景上</span></span><br><span class="line">    <span class="comment"># 该方法不满足分词的完整性</span></span><br><span class="line">    segments = []</span><br><span class="line">    size = len(text)</span><br><span class="line">    <span class="comment"># 扫描(i&lt;j)，如果在词典中就当做一个词</span></span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> range(size): </span><br><span class="line">        <span class="keyword">for</span> j <span class="keyword">in</span> range(i+<span class="number">1</span>, size+<span class="number">1</span>):</span><br><span class="line">            word = text[i:j]</span><br><span class="line">            <span class="keyword">if</span> word <span class="keyword">in</span> words:</span><br><span class="line">                segments.append(word)</span><br><span class="line">    <span class="keyword">return</span> segments</span><br></pre></td></tr></table></figure>
+<p>完全切分，常用在搜索引擎或细粒度场景上。作为优化，可以现在ngram的窗口大小，这个大小可以设置为词表中词的最大长度，这样也可以避免无效的遍历。</p>
+<h3 id="正向最长匹配"><a href="#正向最长匹配" class="headerlink" title="正向最长匹配"></a>正向最长匹配</h3><p>正向最大匹配法是指从左到右逐渐匹配词库中的词语，匹配到最长的词语为止。使用Python实现如下，</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">forward_segment</span><span class="params">(text, words)</span>:</span></span><br><span class="line">    <span class="comment"># 正向最长匹配</span></span><br><span class="line">    <span class="comment"># 在fully_segment基础上只匹配最长的词</span></span><br><span class="line">    segments = []</span><br><span class="line">    size = len(text)</span><br><span class="line">    i = <span class="number">0</span></span><br><span class="line">    <span class="keyword">while</span> i &lt; size:</span><br><span class="line">        <span class="comment"># 从位置i的单字出发</span></span><br><span class="line">        longest_word = text[i]</span><br><span class="line">        <span class="keyword">for</span> j <span class="keyword">in</span> range(i+<span class="number">1</span>, size+<span class="number">1</span>):</span><br><span class="line">            <span class="comment"># 寻找比这个单字更长的词</span></span><br><span class="line">            word = text[i:j]</span><br><span class="line">            <span class="keyword">if</span> word <span class="keyword">in</span> words:</span><br><span class="line">                <span class="keyword">if</span> len(word) &gt; len(longest_word):</span><br><span class="line">                    longest_word = word</span><br><span class="line">        segments.append(longest_word)</span><br><span class="line">        i += len(longest_word)</span><br><span class="line">    <span class="keyword">return</span> segments</span><br></pre></td></tr></table></figure>
+<h3 id="逆向最长匹配"><a href="#逆向最长匹配" class="headerlink" title="逆向最长匹配"></a>逆向最长匹配</h3><p>考虑到有些情况下，中文词汇信息后置情况，可以使用逆向最长匹配。例如“欢迎新老师生前来就餐”，使用正向最长匹配和逆向最长匹配分词结果不一样，后置才正确。在实现上需要注意，逆向匹配最先输出后面的词，因此完全切分后需要对结果做倒序。</p>
+<p>Python实现如下，</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">backward_segment</span><span class="params">(text, words)</span>:</span></span><br><span class="line">    <span class="comment"># 逆向最长匹配，考虑词信息后置情况</span></span><br><span class="line">    segments = []</span><br><span class="line">    i = len(text) - <span class="number">1</span></span><br><span class="line">    <span class="keyword">while</span> i &gt;= <span class="number">0</span>:</span><br><span class="line">        longest_word = text[i]</span><br><span class="line">        <span class="keyword">for</span> j <span class="keyword">in</span> range(<span class="number">0</span>, i):</span><br><span class="line">            word = text[j:i+<span class="number">1</span>]</span><br><span class="line">            <span class="keyword">if</span> word <span class="keyword">in</span> words:</span><br><span class="line">                <span class="keyword">if</span> len(word) &gt; len(longest_word):</span><br><span class="line">                    longest_word = word</span><br><span class="line">                    <span class="keyword">break</span></span><br><span class="line">        segments.append(longest_word)</span><br><span class="line">        i -= len(longest_word)</span><br><span class="line">    <span class="comment"># 因为是从后往前匹配，输出去需要逆转</span></span><br><span class="line">    segments.reverse()</span><br><span class="line">    <span class="keyword">return</span> segments</span><br></pre></td></tr></table></figure>
+<h3 id="双向最长匹配"><a href="#双向最长匹配" class="headerlink" title="双向最长匹配"></a>双向最长匹配</h3><p>同时使用正向最长匹配和逆向最长匹配，并根据<strong>规则</strong>选择分词结果。</p>
+<p>选择规则：</p>
+<ul>
+<li>如果词表有词频（概率）信息，可以选择词频最大的切分</li>
+<li>可以选择词数最少的切分</li>
+<li>可以选择细粒度（单字）最少的切分</li>
+<li>更多的选择规则可以根据badcase来设计，并组合多种规则</li>
+</ul>
+<p>下面的Python实现在切分规则上使用最大切分概率，</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">compute_probability</span><span class="params">(segments, words)</span>:</span></span><br><span class="line">    p = <span class="number">0</span></span><br><span class="line">    <span class="keyword">for</span> segment <span class="keyword">in</span> segments:</span><br><span class="line">        p += words.get(segment, <span class="number">1</span>)</span><br><span class="line">    <span class="keyword">return</span> p</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">bidirectional_segment2</span><span class="params">(text, words)</span>:</span></span><br><span class="line">    <span class="comment"># 双向最长匹配</span></span><br><span class="line">    segments1 = forward_segment(text, words)</span><br><span class="line">    segments2 = backward_segment(text, words)</span><br><span class="line">    p1 = compute_probability(segments1, words)</span><br><span class="line">    p2 = compute_probability(segments2, words)</span><br><span class="line">    <span class="keyword">if</span> p1 &gt; p2:</span><br><span class="line">        <span class="keyword">return</span> segments1</span><br><span class="line">    <span class="keyword">return</span> segments2</span><br></pre></td></tr></table></figure>
+<p>字典分词的好处是只需要一个词典即可，有时候配合词频信息能够获得更好的结果，不过不是必需的。由于整个过程知识查词典，因此速度非常快。</p>
+<h2 id="词典分词结合词频信息"><a href="#词典分词结合词频信息" class="headerlink" title="词典分词结合词频信息"></a>词典分词结合词频信息</h2><p>如果词表有词频信息，那么应该把词频信息也充分用上，这样可以得到更准确的结果。</p>
+<h3 id="最短路径分词算法"><a href="#最短路径分词算法" class="headerlink" title="最短路径分词算法"></a>最短路径分词算法</h3><p>最短路径分词算法本质上是使用动态规划思想。首先它将句子中所有可能构成词的情况都考虑，然后构成一个有向无环（DAG）的词图，边的权重是边对应的词所在词表中的频率来决定，当然，如果没有词频信息，使用等权重也可以，然后使用最短路径算法。</p>
+<p>下面是等权重的词图DAG实现，</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> collections</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">create_DAG</span><span class="params">(sentence, words)</span>:</span></span><br><span class="line">    <span class="comment"># 构建等权重DAG词图，使用邻接表的方式存储图</span></span><br><span class="line">    DAG = collections.defaultdict(list)</span><br><span class="line">    size = len(sentence)</span><br><span class="line">    i = <span class="number">0</span></span><br><span class="line">    <span class="keyword">while</span> i &lt; size:</span><br><span class="line">        <span class="keyword">for</span> j <span class="keyword">in</span> range(i, size):</span><br><span class="line">            word = sentence[i:j+<span class="number">1</span>]</span><br><span class="line">            <span class="keyword">if</span> word <span class="keyword">in</span> words <span class="keyword">and</span> words[word]:</span><br><span class="line">                DAG[i].append(j)</span><br><span class="line">        <span class="keyword">if</span> <span class="keyword">not</span> DAG[i]:</span><br><span class="line">            DAG[i].append(i)</span><br><span class="line">        i += <span class="number">1</span></span><br><span class="line">    <span class="keyword">return</span> DAG</span><br></pre></td></tr></table></figure>
+<p>注意到，任意一个字都有指向自身的边，因为这个字在分词结果中可能以单个字的形式存在。</p>
+<p>DAG最短路使用如下动态规划求得，</p>
+<script type="math/tex; mode=display">
+dp[i] = \max_{j \in D[i]} \Big(s(i,j) + dp[j+1][0],j  \Big)</script><p>$dp[i] = (p, j)$表示从位置$i$到位置$j$的最大分值$p$。$s(i,j)$表示$i \rightarrow j$的分值。$D[i]$表示能和$i$构成DAG的点集合。</p>
+<h3 id="最大概率组合"><a href="#最大概率组合" class="headerlink" title="最大概率组合"></a>最大概率组合</h3><p>一个句子分词后的结果为词序列$[w_1,w_2,\dots,w_n]$​，其概率为，</p>
+<script type="math/tex; mode=display">
+P(w_1,w_2,\dots,w_n)</script><p>越好的分词结果，该概率最大，反之越差的分词结果，其概率越小。因为不好的分词结果，句不达意，出现的概率更小。根据乘法公式，</p>
+<script type="math/tex; mode=display">
+P(w_1,w_2,\dots,w_n) = P(w_1)P(w_2|w_1)P(w_3|w_1, w_2) \cdots P(w_n|w_1, \dots, w_{n-1})</script><p>但是计算$P(w_k| w_1, \dots, w_{k-1})$太难了，这里引入马尔科夫假设有，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+P(w_1,w_2,\dots,w_n)
+&= P(w_1)P(w_2|w_1)P(w_3|w_1, w_2) \cdots P(w_n|w_1, \dots, w_{n-1}) \newline
+&\approx P(w_1)P(w_2|w_1)P(w_3|w_2)\dots P(w_n|w_{n-1})
+\end{align}</script><p>那么好的分词结果应该尽可能让$P(w_1)P(w_2|w_1)P(w_3|w_2)\dots P(w_n|w_{n-1})$越大。</p>
+<p>假如目前只有词典及其词频信息，$P(w_i|w_{i-1})$还是很难估计，除非有大规模语料，然后n-grams切分再统计，这相当于走无监督路线。确实，刚刚的思路为无监督分词（即新词发现）提供可能。</p>
+<p>既然$P(w_i|w_{i-1})$还是很难估计，那么我们还进一步化简，</p>
+<script type="math/tex; mode=display">
+P(w_1,w_2,\dots,w_n)\approx P(w_1)P(w_2)P(w_3)\dots P(w_n)</script><p>于是，一个好的分词结果应该让$P(w_1)P(w_2)P(w_3)\dots P(w_n)$尽可能最大。这里的$P(w_i)$其实就是对应DAG上的权重，因此$P(w_1)P(w_2)P(w_3)\dots P(w_n)$的最大化，对应DAG上的概率最大路径。</p>
+<p>以上的基本方法可以进一步派生分词算法或策略，如期望句子切分粒度大一点，那么策略就是分词数最少。</p>
+<h2 id="哈希索引、Trie树和AC自动机"><a href="#哈希索引、Trie树和AC自动机" class="headerlink" title="哈希索引、Trie树和AC自动机"></a>哈希索引、Trie树和AC自动机</h2><p>在工程上，分词自然要考虑效率和资源的问题。高效和低资源的分词离不开高效的数据结构。以上这些方法涉及词的查找、匹配和路径计算，可以配合数据结构Trie树（双数组实现效率更高）、哈希表、使用邻接表的方式存储DAG和AC自动机（Aho and Corasick）优化。其中Trie树复用词的公共前缀，节省内存。</p>
+<p>这些数据结构的引入能够优化两点：</p>
+<ul>
+<li>提高匹配、查找效率</li>
+<li>节省内存的使用</li>
+</ul>
+<h3 id="前缀词典与哈希索引"><a href="#前缀词典与哈希索引" class="headerlink" title="前缀词典与哈希索引"></a>前缀词典与哈希索引</h3><p>首先，词表的存储应该使用字典，因为哈希索引的存在，查找、匹配词的时间复杂度为$O(1)$，如果使用数组来存储词表，那么分词算法是相当慢的。</p>
+<p>不过前缀词典重复存储ngrams的公共前缀，浪费大量的内存空间。</p>
+<h3 id="Trie树"><a href="#Trie树" class="headerlink" title="Trie树"></a>Trie树</h3><p>Trie树可以复用ngrams的公共前缀。Trie树称为单词查找树，因为我们可以根据单词的前缀部分查找词库中所遇匹配给定前缀的所有单词，所有又称为字典树。Trie树的一个特点是存储字符串节省空间，它通过公用字符串集合中的前缀来减少字符出现的冗余度，同时树形结构并没有把字符串的序列信息丢失，因而空间复杂度低。</p>
+<h3 id="AC自动机"><a href="#AC自动机" class="headerlink" title="AC自动机"></a>AC自动机</h3><p>AC自动机可以看做是Trie树的高级版本，我们直接使用现成的实现ahocorasick即可。把词图构建在AC自动机上，并实现各种分词算法，以正向最长匹配为例，Python实现如下（需要安装<code>ahocorasick</code>库），</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">AutomatonTokenizer</span>:</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self, words, algorithm=<span class="string">"forward_segment"</span>)</span>:</span></span><br><span class="line">        self.am = ahocorasick.Automaton()</span><br><span class="line">        logtotal = math.log(sum(words.values()))</span><br><span class="line">        <span class="keyword">for</span> word, proba <span class="keyword">in</span> words.items():</span><br><span class="line">            logproba = (math.log(proba) <span class="keyword">if</span> proba &gt; <span class="number">0</span> <span class="keyword">else</span> <span class="number">-1e6</span>) - logtotal</span><br><span class="line">            self.am.add_word(word, (word, logproba))</span><br><span class="line">        self.am.make_automaton()</span><br><span class="line">        self.algorithm = algorithm</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">fully_segment</span><span class="params">(self, text)</span>:</span></span><br><span class="line">        <span class="comment"># 全模式，原理参考本repo中的basic_fully_segment.py</span></span><br><span class="line">        words = []</span><br><span class="line">        <span class="keyword">for</span> i, (word, proba) <span class="keyword">in</span> self.am.iter(text):</span><br><span class="line">            words.append(word)</span><br><span class="line">        <span class="keyword">return</span> words</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">forward_segment</span><span class="params">(self, text)</span>:</span></span><br><span class="line">        <span class="comment"># 正向最长匹配，参考forward_segment.py中的两种实现</span></span><br><span class="line">        segments = []</span><br><span class="line">        size = len(text)</span><br><span class="line">        i = <span class="number">0</span></span><br><span class="line">        <span class="keyword">while</span> i &lt; size:</span><br><span class="line">            <span class="comment"># 从位置i的单字出发</span></span><br><span class="line">            longest_word = text[i]</span><br><span class="line">            <span class="keyword">for</span> j <span class="keyword">in</span> range(i+<span class="number">1</span>, size+<span class="number">1</span>):</span><br><span class="line">                <span class="comment"># 寻找比这个单字更长的词</span></span><br><span class="line">                word = text[i:j]</span><br><span class="line">                <span class="keyword">if</span> self.am.match(word):</span><br><span class="line">                    <span class="keyword">if</span> len(word) &gt; len(longest_word):</span><br><span class="line">                        longest_word = word</span><br><span class="line">            segments.append(longest_word)</span><br><span class="line">            i += len(longest_word)</span><br><span class="line">        <span class="keyword">return</span> segments</span><br></pre></td></tr></table></figure>
+<p>这个实现比字典匹配的更快。</p>
+<h2 id="序列标注思路"><a href="#序列标注思路" class="headerlink" title="序列标注思路"></a>序列标注思路</h2><p>序列标注思路是逐字标注每个句子，然后获得监督训练数据$(X,y)$，然后训练一个模型并预测标签$\hat{y} = f(X)$，从预测标签中提取分词结果。具体形式是一个token一个标签，</p>
+<script type="math/tex; mode=display">
+(y_{1}, y_{2}, \dots ,y_{n}) \leftarrow (x_{1}, x_{2}, \dots, x_{n})</script><p>通常模型是对下式建模，用数学表示，</p>
+<script type="math/tex; mode=display">
+P(y_1,y_2,\dots,y_n|\boldsymbol{x})</script><p>序列标注是每个时间步一个离散的输出（解码方式），使用动态规划或贪心算法。值得一提，另外还有一种异步模式的序列标注，称为seq2seq，由于输入和输出不要求同步，这种方式在序列标注中很少用到，用在生成任务上，而其解码方式使用贪心算法或beam search。</p>
+<p>目前常见的序列标注任务：</p>
+<ul>
+<li>中文分词，cws</li>
+<li>命名实体识别，ner</li>
+<li>词性标注，pos</li>
+<li>语义角色标注， srl</li>
+</ul>
+<p>总的来说，中文分词负责<strong>语义的基本间隔</strong>，词性标注进行浅层的标注，实体命名识别识别更粗粒度的专有名词。</p>
+<h3 id="BMES标注集"><a href="#BMES标注集" class="headerlink" title="BMES标注集"></a>BMES标注集</h3><p>序列标注中，中文分词任务最常见的标注集BMES如下表，对于NER等其他标准任务其实也可以在此表的基础上扩展或修改。</p>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th>BEMS</th>
+<th>解释</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>B</td>
+<td>Begin，表示词开始</td>
+</tr>
+<tr>
+<td>M</td>
+<td>Middle/Intermediate，表示词中间</td>
+</tr>
+<tr>
+<td>E</td>
+<td>End，表示词结尾</td>
+</tr>
+<tr>
+<td>S</td>
+<td>Single，表示词是单个字</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>对于句子<code>科学技术是第一生产力</code>，那么其BMES标注为<code>BEBESBEBME</code>。其中<code>生产力</code>的标注为<code>BME</code>。<code>科学技术</code>可以认为是一个词，那么标注为<code>BMME</code>。当然，还可以扩展或缩减标注集。</p>
+<p>BMES标注例子，</p>
+<p><img src="../images/BMES-demo-1.png" alt></p>
+<p>如果获得预测的标注序列，那么可以计算分词结果，Python实现如下，</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">segment_by_tags</span><span class="params">(tags, sentence)</span>:</span></span><br><span class="line">    <span class="comment"># 通过SBME序列对sentence分词</span></span><br><span class="line">    buf = <span class="string">""</span></span><br><span class="line">    <span class="keyword">for</span> t, c <span class="keyword">in</span> zip(tags, sentence):</span><br><span class="line">        <span class="keyword">if</span> t <span class="keyword">in</span> [<span class="string">"B"</span>, <span class="string">"S"</span>]:</span><br><span class="line">            <span class="keyword">if</span> buf:</span><br><span class="line">                <span class="keyword">yield</span> buf</span><br><span class="line">            buf = c</span><br><span class="line">        <span class="comment"># t is M or E</span></span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            buf += c</span><br><span class="line">    <span class="keyword">if</span> buf:</span><br><span class="line">        <span class="keyword">yield</span> buf</span><br><span class="line"></span><br><span class="line"><span class="comment"># 这部分需要实现具体的模型</span></span><br><span class="line">tags = model.predict(sentence)</span><br><span class="line"><span class="keyword">for</span> word <span class="keyword">in</span> segment_by_tags(tags, sentence):</span><br><span class="line">    print(word)</span><br></pre></td></tr></table></figure>
+<p>基于逐字标注的分词方法：</p>
+<ul>
+<li>HMM（viterbi decode）</li>
+<li>MEMM（viterbi decode）</li>
+<li>Linear + <a href="https://github.com/allenwind/chinese-cut-word/blob/master/crf.py" target="_blank" rel="noopener">CRF</a></li>
+<li>MLP + 逐位置分类模型（softmax）</li>
+<li>深度模型（CNN、RNN、LSTM） + CRF</li>
+</ul>
+<p>深度学习方向，这方面的内容非常丰富，可查阅相关资料，这里不详细展开。下面介绍常见的解码方案和机器学习中的传统思路。</p>
+<h3 id="HMM-amp-MEMM"><a href="#HMM-amp-MEMM" class="headerlink" title="HMM &amp; MEMM"></a>HMM &amp; MEMM</h3><p>HMM是生成模型，描述不可观察序列控制可观察序列的生成过程，其理论可以看过去的文章<a href="../7681">概率图模型系列（3）：从马尔可夫链到HMM</a>。</p>
+<p>HMM解决分词问题，其隐状态集为逐字标注BMES，即$I = {B,M,E,S }$，而观察状态集为$O = { 标注数据中所有的字 }$。在获取监督数据后，通过极大似然估计获得HMM的状态转移矩阵和观察矩阵（发射矩阵）。获得参数后的HMM模型可以计算每个时间步的观察值所对应的各个状态的<code>scores</code>，整个观察序列如此计算即可获得<code>path scores</code>，然后使用状态转移矩阵和viterbi解码即可获得最大分值路径。</p>
+<p><img src="../images/HMM-BMES-demo-1.png" alt></p>
+<p>HMM只考虑两点：</p>
+<ul>
+<li>隐状态的状态转移受到<strong>马尔科可假设</strong>约束</li>
+<li>观察状态只由当前时刻的隐状态决定，即<strong>观察独立性假设</strong></li>
+</ul>
+<p>基于这两点，HMM的联合概率分布为，</p>
+<script type="math/tex; mode=display">
+P(x, y) = \prod_{i=1}^{n} P(x_i|y_i)P(y_i|y_{i-1})</script><p>其中$P(y_1|y_{0}) = P(y_1)$，$P(x_i|y_i)$称为<strong>发射概率</strong>，所有可能组成观察矩阵，$P(y_i|y_{i-1})$称为<strong>转移概率</strong>，所有的可能组成状态转移矩阵。</p>
+<p>jieba的实现中，新词发现功能也使用HMM，不过其已经内置状态转移矩阵和发射矩阵。HMM的缺点是解码时不考虑上下文特征，在考虑输出上下文特征的任务中，表现并不是最好。为解决这个问题，引入最大熵隐马模型（MEMM），其开来相邻位置状态的依赖关系。</p>
+<p><strong>补充</strong>：后期以及实现HMM的分词，见文章<a href="../8750">序列标注之NER、CWS经典模型HMM实现</a>。</p>
+<p>MEMM可能对很多人来说比较陌生，其实可以理解为HMM的优化，它去掉了HMM中观察序列独立假设，同时是一个判别模型，</p>
+<p><img src="../images/MEMM-BMES-demo-1.png" alt></p>
+<p>其概率表达为，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+P(y_1,y_2,\dots,y_n|\boldsymbol{x})
+&= P(y_1|\boldsymbol{x})P(y_2|\boldsymbol{x},y_1)\dots P(y_n|\boldsymbol{x},y_{n-1}) \newline
+&= \prod_{i=1}^{n} P(y_{i}|y_{i-1},\boldsymbol{x})
+\end{align}</script><p>其中$y(y_1|y_0, \boldsymbol{x})=p(y_1|\boldsymbol{x})$</p>
+<p>MEMM可以参考过去的文章<a href="../7694">概率图模型系列（4）：MEMM</a>。</p>
+<h3 id="MLP-逐位置softmax"><a href="#MLP-逐位置softmax" class="headerlink" title="MLP + 逐位置softmax"></a>MLP + 逐位置softmax</h3><p>正如分类任务一样，逐位置softmax方法是对每个位置进行单独的BMES分类，即</p>
+<script type="math/tex; mode=display">
+\hat{y}_{i} = P(y_{i}|\boldsymbol{h}_{i})</script><p>这种方法不考虑标注BMES之间的约束，如M之后不能是S，只能是M或E。因此，使用这种方法往往需要上游模型学习到很好的隐层表示$\boldsymbol{h}_i$。</p>
+<p><img src="../images/MLP-softmax-BMES-demo-1.png" alt></p>
+<p>此方法常见的模型架构有：</p>
+<ul>
+<li>Embedding + BiLSTM + softmax</li>
+<li>Embedding + CNN + softmax</li>
+</ul>
+<h3 id="深度模型-CRF"><a href="#深度模型-CRF" class="headerlink" title="深度模型 + CRF"></a>深度模型 + CRF</h3><p>CRF可以简单地理解为对输出标签的约束，这种约束体现在其状态转移矩阵中。这种思路在非NLP任务中也是很常见，如磁盘故障等级预测作为序列标注任务，磁盘状态本身是存在互相的约束的。如在分词任务中，标签集为<code>{B,M,E,S}</code>，标签<code>M</code>后面只能接<code>E</code>，不能是其他标签。在机器学习时代，可能还流行HMM、MEMM等模型，但在深度学习时代，CRF已经是序列标注、信息抽取任务的标配。</p>
+<p>由于 HMM 基于马尔科夫假设，所以当前时刻的状态只与其前一时刻的状态有关。该模型特点可以用于翻译、拼写检查等。在序列标注任务中，当前时刻的状态，应该同该时刻的前后的状态均相关，而 CRF 则正好满足这一点。关于CRF，参考过去写的文章<a href="../7707/">概率图模型系列（5）：CRF</a>。</p>
+<p>使用CRF对标签进行约束，</p>
+<p><img src="../images/CRF-BMES-demo-1.png" alt></p>
+<p>深度模型如CNN、LSTM、GRU等等。</p>
+<h3 id="序列标注中的数据增强"><a href="#序列标注中的数据增强" class="headerlink" title="序列标注中的数据增强"></a>序列标注中的数据增强</h3><p>序列标注的思路需要标注数据，当缺乏标注数据时怎么办？其实只使用词典也可以。根据词典中的词及其词频采样构造标注数据也可以缓解标注数据不足的问题，这种方法可以理解为是一种数据增强手段。Python实现如下，</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">random_sentence_generator</span><span class="params">(words, maxwords=<span class="number">30</span>)</span>:</span></span><br><span class="line">    <span class="comment"># 根据词频随机构造句子</span></span><br><span class="line">    p = np.array(list(words.values()))</span><br><span class="line">    p = p / np.sum(p)</span><br><span class="line">    words = np.array(list(words.keys()))</span><br><span class="line">    <span class="keyword">while</span> <span class="literal">True</span>:</span><br><span class="line">        ws = np.random.choice(words, maxwords, p=p)</span><br><span class="line">        sentence = <span class="string">"/"</span>.join(ws.tolist())</span><br><span class="line">        <span class="keyword">yield</span> sentence</span><br></pre></td></tr></table></figure>
+<p>为什么能行？我认为这里关键是词的<strong>边界信息</strong>和词的<strong>词频信息</strong>起作用。序列标注思路的中文分词可以理解为让模型学习词与词的边界信息，现在让词与词随机组合起来，词间的<strong>边界信息</strong>没有丢失。另外，随机组合是根据词频采样组合，那么<strong>词频信息</strong>自然也被模型学到。</p>
+<h2 id="评估方法"><a href="#评估方法" class="headerlink" title="评估方法"></a>评估方法</h2><p>没有测量就是没有科学，中文分词也不例外，最常见的评估指标是prf和分类问题类似：</p>
+<ul>
+<li>precision</li>
+<li>recall</li>
+<li>$F_{1}$</li>
+<li>对OOV的召回</li>
+</ul>
+<p>尽管基于字标注的分词使用precision、recall、$F_1$​三个指标，不过和普通的分类问题不一样，中文分词是分块（chunking），是在<strong>区间</strong>（region）上的对比。即对句子切分为每个chunking（词），然后计算该词的区间（chunking在句子中的开始位置和结束位置），最后再是在这些区间上计算三个指标。于是每个样本是这样的，</p>
+<script type="math/tex; mode=display">
+(\text{word}, \text{word\_start}, \text{word\_end})</script><p>A表示正确的划分区间，B表示预测的划分区间。</p>
+<script type="math/tex; mode=display">
+A = TP \cup FN  \\
+B = TP \cap FP</script><p>precision的计算，</p>
+<script type="math/tex; mode=display">
+p = \frac{ | A \cap B| }{|B| }</script><p>recall的计算，</p>
+<script type="math/tex; mode=display">
+r = \frac{|A \cap B|}{|A|}</script><p>$F_1$计算，</p>
+<script type="math/tex; mode=display">
+F_1 = \frac{2}{\frac{1}{p} + \frac{1}{r} }</script><p>更多的评估指标见<a href="../6837/">机器学习之分类问题的评估指标</a>。另外还要考虑模型或分词方法对未登录词OOV召回能力。</p>
+<h2 id="工程实践"><a href="#工程实践" class="headerlink" title="工程实践"></a>工程实践</h2><p>一个好的分词能够处理中英混合的多语言问题。</p>
+<p>jieba支持三种分词模式：</p>
+<ul>
+<li><p>精确模式，试图将句子最精确地切开，适合文本分析；</p>
+</li>
+<li><p>全模式，把句子中所有的可以成词的词语都扫描出来, 速度非常快，但是不能解决歧义；</p>
+</li>
+<li><p>搜索引擎模式，在精确模式的基础上，对长词再次切分，提高召回率，适合用于搜索引擎分词。</p>
+</li>
+</ul>
+<p>算法特点：</p>
+<ul>
+<li><p>基于前缀词典实现高效的词图扫描，生成句子中汉字所有可能成词情况所构成的有向无环图 (DAG)</p>
+</li>
+<li><p>采用了动态规划查找最大概率路径, 找出基于词频的最大切分组合</p>
+</li>
+<li><p>对于未登录词，采用了基于汉字成词能力的 HMM 模型，使用了 Viterbi 算法</p>
+</li>
+</ul>
+<p>如果要自行实现分词算法，那么应该考虑对于长文分词的情况，由于某些分词算法涉及<strong>内部状态记录</strong>，工程上把长文切分为block，再以block作为单位分词能够节省内存。中英混合文本的分词技巧，利用好中文中句和段有天然的空格或换行特点切分为互不影响的block。</p>
+<p>具体见<code>base.py</code>。继承<code>TokenizerBase</code>类，并在<code>find_word</code>实现分词的核心算法。</p>
+<h2 id="实现（更新）"><a href="#实现（更新）" class="headerlink" title="实现（更新）"></a>实现（更新）</h2><p>这里是后期补充部分，实现了代码并开源，详细参考：<a href="https://github.com/allenwind/chinese-cut-word" target="_blank" rel="noopener">chinese-cut-word</a>。</p>
+<p>以上分词算法的并行化方案可参看<a href="https://github.com/allenwind/count-in-parallel" target="_blank" rel="noopener">count-in-parallel</a>。</p>
+<p>同是序列标注问题，NER可参看<a href="https://github.com/allenwind/tensorflow-crf" target="_blank" rel="noopener">tensorflow-crf</a>。</p>
+<p>HMM解决分词问题的实现，可参看<a href="https://github.com/allenwind/hmm-ner-cws" target="_blank" rel="noopener">hmm-ner-cws</a>。</p>
+<p>可能还会根据对分词的深入而持续更新~</p>
+<h2 id="对比和总结"><a href="#对比和总结" class="headerlink" title="对比和总结"></a>对比和总结</h2><p>本文数理中文分词的难点：</p>
+<ul>
+<li>分词规范</li>
+<li>歧义分词</li>
+<li>OOV 识别</li>
+</ul>
+<p>事实上，其他语言的分词也面临这样的问题。</p>
+<p>中文分词方法可以分为三大类：词典匹配、基于词典与词频信息的统计学习方法与序列标注。这些方法可以参考套用到解决NER、POS等问题上。</p>
+<p>词典匹配和逐字标注对比：</p>
+<ul>
+<li>基于逐字标注的方法对歧义词和未登录词的识别比单纯词典匹配的方法更好。</li>
+<li>逐字标注方法对未登录词的召回比词典方法要好。</li>
+<li>词典方法速度更快，适合粗分场景。</li>
+</ul>
+<p>迁移运用，CWS任务标注方法还可以迁移到其他领域，比如时间序列中，如异常检查、磁盘故障预测。这些都是不失为一种尝试。</p>
+<p>分词从信息论的角度来说是一个降低熵的过程，但对于后续任务来说，也会存在偏置，进而进入噪声。直觉上我们有这样的认知，对于复杂的模型来说，充分的训练能够让模型学习到字的多义性、构词规律，那么模型的内部就隐含一个分词模型，那么训练好这个模型后，如何表现该分词器？有什么实验或方法可以验证我们的直觉判断是正确的？后续展开~</p>
+<p>当然，值得思考的一个问题是，以上的分词方法要么事先有词表，要么需要逐字标注BMES的监督数据，那么，如果在上述两者都没有的情况下，应该如何完成分词？答案就是无监督分词，就是所谓的新词发现、词库构建。后续展开。</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p>[1] 《统计自然语言处理》</p>
+<p>[2] 《统计学习方法》</p>
+<p>[3] Combining Classifiers for Chinese Word Segmentation</p>
+<p>[4] Chinese word segmentation as character tagging</p>
+<p>[5] 《算法导论》</p>
+<p>[6] <a href="https://zh.wikipedia.org/zh-cn/%E6%AD%A7%E7%BE%A9%E8%AC%AC%E8%AA%A4" target="_blank" rel="noopener">https://zh.wikipedia.org/zh-cn/%E6%AD%A7%E7%BE%A9%E8%AC%AC%E8%AA%A4</a></p>
+<p>[7] Fast and Accurate Entity Recognition with Iterated Dilated Convolutions</p>
+</div><div class="tags"><a href="/blog/tags/Python/">Python</a><a href="/blog/tags/深度学习/">深度学习</a><a href="/blog/tags/NLP/">NLP</a><a href="/blog/tags/分词/">分词</a></div><div class="post-nav"><a class="pre" href="/blog/8312/">优化算法系列（1）：梯度下降算法与推导</a><a class="next" href="/blog/8233/">词向量系列（1）：VSM与词袋模型</a></div></div></div></div><div class="pure-u-1-4 hidden_mid_and_down"><div id="sidebar"><div class="widget"><form class="search-form" action="//www.google.com/search" method="get" accept-charset="utf-8" target="_blank"><input type="text" name="q" maxlength="20" placeholder="Search"><input type="hidden" name="sitesearch" value="http://allenwind.github.io/blog"></form></div><div class="widget"><div class="widget-title"><i class="fa fa-folder-o"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/blog/categories/C-C/">C/C++</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Go/">Go</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Java/">Java</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Linux/">Linux</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/NLP/">NLP</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Python/">Python</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/数学/">数学</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/数据库/">数据库</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/数据结构和算法/">数据结构和算法</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/机器学习深度学习/">机器学习深度学习</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/记录/">记录</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-star-o"> 标签</i></div><div class="tagcloud"><a href="/blog/tags/算法/" style="font-size: 15px;">算法</a> <a href="/blog/tags/C/" style="font-size: 15px;">C</a> <a href="/blog/tags/Python/" style="font-size: 15px;">Python</a> <a href="/blog/tags/设计模式/" style="font-size: 15px;">设计模式</a> <a href="/blog/tags/C语言/" style="font-size: 15px;">C语言</a> <a href="/blog/tags/数据库/" style="font-size: 15px;">数据库</a> <a href="/blog/tags/MySQL/" style="font-size: 15px;">MySQL</a> <a href="/blog/tags/ACID/" style="font-size: 15px;">ACID</a> <a href="/blog/tags/区块链/" style="font-size: 15px;">区块链</a> <a href="/blog/tags/分布式/" style="font-size: 15px;">分布式</a> <a href="/blog/tags/SQL/" style="font-size: 15px;">SQL</a> <a href="/blog/tags/NoSQL/" style="font-size: 15px;">NoSQL</a> <a href="/blog/tags/sudo/" style="font-size: 15px;">sudo</a> <a href="/blog/tags/Docker/" style="font-size: 15px;">Docker</a> <a href="/blog/tags/git/" style="font-size: 15px;">git</a> <a href="/blog/tags/Linux/" style="font-size: 15px;">Linux</a> <a href="/blog/tags/Git/" style="font-size: 15px;">Git</a> <a href="/blog/tags/gcc/" style="font-size: 15px;">gcc</a> <a href="/blog/tags/Systemd/" style="font-size: 15px;">Systemd</a> <a href="/blog/tags/Tensorflow/" style="font-size: 15px;">Tensorflow</a> <a href="/blog/tags/命令行/" style="font-size: 15px;">命令行</a> <a href="/blog/tags/网络/" style="font-size: 15px;">网络</a> <a href="/blog/tags/操作系统/" style="font-size: 15px;">操作系统</a> <a href="/blog/tags/记录/" style="font-size: 15px;">记录</a> <a href="/blog/tags/正则表达式/" style="font-size: 15px;">正则表达式</a> <a href="/blog/tags/数据结构/" style="font-size: 15px;">数据结构</a> <a href="/blog/tags/Go/" style="font-size: 15px;">Go</a> <a href="/blog/tags/go/" style="font-size: 15px;">go</a> <a href="/blog/tags/Java/" style="font-size: 15px;">Java</a> <a href="/blog/tags/LRU/" style="font-size: 15px;">LRU</a> <a href="/blog/tags/ARC/" style="font-size: 15px;">ARC</a> <a href="/blog/tags/剑指Offer/" style="font-size: 15px;">剑指Offer</a> <a href="/blog/tags/函数式/" style="font-size: 15px;">函数式</a> <a href="/blog/tags/搜索引擎/" style="font-size: 15px;">搜索引擎</a> <a href="/blog/tags/Stack/" style="font-size: 15px;">Stack</a> <a href="/blog/tags/并发编程/" style="font-size: 15px;">并发编程</a> <a href="/blog/tags/网络编程/" style="font-size: 15px;">网络编程</a> <a href="/blog/tags/并发/" style="font-size: 15px;">并发</a> <a href="/blog/tags/HTTP/" style="font-size: 15px;">HTTP</a> <a href="/blog/tags/装饰器/" style="font-size: 15px;">装饰器</a> <a href="/blog/tags/Redis/" style="font-size: 15px;">Redis</a> <a href="/blog/tags/数学/" style="font-size: 15px;">数学</a> <a href="/blog/tags/时间序列/" style="font-size: 15px;">时间序列</a> <a href="/blog/tags/投资/" style="font-size: 15px;">投资</a> <a href="/blog/tags/概率/" style="font-size: 15px;">概率</a> <a href="/blog/tags/统计/" style="font-size: 15px;">统计</a> <a href="/blog/tags/信息论/" style="font-size: 15px;">信息论</a> <a href="/blog/tags/度量/" style="font-size: 15px;">度量</a> <a href="/blog/tags/机器学习/" style="font-size: 15px;">机器学习</a> <a href="/blog/tags/贝叶斯/" style="font-size: 15px;">贝叶斯</a> <a href="/blog/tags/最小二乘法/" style="font-size: 15px;">最小二乘法</a> <a href="/blog/tags/分布/" style="font-size: 15px;">分布</a> <a href="/blog/tags/矩阵/" style="font-size: 15px;">矩阵</a> <a href="/blog/tags/深度学习/" style="font-size: 15px;">深度学习</a> <a href="/blog/tags/变分推断/" style="font-size: 15px;">变分推断</a> <a href="/blog/tags/随机/" style="font-size: 15px;">随机</a> <a href="/blog/tags/不等式/" style="font-size: 15px;">不等式</a> <a href="/blog/tags/采样/" style="font-size: 15px;">采样</a> <a href="/blog/tags/光滑/" style="font-size: 15px;">光滑</a> <a href="/blog/tags/逼近/" style="font-size: 15px;">逼近</a> <a href="/blog/tags/交叉验证/" style="font-size: 15px;">交叉验证</a> <a href="/blog/tags/特征工程/" style="font-size: 15px;">特征工程</a> <a href="/blog/tags/集成学习/" style="font-size: 15px;">集成学习</a> <a href="/blog/tags/分类/" style="font-size: 15px;">分类</a> <a href="/blog/tags/证明/" style="font-size: 15px;">证明</a> <a href="/blog/tags/损失函数/" style="font-size: 15px;">损失函数</a> <a href="/blog/tags/回归/" style="font-size: 15px;">回归</a> <a href="/blog/tags/词向量/" style="font-size: 15px;">词向量</a> <a href="/blog/tags/信息/" style="font-size: 15px;">信息</a> <a href="/blog/tags/正则化/" style="font-size: 15px;">正则化</a> <a href="/blog/tags/NLP/" style="font-size: 15px;">NLP</a> <a href="/blog/tags/Embedding/" style="font-size: 15px;">Embedding</a> <a href="/blog/tags/神经网络/" style="font-size: 15px;">神经网络</a> <a href="/blog/tags/Transformer/" style="font-size: 15px;">Transformer</a> <a href="/blog/tags/Attention/" style="font-size: 15px;">Attention</a> <a href="/blog/tags/文本分类/" style="font-size: 15px;">文本分类</a> <a href="/blog/tags/对抗训练/" style="font-size: 15px;">对抗训练</a> <a href="/blog/tags/分词/" style="font-size: 15px;">分词</a> <a href="/blog/tags/并行/" style="font-size: 15px;">并行</a> <a href="/blog/tags/图/" style="font-size: 15px;">图</a> <a href="/blog/tags/NER/" style="font-size: 15px;">NER</a> <a href="/blog/tags/HMM/" style="font-size: 15px;">HMM</a> <a href="/blog/tags/概率图/" style="font-size: 15px;">概率图</a> <a href="/blog/tags/可视化/" style="font-size: 15px;">可视化</a> <a href="/blog/tags/RNN/" style="font-size: 15px;">RNN</a> <a href="/blog/tags/LSTM/" style="font-size: 15px;">LSTM</a> <a href="/blog/tags/注意力/" style="font-size: 15px;">注意力</a> <a href="/blog/tags/序列编码/" style="font-size: 15px;">序列编码</a> <a href="/blog/tags/梯度/" style="font-size: 15px;">梯度</a> <a href="/blog/tags/磁盘故障/" style="font-size: 15px;">磁盘故障</a> <a href="/blog/tags/BERT/" style="font-size: 15px;">BERT</a> <a href="/blog/tags/CNN/" style="font-size: 15px;">CNN</a> <a href="/blog/tags/卷积/" style="font-size: 15px;">卷积</a> <a href="/blog/tags/优化/" style="font-size: 15px;">优化</a> <a href="/blog/tags/调参/" style="font-size: 15px;">调参</a> <a href="/blog/tags/Flask/" style="font-size: 15px;">Flask</a> <a href="/blog/tags/web/" style="font-size: 15px;">web</a> <a href="/blog/tags/socket/" style="font-size: 15px;">socket</a> <a href="/blog/tags/安全/" style="font-size: 15px;">安全</a> <a href="/blog/tags/协程/" style="font-size: 15px;">协程</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-file-o"> 最近文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/blog/16003/">天马行空：设计自己的激活函数</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/15887/">函数光滑近似（4）：Heaviside step函数及其应用</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/15205/">引入参数控制softmax的smooth程度</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/15110/">分析与拓展：多分类模型的输出为什么使用softmax？</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14990/">一种基于光滑逼近的正态分布采样法</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14721/">GELU由来：从狄拉克函数到GELU激活函数</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14465/">Lp范数的上下界分析</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14441/">logsumexp函数分析</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14133/">分析Mish激活函数的设计思路</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/13899/">阿尔法经济学：Shiller模型介绍</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-external-link"> 友情链接</i></div><ul></ul><a href="https://github.com/allenwind" title="My GitHub" target="_blank">My GitHub</a><ul></ul><a href="http://www.arxiv-sanity.com/" title="arxiv-sanity" target="_blank">arxiv-sanity</a><ul></ul><a href="https://arxiv.org/" title="arxiv.org" target="_blank">arxiv.org</a></div></div></div><div class="pure-u-1 pure-u-md-3-4"><div id="footer">Copyright © 2021 <a href="/blog/." rel="nofollow">Mr.Feng Blog.</a> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a><a rel="nofollow" target="_blank" href="https://github.com/tufu9441/maupassant-hexo"> Theme</a> by<a rel="nofollow" target="_blank" href="https://github.com/pagecho"> Cho.</a></div></div></div><a class="show" id="rocket" href="#top"></a><script type="text/javascript" src="/blog/js/totop.js?v=0.0.0" async></script><script type="text/javascript" src="//lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js" async></script><script type="text/javascript" src="/blog/js/fancybox.js?v=0.0.0" async></script><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css"><script type="text/x-mathjax-config">MathJax.Hub.Config({
+  tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}
+  });
+</script><script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-MML-AM_CHTML" async></script><script type="text/javascript" src="/blog/js/codeblock-resizer.js?v=0.0.0"></script><script type="text/javascript" src="/blog/js/smartresize.js?v=0.0.0"></script></div></body></html>

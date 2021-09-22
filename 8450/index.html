@@ -1,0 +1,92 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.9.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description" content="你好，世界！"><title>词向量系列（2）：VSM和主题模型思路 | Mr.Feng Blog</title><link rel="stylesheet" type="text/css" href="/blog/css/style.css?v=0.0.0"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/normalize/8.0.1/normalize.min.css"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/pure/1.0.0/pure-min.css"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/pure/1.0.0/grids-responsive-min.css"><link rel="stylesheet" href="//lib.baomitu.com/font-awesome/4.7.0/css/font-awesome.min.css"><script type="text/javascript" src="//lib.baomitu.com/jquery/3.4.0/jquery.min.js"></script><link rel="icon" mask sizes="any" href="/blog/favicon.ico"><link rel="Shortcut Icon" type="image/x-icon" href="/blog/favicon.ico"><link rel="apple-touch-icon" href="/blog/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/blog/apple-touch-icon.png"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">词向量系列（2）：VSM和主题模型思路</h1><a id="logo" href="/blog/.">Mr.Feng Blog</a><p class="description">NLP、深度学习、机器学习、Python、Go</p></div><div id="nav-menu"><a class="current" href="/blog/."><i class="fa fa-home"> 首页</i></a><a href="/blog/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/blog/about/"><i class="fa fa-user"> 关于</i></a></div></div><div class="pure-g" id="layout"><div class="pure-u-1 pure-u-md-3-4"><div class="content_container"><div class="post"><h1 class="post-title">词向量系列（2）：VSM和主题模型思路</h1><div class="post-meta">Dec 25, 2018<span> | </span><span class="category"><a href="/blog/categories/NLP/">NLP</a></span></div><div class="clear"><div class="toc-article" id="toc"><div class="toc-title">文章目录</div><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#BOW与共现矩阵"><span class="toc-number">1.</span> <span class="toc-text">BOW与共现矩阵</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#LSA主题模型"><span class="toc-number">2.</span> <span class="toc-text">LSA主题模型</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#LSA的局限"><span class="toc-number">3.</span> <span class="toc-text">LSA的局限</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#总结"><span class="toc-number">4.</span> <span class="toc-text">总结</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#参考文献"><span class="toc-number">5.</span> <span class="toc-text">参考文献</span></a></li></ol></div></div><div class="post-content"><p>主题模型思路是基于VSM构建共现矩阵，并通过矩阵分解获得语义的稠密表示。</p>
+<a id="more"></a>
+<p>主题模型：</p>
+<ul>
+<li>LSA（latent semantic analysis，潜在语义分析，共现矩阵的SVD分解）</li>
+<li>pLSA（概率潜在语义分析）</li>
+<li>LDA（Latent Dirichlet Allocation）</li>
+</ul>
+<h2 id="BOW与共现矩阵"><a href="#BOW与共现矩阵" class="headerlink" title="BOW与共现矩阵"></a>BOW与共现矩阵</h2><p>共现矩阵（co-occurrence matrix）有两种，一种是词与词的共现矩阵（word-word matrix）通常用在信息检索中，如文档的相似匹配。另外一种的文档与词的共现矩阵（document-word matrix）通常用于构建词向量（Embedding）。共现矩阵的权重基于BOW（词袋模型）相关的计算获得，如TF、TF-IDF。</p>
+<p>以下有文档与词的共现矩阵（document-word matrix），</p>
+<script type="math/tex; mode=display">
+\boldsymbol{D} = \begin{bmatrix}
+w_{1,1} & w_{1,2} & \dots & w_{1,n} \cr
+w_{2,1} & w_{2,2} & \dots & w_{2,n} \cr
+\vdots & \vdots & \vdots & \vdots \cr
+w_{m,1} & w_{m,2} & \dots & w_{m,n}
+\end{bmatrix}</script><p>其中$m$​表示文档数量，$n$​表示词汇表大小，$w_{i,j}$​​基于BOW通过文档与词的共现关系获得，以TF-IDF为例，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+w_{ij} = \text{TF-IDF} &= TF(D_{i},word_{j})IDF(word_{j}) \newline
+&= TF(D_{i},word_{j})\log{\frac{N}{DF(word_{j})}}
+\end{align}</script><p>其中$N$ 为文档总数，$TF(D_{i},word_{j})$ 表示词 $word_{j}$ 在文档 $D_{i}$ 中的频次。$DF(word_{j})$ 表示包括词 $word_{j}$​ 的文档数，称为逆文档频次。为避免数值问题，可以通过加一平滑，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+w_{ij} = \text{TF-IDF} &= TF(D_{i},word_{j})IDF(word_{j}) \newline
+&= TF(D_{i},word_{j})\log{\frac{N}{DF(word_{j})+1}}
+\end{align}</script><p>这样可以避免OOV外的词出现数值计算问题。此外，更多权重可以是：</p>
+<ol>
+<li>boolean</li>
+<li>TF</li>
+<li>IDF</li>
+<li>TF-IDF</li>
+</ol>
+<p>这样获得的矩阵$D$​​有两个问题：矩阵维度非常大，矩阵的每一行都表示一个文档的向量化表征，但是维度非常大；矩阵是稀疏的，文档的表征向量中元素有大量的0取值。主题模型的引入可以解决这个问题。</p>
+<p>基于文档与词的共现矩阵这里还可以衍生两个矩阵：</p>
+<ul>
+<li>$D \times D^{\top}$ 表征文档矩阵</li>
+<li>$D^{\top} \times D$ 表征词矩阵</li>
+</ul>
+<h2 id="LSA主题模型"><a href="#LSA主题模型" class="headerlink" title="LSA主题模型"></a>LSA主题模型</h2><p>主题模型要做的事情是从文本表示中发现潜在的主题，同时获得稠密的文档表示与稠密的词表示，也就是说主题模型能够获得：</p>
+<ul>
+<li>潜在的主题</li>
+<li>稠密的文档表征</li>
+<li>稠密的词表征</li>
+</ul>
+<p>LSA主题模型依赖矩阵的奇异值分解（SVD），首先我们来说是SVD。对于任意矩阵$A \in R^{m,n}$，其SVD分解，</p>
+<script type="math/tex; mode=display">
+A = U\Sigma V^{\top}</script><p>其中，$U \in R^{m \times m}, U U^{\top} = I; V \in R^{n \times n}, VV^{\top} = I$​​​。$\Sigma \in R^{m \times n}$是广义对角矩阵，</p>
+<script type="math/tex; mode=display">
+\boldsymbol{\Sigma}=\left[\begin{array}{ccccccc}
+\sigma_{1} & 0 & \cdots & 0 & 0 & \cdots & 0 \\
+0 & \sigma_{2} & \cdots & 0 & 0 & \cdots & 0 \\
+\vdots & \vdots & \ddots & \vdots & \vdots & \ddots & \vdots \\
+0 & 0 & \cdots & \sigma_{r} & 0 & \cdots & 0 \\
+0 & 0 & \cdots & 0 & 0 & \cdots & 0 \\
+\vdots & \vdots & \ddots & \vdots & \vdots & \ddots & \vdots \\
+0 & 0 & 0 & \cdots & 0 & \cdots & 0
+\end{array}\right]</script><p>这里$\sigma_1 \ge \sigma_2 \ge \dots \ge \sigma_r \ge 0$称为奇异值。考虑到对角矩阵对角线有0元素，于是紧凑形式SVD分解为，</p>
+<script type="math/tex; mode=display">
+A_{m \times n} = U_{m \times r}\Sigma_{r \times r}V^{\top}_{r \times n}</script><p>其中$r \le \min(n,m)$。​</p>
+<p>对于向量$x$​​关于矩阵$A$​​的线性变换可以分解为，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+Ax 
+&= U\Sigma V^{\top}x \newline
+&= U\Big(\Sigma(V^{\top}x) \Big)
+\end{align}</script><p>这启发我们，SVD具有明显的几何意义，先对向量$x$进行旋转变换，然后进行伸缩变换，然后再一次旋转变换。</p>
+<p>于是，把SVD分解用到共现矩阵上就获得LSA主题模型。对于文档-单词矩阵，其SVD分解为，</p>
+<script type="math/tex; mode=display">
+D_{文档,单词} = P_{文档,主题}\Sigma_{主题强度}Q^\top_{单词,主题}</script><p>分解获得的三个矩阵的意义非常明显：</p>
+<ul>
+<li>矩阵$P \in R^{m \times r}$​​，每一行表示文档的主题分布，第$i$​​行表示文档$i$​​​的向量化表征，每个表征向量的维度为$r \lt n$​</li>
+<li>矩阵$Q^{\top} \in R^{r \times n}$，每一行表示词的主题分布，第$i$行表示词$i$的向量化表征，每个表征向量的维度为$r \lt n$</li>
+<li>$\Sigma$是个对角矩阵，对角线元素依次为$\sigma_1 \ge \sigma_2 \ge \dots \ge \sigma_r \ge 0$，表示潜在主题的强度，就是主题在数据集中出现的次数</li>
+</ul>
+<p>矩阵$P$与矩阵$Q$​​分别得到文档与单词的Embedding，因此可以做文档匹配、聚类或分类，词相似度匹配、词同义、多义词问题。</p>
+<p>矩阵分解是在全局中完成，因此能够有效的利用全局的统计信息，但是共现矩阵外的文档如何处理？根据SVD分解，有</p>
+<script type="math/tex; mode=display">
+p_i = \Sigma^{-1}Q^{\top}w_i</script><p>其中$w_i$为文档-词向量。</p>
+<h2 id="LSA的局限"><a href="#LSA的局限" class="headerlink" title="LSA的局限"></a>LSA的局限</h2><p>LSA基于共现矩阵的SVD分解，能够有效的利用全局的统计信息，可以理解为是一个无监督的聚类过程，但有如下局限：</p>
+<ul>
+<li>获得的主题其实解释性较差</li>
+<li>由于共现矩阵本质是BOW模型，无法解决词序及其相关问题</li>
+<li>在单词类比任务（如：<code>国王 vs 王后</code> 类比于 <code>男人 vs 女人</code>）中表现相对较差</li>
+</ul>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>主题模型是个比较广泛的领域，使用范围广，如推荐系统，本文只是讲述LSA主题模型方法，此外还包括pLSA、LDA等。LSA的本质是对文档-词共现矩阵的SVD分解，并起到降维作用。</p>
+<h2 id="参考文献"><a href="#参考文献" class="headerlink" title="参考文献"></a>参考文献</h2><p>[1] 统计自然语言处理</p>
+<p>转载请包括本文地址：<a href="../9116">https://allenwind.github.io/blog/9116</a><br>更多文章请参考：<a href="../archives/">https://allenwind.github.io/blog/archives/</a></p>
+</div><div class="tags"><a href="/blog/tags/词向量/">词向量</a></div><div class="post-nav"><a class="pre" href="/blog/8487/">文本分类中的一些Tricks分享</a><a class="next" href="/blog/8413/">优化算法系列（4）：SGD改进之自适应学习率调整</a></div></div></div></div><div class="pure-u-1-4 hidden_mid_and_down"><div id="sidebar"><div class="widget"><form class="search-form" action="//www.google.com/search" method="get" accept-charset="utf-8" target="_blank"><input type="text" name="q" maxlength="20" placeholder="Search"><input type="hidden" name="sitesearch" value="http://allenwind.github.io/blog"></form></div><div class="widget"><div class="widget-title"><i class="fa fa-folder-o"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/blog/categories/C-C/">C/C++</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Go/">Go</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Java/">Java</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Linux/">Linux</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/NLP/">NLP</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Python/">Python</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/数学/">数学</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/数据库/">数据库</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/数据结构和算法/">数据结构和算法</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/机器学习深度学习/">机器学习深度学习</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/记录/">记录</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-star-o"> 标签</i></div><div class="tagcloud"><a href="/blog/tags/算法/" style="font-size: 15px;">算法</a> <a href="/blog/tags/C/" style="font-size: 15px;">C</a> <a href="/blog/tags/Python/" style="font-size: 15px;">Python</a> <a href="/blog/tags/设计模式/" style="font-size: 15px;">设计模式</a> <a href="/blog/tags/C语言/" style="font-size: 15px;">C语言</a> <a href="/blog/tags/数据库/" style="font-size: 15px;">数据库</a> <a href="/blog/tags/MySQL/" style="font-size: 15px;">MySQL</a> <a href="/blog/tags/ACID/" style="font-size: 15px;">ACID</a> <a href="/blog/tags/区块链/" style="font-size: 15px;">区块链</a> <a href="/blog/tags/分布式/" style="font-size: 15px;">分布式</a> <a href="/blog/tags/SQL/" style="font-size: 15px;">SQL</a> <a href="/blog/tags/NoSQL/" style="font-size: 15px;">NoSQL</a> <a href="/blog/tags/sudo/" style="font-size: 15px;">sudo</a> <a href="/blog/tags/Docker/" style="font-size: 15px;">Docker</a> <a href="/blog/tags/git/" style="font-size: 15px;">git</a> <a href="/blog/tags/Linux/" style="font-size: 15px;">Linux</a> <a href="/blog/tags/Git/" style="font-size: 15px;">Git</a> <a href="/blog/tags/gcc/" style="font-size: 15px;">gcc</a> <a href="/blog/tags/Systemd/" style="font-size: 15px;">Systemd</a> <a href="/blog/tags/Tensorflow/" style="font-size: 15px;">Tensorflow</a> <a href="/blog/tags/命令行/" style="font-size: 15px;">命令行</a> <a href="/blog/tags/网络/" style="font-size: 15px;">网络</a> <a href="/blog/tags/操作系统/" style="font-size: 15px;">操作系统</a> <a href="/blog/tags/记录/" style="font-size: 15px;">记录</a> <a href="/blog/tags/正则表达式/" style="font-size: 15px;">正则表达式</a> <a href="/blog/tags/数据结构/" style="font-size: 15px;">数据结构</a> <a href="/blog/tags/Go/" style="font-size: 15px;">Go</a> <a href="/blog/tags/go/" style="font-size: 15px;">go</a> <a href="/blog/tags/Java/" style="font-size: 15px;">Java</a> <a href="/blog/tags/LRU/" style="font-size: 15px;">LRU</a> <a href="/blog/tags/ARC/" style="font-size: 15px;">ARC</a> <a href="/blog/tags/剑指Offer/" style="font-size: 15px;">剑指Offer</a> <a href="/blog/tags/函数式/" style="font-size: 15px;">函数式</a> <a href="/blog/tags/搜索引擎/" style="font-size: 15px;">搜索引擎</a> <a href="/blog/tags/Stack/" style="font-size: 15px;">Stack</a> <a href="/blog/tags/并发编程/" style="font-size: 15px;">并发编程</a> <a href="/blog/tags/网络编程/" style="font-size: 15px;">网络编程</a> <a href="/blog/tags/并发/" style="font-size: 15px;">并发</a> <a href="/blog/tags/HTTP/" style="font-size: 15px;">HTTP</a> <a href="/blog/tags/装饰器/" style="font-size: 15px;">装饰器</a> <a href="/blog/tags/Redis/" style="font-size: 15px;">Redis</a> <a href="/blog/tags/数学/" style="font-size: 15px;">数学</a> <a href="/blog/tags/时间序列/" style="font-size: 15px;">时间序列</a> <a href="/blog/tags/投资/" style="font-size: 15px;">投资</a> <a href="/blog/tags/概率/" style="font-size: 15px;">概率</a> <a href="/blog/tags/统计/" style="font-size: 15px;">统计</a> <a href="/blog/tags/信息论/" style="font-size: 15px;">信息论</a> <a href="/blog/tags/度量/" style="font-size: 15px;">度量</a> <a href="/blog/tags/机器学习/" style="font-size: 15px;">机器学习</a> <a href="/blog/tags/贝叶斯/" style="font-size: 15px;">贝叶斯</a> <a href="/blog/tags/最小二乘法/" style="font-size: 15px;">最小二乘法</a> <a href="/blog/tags/分布/" style="font-size: 15px;">分布</a> <a href="/blog/tags/矩阵/" style="font-size: 15px;">矩阵</a> <a href="/blog/tags/深度学习/" style="font-size: 15px;">深度学习</a> <a href="/blog/tags/变分推断/" style="font-size: 15px;">变分推断</a> <a href="/blog/tags/随机/" style="font-size: 15px;">随机</a> <a href="/blog/tags/不等式/" style="font-size: 15px;">不等式</a> <a href="/blog/tags/采样/" style="font-size: 15px;">采样</a> <a href="/blog/tags/光滑/" style="font-size: 15px;">光滑</a> <a href="/blog/tags/逼近/" style="font-size: 15px;">逼近</a> <a href="/blog/tags/交叉验证/" style="font-size: 15px;">交叉验证</a> <a href="/blog/tags/特征工程/" style="font-size: 15px;">特征工程</a> <a href="/blog/tags/集成学习/" style="font-size: 15px;">集成学习</a> <a href="/blog/tags/分类/" style="font-size: 15px;">分类</a> <a href="/blog/tags/证明/" style="font-size: 15px;">证明</a> <a href="/blog/tags/损失函数/" style="font-size: 15px;">损失函数</a> <a href="/blog/tags/回归/" style="font-size: 15px;">回归</a> <a href="/blog/tags/词向量/" style="font-size: 15px;">词向量</a> <a href="/blog/tags/信息/" style="font-size: 15px;">信息</a> <a href="/blog/tags/正则化/" style="font-size: 15px;">正则化</a> <a href="/blog/tags/NLP/" style="font-size: 15px;">NLP</a> <a href="/blog/tags/Embedding/" style="font-size: 15px;">Embedding</a> <a href="/blog/tags/神经网络/" style="font-size: 15px;">神经网络</a> <a href="/blog/tags/Transformer/" style="font-size: 15px;">Transformer</a> <a href="/blog/tags/Attention/" style="font-size: 15px;">Attention</a> <a href="/blog/tags/文本分类/" style="font-size: 15px;">文本分类</a> <a href="/blog/tags/对抗训练/" style="font-size: 15px;">对抗训练</a> <a href="/blog/tags/分词/" style="font-size: 15px;">分词</a> <a href="/blog/tags/并行/" style="font-size: 15px;">并行</a> <a href="/blog/tags/图/" style="font-size: 15px;">图</a> <a href="/blog/tags/NER/" style="font-size: 15px;">NER</a> <a href="/blog/tags/HMM/" style="font-size: 15px;">HMM</a> <a href="/blog/tags/概率图/" style="font-size: 15px;">概率图</a> <a href="/blog/tags/可视化/" style="font-size: 15px;">可视化</a> <a href="/blog/tags/RNN/" style="font-size: 15px;">RNN</a> <a href="/blog/tags/LSTM/" style="font-size: 15px;">LSTM</a> <a href="/blog/tags/注意力/" style="font-size: 15px;">注意力</a> <a href="/blog/tags/序列编码/" style="font-size: 15px;">序列编码</a> <a href="/blog/tags/梯度/" style="font-size: 15px;">梯度</a> <a href="/blog/tags/磁盘故障/" style="font-size: 15px;">磁盘故障</a> <a href="/blog/tags/BERT/" style="font-size: 15px;">BERT</a> <a href="/blog/tags/CNN/" style="font-size: 15px;">CNN</a> <a href="/blog/tags/卷积/" style="font-size: 15px;">卷积</a> <a href="/blog/tags/优化/" style="font-size: 15px;">优化</a> <a href="/blog/tags/调参/" style="font-size: 15px;">调参</a> <a href="/blog/tags/Flask/" style="font-size: 15px;">Flask</a> <a href="/blog/tags/web/" style="font-size: 15px;">web</a> <a href="/blog/tags/socket/" style="font-size: 15px;">socket</a> <a href="/blog/tags/安全/" style="font-size: 15px;">安全</a> <a href="/blog/tags/协程/" style="font-size: 15px;">协程</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-file-o"> 最近文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/blog/16003/">天马行空：设计自己的激活函数</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/15887/">函数光滑近似（4）：Heaviside step函数及其应用</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/15205/">引入参数控制softmax的smooth程度</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/15110/">分析与拓展：多分类模型的输出为什么使用softmax？</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14990/">一种基于光滑逼近的正态分布采样法</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14721/">GELU由来：从狄拉克函数到GELU激活函数</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14465/">Lp范数的上下界分析</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14441/">logsumexp函数分析</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14133/">分析Mish激活函数的设计思路</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/13899/">阿尔法经济学：Shiller模型介绍</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-external-link"> 友情链接</i></div><ul></ul><a href="https://github.com/allenwind" title="My GitHub" target="_blank">My GitHub</a><ul></ul><a href="http://www.arxiv-sanity.com/" title="arxiv-sanity" target="_blank">arxiv-sanity</a><ul></ul><a href="https://arxiv.org/" title="arxiv.org" target="_blank">arxiv.org</a></div></div></div><div class="pure-u-1 pure-u-md-3-4"><div id="footer">Copyright © 2021 <a href="/blog/." rel="nofollow">Mr.Feng Blog.</a> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a><a rel="nofollow" target="_blank" href="https://github.com/tufu9441/maupassant-hexo"> Theme</a> by<a rel="nofollow" target="_blank" href="https://github.com/pagecho"> Cho.</a></div></div></div><a class="show" id="rocket" href="#top"></a><script type="text/javascript" src="/blog/js/totop.js?v=0.0.0" async></script><script type="text/javascript" src="//lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js" async></script><script type="text/javascript" src="/blog/js/fancybox.js?v=0.0.0" async></script><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css"><script type="text/x-mathjax-config">MathJax.Hub.Config({
+  tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}
+  });
+</script><script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-MML-AM_CHTML" async></script><script type="text/javascript" src="/blog/js/codeblock-resizer.js?v=0.0.0"></script><script type="text/javascript" src="/blog/js/smartresize.js?v=0.0.0"></script></div></body></html>

@@ -1,0 +1,91 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.9.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description" content="你好，世界！"><title>神经的贝叶斯公式 | Mr.Feng Blog</title><link rel="stylesheet" type="text/css" href="/blog/css/style.css?v=0.0.0"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/normalize/8.0.1/normalize.min.css"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/pure/1.0.0/pure-min.css"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/pure/1.0.0/grids-responsive-min.css"><link rel="stylesheet" href="//lib.baomitu.com/font-awesome/4.7.0/css/font-awesome.min.css"><script type="text/javascript" src="//lib.baomitu.com/jquery/3.4.0/jquery.min.js"></script><link rel="icon" mask sizes="any" href="/blog/favicon.ico"><link rel="Shortcut Icon" type="image/x-icon" href="/blog/favicon.ico"><link rel="apple-touch-icon" href="/blog/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/blog/apple-touch-icon.png"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">神经的贝叶斯公式</h1><a id="logo" href="/blog/.">Mr.Feng Blog</a><p class="description">NLP、深度学习、机器学习、Python、Go</p></div><div id="nav-menu"><a class="current" href="/blog/."><i class="fa fa-home"> 首页</i></a><a href="/blog/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/blog/about/"><i class="fa fa-user"> 关于</i></a></div></div><div class="pure-g" id="layout"><div class="pure-u-1 pure-u-md-3-4"><div class="content_container"><div class="post"><h1 class="post-title">神经的贝叶斯公式</h1><div class="post-meta">Aug 19, 2018<span> | </span><span class="category"><a href="/blog/categories/数学/">数学</a></span></div><div class="clear"><div class="toc-article" id="toc"><div class="toc-title">文章目录</div><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#贝叶斯公式"><span class="toc-number">1.</span> <span class="toc-text">贝叶斯公式</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#连续情况"><span class="toc-number">2.</span> <span class="toc-text">连续情况</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#对比"><span class="toc-number">3.</span> <span class="toc-text">对比</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#计算之难"><span class="toc-number">4.</span> <span class="toc-text">计算之难</span></a></li></ol></div></div><div class="post-content"><p>平凡的贝叶斯公式竟然蕴含归纳推理的思想。</p>
+<a id="more"></a>
+<h2 id="贝叶斯公式"><a href="#贝叶斯公式" class="headerlink" title="贝叶斯公式"></a>贝叶斯公式</h2><p>贝叶斯公式，从数学上看再平凡不过，只不过是条件概率的推论而已，</p>
+<script type="math/tex; mode=display">
+P(Z|X) = \frac{P(X|Z)P(Z)}{P(X)}</script><p>其中，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+P(X) &= \sum_{j=1}^{n} P\left(Z_{j}, X\right) \newline
+&= \sum_{j=1}^{n} P\left(X | Z_{j}\right) P\left(Z_{j}\right)
+\end{align}</script><p>该式称为全概率公式，使用边缘概率分布和条件概率获得。从纯数学的角度可以证明贝叶斯公式，根据条件概率定义，</p>
+<script type="math/tex; mode=display">
+\begin{align}
+P(Z|X) 
+&= \frac{P(X,Z)}{P(X)} \\
+&= \frac{\frac{P(X,Z)}{P(Z)}P(Z)}{P(X)} \\
+&= \frac{P(X|Z)P(Z)}{P(X)}
+\end{align}</script><p>如果你没有被以上吓到，再把上式代入贝叶斯公式看看，</p>
+<script type="math/tex; mode=display">
+P\left(Z_{i} | X\right)=\frac{P\left(X | Z_{i}\right) P\left(Z_{i}\right)}{\displaystyle \sum_{j=1}^{n} P\left(X | Z_{j}\right) P\left(Z_{j}\right)}</script><p>无非就是条件概率定义的推论而已，但是其现实意义相当深刻，</p>
+<script type="math/tex; mode=display">
+\text{后验}=\frac {\text{先验}\times \text{似然}} {\text{证据}}</script><p>根据历史观察和先验假设，推断导致某事件发生的原因。</p>
+<p>写成分类器的形式，</p>
+<script type="math/tex; mode=display">
+p(C_{k}\mid \mathbf {x} )=\frac {p(C_{k})\ p(\mathbf {x} \mid C_{k})}{p(\mathbf {x} )}</script><h2 id="连续情况"><a href="#连续情况" class="headerlink" title="连续情况"></a>连续情况</h2><p>在概率图模型中，有两类变量，一类是可观察变量集（具体的数据），用 $x$ 表示；一类是不可观察变量集，用 $z$ 表示。那么这两类变量的联合分布为 $p(x,z)$。现在的问题是，在获得观察样本 $x$ 的情况下，如何计算 $p(z|x)$ ? 即知道观察样本的情况下计算不可观察变量的后验分布。事实上，这涉及到贝叶斯公式（积分形式）：</p>
+<script type="math/tex; mode=display">
+\begin{align}
+p(z|x) &= \frac{p(z)p(x|z)}{p(x)} \\
+&= \frac{p(z)p(x|z)}{\int{p(x|z)p(z)dz}}
+\end{align}</script><p>$p(z)$ 称为先验分布。</p>
+<p>在贝叶斯主义下，统计推断问题就是在知道样本 <script type="math/tex">X</script>​ ，样本的分布簇 <script type="math/tex">\{F_{\theta }(x)| \theta \in \theta \}</script>​ 使用 <script type="math/tex">X</script>​ 去推断 <script type="math/tex">\theta</script>​ 。这里，F 给我们提供一种和 <script type="math/tex">\theta</script>​ 无关的知识，但对推断 <script type="math/tex">\theta</script>​ 有用。样本 X 给我们提供另外一种知识，它包含关于 <script type="math/tex">\theta</script>​ 的知识.</p>
+<p>为了计算 <script type="math/tex">\theta</script>​ ，我们需要做两件事：</p>
+<ul>
+<li>确定 <script type="math/tex">\theta</script> 的先验分布 <script type="math/tex">H(\theta)</script> (参数空间中的任一分布)</li>
+<li>计算 <script type="math/tex">\theta</script> 的后验分布</li>
+</ul>
+<script type="math/tex; mode=display">
+P(\theta|X) = \frac{H(\theta)F_{\theta }(x)}{\int{H(\theta)F_{\theta }(x)}d\theta}</script><p>我们可以看到，后验分布综合了先验知识和观察样本知识。有了后验分布后，接下来贝叶斯的处理方法和频率主义的处理方法类似，可以用于解决点估计问题，假设检验，区间估计。</p>
+<p>从贝叶斯统计来看，分布的未知参数和隐变量都是随机变量, 因此可以一并纳入到隐变量中统一处理。假定隐变量的先验分布服从 $z \sim p(z)$，则在观察到样本 $ { x_{i} \sim p(x)| i=1,2,3,..,N}$ 情况下，隐变量的后验分布可表示为</p>
+<script type="math/tex; mode=display">
+\begin{align*}
+p(z|x) &= \frac{p(z)p(x|z)}{p(x)} \\
+&= \frac{p(z)p(x|z)}{\int{p(x|z)p(z)dz}}
+\end{align*}</script><p>通常情况下，上式的求解及其困难。</p>
+<p>在具体的问题中，隐变量可以是类别，如果我们把特征条件独立假设加入其中，那么上式就成了朴素贝叶斯法。如果我们不承认特征条件独立这个假设，就得另外想办法。此处的困难主要在计算上，式子积分部分精确求解十分困难。在统计推断中，如果未知分布不带隐变量，可以通过极大似然估计方法计算未知参数。但是，如果未知分布带有隐变量，则无法直接通过极大似然估计来计算未知参数。这种情况下，有两种解决思路：</p>
+<ol>
+<li>采样法，使用随机化方法计算积分的近似值</li>
+<li>变分法，使用简单的分布来逼近复杂的后验分布</li>
+</ol>
+<p>变分法进行近似的一般形式如下，</p>
+<script type="math/tex; mode=display">
+q^{\ast}(z) = \underset{q(z)}{\arg \min}D_{KL}(q(z)|p(z|x))</script><h2 id="对比"><a href="#对比" class="headerlink" title="对比"></a>对比</h2><p>离散贝叶斯公式和连续贝叶斯公式对比，</p>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th></th>
+<th>问题</th>
+<th>先验分布</th>
+<th>观察事件</th>
+<th>后验分布</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>离散贝叶斯公式</td>
+<td>事件$Z_{1},\dots,Z_{n}$分别发生的概率是？</td>
+<td>$P(Z_{i}) = p_{i}$</td>
+<td>事件X发现</td>
+<td>$P(Z_{i}</td>
+<td>X)$</td>
+</tr>
+<tr>
+<td>连续贝叶斯公式</td>
+<td>$\theta$的后验概率分布是？</td>
+<td>$h(\theta)$</td>
+<td>获得样本$X_{1},\dots,X_{n}$</td>
+<td>后验概率密度公式</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>（似乎表格上的LaTeX无法渲染？）</p>
+<h2 id="计算之难"><a href="#计算之难" class="headerlink" title="计算之难"></a>计算之难</h2><p>贝叶斯理论虽然优美，但计算后验分布十分困难。</p>
+<p>上式其实还包括概率密度函数的参数，不过在贝叶斯框架下，参数也是一种未知的变量，可以合并到隐变量中。于是，问题就变成：数据+隐变量先验分布计算隐变量的后验分布。这个过程我们也称为统计推断。</p>
+<p>机器学习和深度学习并不仅限于数学形式的表示，还要计算具体的值以解决应用问题。最直观的思路是求出积分的解析形式，然后把数据代入。但是，精确计算上式中后验分布十分困难，主要的困难在分母部分涉及到积分计算。所以我们考虑使用近似方法。</p>
+<p>通过MCMC或变分法计算，前者是近似方法，后者是分析方法，后期有时间再分享。</p>
+<p>转载请包括本文地址：<a href="../6538">https://allenwind.github.io/blog/6538</a><br>更多文章请参考：<a href="../archives/">https://allenwind.github.io/blog/archives/</a></p>
+</div><div class="tags"><a href="/blog/tags/概率/">概率</a><a href="/blog/tags/贝叶斯/">贝叶斯</a></div><div class="post-nav"><a class="pre" href="/blog/6561/">Minkowski距离、Mahalanobis距离、Wasserstein距离</a><a class="next" href="/blog/6498/">简单说说神经网络中的Embedding</a></div></div></div></div><div class="pure-u-1-4 hidden_mid_and_down"><div id="sidebar"><div class="widget"><form class="search-form" action="//www.google.com/search" method="get" accept-charset="utf-8" target="_blank"><input type="text" name="q" maxlength="20" placeholder="Search"><input type="hidden" name="sitesearch" value="http://allenwind.github.io/blog"></form></div><div class="widget"><div class="widget-title"><i class="fa fa-folder-o"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/blog/categories/C-C/">C/C++</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Go/">Go</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Java/">Java</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Linux/">Linux</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/NLP/">NLP</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Python/">Python</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/数学/">数学</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/数据库/">数据库</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/数据结构和算法/">数据结构和算法</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/机器学习深度学习/">机器学习深度学习</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/记录/">记录</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-star-o"> 标签</i></div><div class="tagcloud"><a href="/blog/tags/算法/" style="font-size: 15px;">算法</a> <a href="/blog/tags/C/" style="font-size: 15px;">C</a> <a href="/blog/tags/Python/" style="font-size: 15px;">Python</a> <a href="/blog/tags/设计模式/" style="font-size: 15px;">设计模式</a> <a href="/blog/tags/C语言/" style="font-size: 15px;">C语言</a> <a href="/blog/tags/数据库/" style="font-size: 15px;">数据库</a> <a href="/blog/tags/MySQL/" style="font-size: 15px;">MySQL</a> <a href="/blog/tags/ACID/" style="font-size: 15px;">ACID</a> <a href="/blog/tags/区块链/" style="font-size: 15px;">区块链</a> <a href="/blog/tags/分布式/" style="font-size: 15px;">分布式</a> <a href="/blog/tags/SQL/" style="font-size: 15px;">SQL</a> <a href="/blog/tags/NoSQL/" style="font-size: 15px;">NoSQL</a> <a href="/blog/tags/sudo/" style="font-size: 15px;">sudo</a> <a href="/blog/tags/Docker/" style="font-size: 15px;">Docker</a> <a href="/blog/tags/git/" style="font-size: 15px;">git</a> <a href="/blog/tags/Linux/" style="font-size: 15px;">Linux</a> <a href="/blog/tags/Git/" style="font-size: 15px;">Git</a> <a href="/blog/tags/gcc/" style="font-size: 15px;">gcc</a> <a href="/blog/tags/Systemd/" style="font-size: 15px;">Systemd</a> <a href="/blog/tags/Tensorflow/" style="font-size: 15px;">Tensorflow</a> <a href="/blog/tags/命令行/" style="font-size: 15px;">命令行</a> <a href="/blog/tags/网络/" style="font-size: 15px;">网络</a> <a href="/blog/tags/操作系统/" style="font-size: 15px;">操作系统</a> <a href="/blog/tags/记录/" style="font-size: 15px;">记录</a> <a href="/blog/tags/正则表达式/" style="font-size: 15px;">正则表达式</a> <a href="/blog/tags/数据结构/" style="font-size: 15px;">数据结构</a> <a href="/blog/tags/Go/" style="font-size: 15px;">Go</a> <a href="/blog/tags/go/" style="font-size: 15px;">go</a> <a href="/blog/tags/Java/" style="font-size: 15px;">Java</a> <a href="/blog/tags/LRU/" style="font-size: 15px;">LRU</a> <a href="/blog/tags/ARC/" style="font-size: 15px;">ARC</a> <a href="/blog/tags/剑指Offer/" style="font-size: 15px;">剑指Offer</a> <a href="/blog/tags/函数式/" style="font-size: 15px;">函数式</a> <a href="/blog/tags/搜索引擎/" style="font-size: 15px;">搜索引擎</a> <a href="/blog/tags/Stack/" style="font-size: 15px;">Stack</a> <a href="/blog/tags/并发编程/" style="font-size: 15px;">并发编程</a> <a href="/blog/tags/网络编程/" style="font-size: 15px;">网络编程</a> <a href="/blog/tags/并发/" style="font-size: 15px;">并发</a> <a href="/blog/tags/HTTP/" style="font-size: 15px;">HTTP</a> <a href="/blog/tags/装饰器/" style="font-size: 15px;">装饰器</a> <a href="/blog/tags/Redis/" style="font-size: 15px;">Redis</a> <a href="/blog/tags/数学/" style="font-size: 15px;">数学</a> <a href="/blog/tags/时间序列/" style="font-size: 15px;">时间序列</a> <a href="/blog/tags/投资/" style="font-size: 15px;">投资</a> <a href="/blog/tags/概率/" style="font-size: 15px;">概率</a> <a href="/blog/tags/统计/" style="font-size: 15px;">统计</a> <a href="/blog/tags/信息论/" style="font-size: 15px;">信息论</a> <a href="/blog/tags/度量/" style="font-size: 15px;">度量</a> <a href="/blog/tags/机器学习/" style="font-size: 15px;">机器学习</a> <a href="/blog/tags/贝叶斯/" style="font-size: 15px;">贝叶斯</a> <a href="/blog/tags/最小二乘法/" style="font-size: 15px;">最小二乘法</a> <a href="/blog/tags/分布/" style="font-size: 15px;">分布</a> <a href="/blog/tags/矩阵/" style="font-size: 15px;">矩阵</a> <a href="/blog/tags/深度学习/" style="font-size: 15px;">深度学习</a> <a href="/blog/tags/变分推断/" style="font-size: 15px;">变分推断</a> <a href="/blog/tags/随机/" style="font-size: 15px;">随机</a> <a href="/blog/tags/不等式/" style="font-size: 15px;">不等式</a> <a href="/blog/tags/采样/" style="font-size: 15px;">采样</a> <a href="/blog/tags/光滑/" style="font-size: 15px;">光滑</a> <a href="/blog/tags/逼近/" style="font-size: 15px;">逼近</a> <a href="/blog/tags/交叉验证/" style="font-size: 15px;">交叉验证</a> <a href="/blog/tags/特征工程/" style="font-size: 15px;">特征工程</a> <a href="/blog/tags/集成学习/" style="font-size: 15px;">集成学习</a> <a href="/blog/tags/分类/" style="font-size: 15px;">分类</a> <a href="/blog/tags/证明/" style="font-size: 15px;">证明</a> <a href="/blog/tags/损失函数/" style="font-size: 15px;">损失函数</a> <a href="/blog/tags/回归/" style="font-size: 15px;">回归</a> <a href="/blog/tags/词向量/" style="font-size: 15px;">词向量</a> <a href="/blog/tags/信息/" style="font-size: 15px;">信息</a> <a href="/blog/tags/正则化/" style="font-size: 15px;">正则化</a> <a href="/blog/tags/NLP/" style="font-size: 15px;">NLP</a> <a href="/blog/tags/Embedding/" style="font-size: 15px;">Embedding</a> <a href="/blog/tags/神经网络/" style="font-size: 15px;">神经网络</a> <a href="/blog/tags/Transformer/" style="font-size: 15px;">Transformer</a> <a href="/blog/tags/Attention/" style="font-size: 15px;">Attention</a> <a href="/blog/tags/文本分类/" style="font-size: 15px;">文本分类</a> <a href="/blog/tags/对抗训练/" style="font-size: 15px;">对抗训练</a> <a href="/blog/tags/分词/" style="font-size: 15px;">分词</a> <a href="/blog/tags/并行/" style="font-size: 15px;">并行</a> <a href="/blog/tags/图/" style="font-size: 15px;">图</a> <a href="/blog/tags/NER/" style="font-size: 15px;">NER</a> <a href="/blog/tags/HMM/" style="font-size: 15px;">HMM</a> <a href="/blog/tags/概率图/" style="font-size: 15px;">概率图</a> <a href="/blog/tags/可视化/" style="font-size: 15px;">可视化</a> <a href="/blog/tags/RNN/" style="font-size: 15px;">RNN</a> <a href="/blog/tags/LSTM/" style="font-size: 15px;">LSTM</a> <a href="/blog/tags/注意力/" style="font-size: 15px;">注意力</a> <a href="/blog/tags/序列编码/" style="font-size: 15px;">序列编码</a> <a href="/blog/tags/梯度/" style="font-size: 15px;">梯度</a> <a href="/blog/tags/磁盘故障/" style="font-size: 15px;">磁盘故障</a> <a href="/blog/tags/BERT/" style="font-size: 15px;">BERT</a> <a href="/blog/tags/CNN/" style="font-size: 15px;">CNN</a> <a href="/blog/tags/卷积/" style="font-size: 15px;">卷积</a> <a href="/blog/tags/优化/" style="font-size: 15px;">优化</a> <a href="/blog/tags/调参/" style="font-size: 15px;">调参</a> <a href="/blog/tags/Flask/" style="font-size: 15px;">Flask</a> <a href="/blog/tags/web/" style="font-size: 15px;">web</a> <a href="/blog/tags/socket/" style="font-size: 15px;">socket</a> <a href="/blog/tags/安全/" style="font-size: 15px;">安全</a> <a href="/blog/tags/协程/" style="font-size: 15px;">协程</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-file-o"> 最近文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/blog/16003/">天马行空：设计自己的激活函数</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/15887/">函数光滑近似（4）：Heaviside step函数及其应用</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/15205/">引入参数控制softmax的smooth程度</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/15110/">分析与拓展：多分类模型的输出为什么使用softmax？</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14990/">一种基于光滑逼近的正态分布采样法</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14721/">GELU由来：从狄拉克函数到GELU激活函数</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14465/">Lp范数的上下界分析</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14441/">logsumexp函数分析</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14133/">分析Mish激活函数的设计思路</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/13899/">阿尔法经济学：Shiller模型介绍</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-external-link"> 友情链接</i></div><ul></ul><a href="https://github.com/allenwind" title="My GitHub" target="_blank">My GitHub</a><ul></ul><a href="http://www.arxiv-sanity.com/" title="arxiv-sanity" target="_blank">arxiv-sanity</a><ul></ul><a href="https://arxiv.org/" title="arxiv.org" target="_blank">arxiv.org</a></div></div></div><div class="pure-u-1 pure-u-md-3-4"><div id="footer">Copyright © 2021 <a href="/blog/." rel="nofollow">Mr.Feng Blog.</a> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a><a rel="nofollow" target="_blank" href="https://github.com/tufu9441/maupassant-hexo"> Theme</a> by<a rel="nofollow" target="_blank" href="https://github.com/pagecho"> Cho.</a></div></div></div><a class="show" id="rocket" href="#top"></a><script type="text/javascript" src="/blog/js/totop.js?v=0.0.0" async></script><script type="text/javascript" src="//lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js" async></script><script type="text/javascript" src="/blog/js/fancybox.js?v=0.0.0" async></script><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css"><script type="text/x-mathjax-config">MathJax.Hub.Config({
+  tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}
+  });
+</script><script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-MML-AM_CHTML" async></script><script type="text/javascript" src="/blog/js/codeblock-resizer.js?v=0.0.0"></script><script type="text/javascript" src="/blog/js/smartresize.js?v=0.0.0"></script></div></body></html>
