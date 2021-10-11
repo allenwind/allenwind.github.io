@@ -1,0 +1,210 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.9.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description" content="你好，世界！"><title>机器学习之分类问题的评估指标总结 | Mr.Feng Blog</title><link rel="stylesheet" type="text/css" href="/blog/css/style.css?v=0.0.0"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/normalize/8.0.1/normalize.min.css"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/pure/1.0.0/pure-min.css"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/pure/1.0.0/grids-responsive-min.css"><link rel="stylesheet" href="//lib.baomitu.com/font-awesome/4.7.0/css/font-awesome.min.css"><script type="text/javascript" src="//lib.baomitu.com/jquery/3.4.0/jquery.min.js"></script><link rel="icon" mask sizes="any" href="/blog/favicon.ico"><link rel="Shortcut Icon" type="image/x-icon" href="/blog/favicon.ico"><link rel="apple-touch-icon" href="/blog/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/blog/apple-touch-icon.png"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">机器学习之分类问题的评估指标总结</h1><a id="logo" href="/blog/.">Mr.Feng Blog</a><p class="description">NLP、深度学习、机器学习、Python、Go</p></div><div id="nav-menu"><a class="current" href="/blog/."><i class="fa fa-home"> 首页</i></a><a href="/blog/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/blog/about/"><i class="fa fa-user"> 关于</i></a></div></div><div class="pure-g" id="layout"><div class="pure-u-1 pure-u-md-3-4"><div class="content_container"><div class="post"><h1 class="post-title">机器学习之分类问题的评估指标总结</h1><div class="post-meta">Oct 9, 2021<span> | </span><span class="category"><a href="/blog/categories/机器学习深度学习/">机器学习深度学习</a></span></div><div class="clear"><div class="toc-article" id="toc"><div class="toc-title">文章目录</div><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#二分类之混淆矩阵"><span class="toc-number">1.</span> <span class="toc-text">二分类之混淆矩阵</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#准确率"><span class="toc-number">2.</span> <span class="toc-text">准确率</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#P-R曲线和AP面积"><span class="toc-number">3.</span> <span class="toc-text">P-R曲线和AP面积</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#F-1-score"><span class="toc-number">4.</span> <span class="toc-text">F-1 score</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#ROC曲线与AUC面积"><span class="toc-number">5.</span> <span class="toc-text">ROC曲线与AUC面积</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#ROC曲线"><span class="toc-number">5.1.</span> <span class="toc-text">ROC曲线</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#AUC"><span class="toc-number">5.2.</span> <span class="toc-text">AUC</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#多分类"><span class="toc-number">6.</span> <span class="toc-text">多分类</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#阈值选择"><span class="toc-number">7.</span> <span class="toc-text">阈值选择</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#应用和总结"><span class="toc-number">8.</span> <span class="toc-text">应用和总结</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#参考"><span class="toc-number">9.</span> <span class="toc-text">参考</span></a></li></ol></div></div><div class="post-content"><p>面对一个机器学习问题，在建模监督会设定模型的评估指标，为后续的迭代优化提供方向。这个一篇两年前的文章，为了便于回顾，最近整理一下分享出来~</p>
+<a id="more"></a>
+<p>在机器学习、深度学习中，有不同的任务，大致可以分为分类、 排序、 回归、序列标注（如分词、NER）、序列预测（如时间序列预测）等几大类任务。这类任务有不同的评估方法，选择与问题相匹配的评估方法有助于快速迭代模型。本文将总结分类任务有关的评估指标，包括二分类、多分类和多标签分类。</p>
+<p>这篇文章其实是两年前的学习笔记的总结，不过那时写得比较分散，于是这里整理一下分享出来，也方便自己回顾。</p>
+<p>此外，根据业务抽象出更契合场景的评估指标，这个只能具体情况具体说了。</p>
+<h2 id="二分类之混淆矩阵"><a href="#二分类之混淆矩阵" class="headerlink" title="二分类之混淆矩阵"></a>二分类之混淆矩阵</h2><p>二分类的重点是分类器输出的阈值的选择，高于阈值的判别为正类，否则为负类。模型预测的正类与负类与和真正的标签比较获得如下<strong>混淆矩阵</strong>，</p>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th style="text-align:center">预测类别/真实类别</th>
+<th style="text-align:center">正类 P</th>
+<th style="text-align:center">负类 N</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">正类</td>
+<td style="text-align:center">TP（真阳性）</td>
+<td style="text-align:center">FP（假阳性）</td>
+</tr>
+<tr>
+<td style="text-align:center">负类</td>
+<td style="text-align:center">FN（假阴性）</td>
+<td style="text-align:center">TN（真阴性）</td>
+</tr>
+<tr>
+<td style="text-align:center">总和</td>
+<td style="text-align:center">P = TP + FN</td>
+<td style="text-align:center">N = FP + TN</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>所有标记的样本在预测器下都会分为如下四种预测状态之一：</p>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th>计数指标</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TP (true positives)</td>
+<td>正类预测为正类的数量</td>
+</tr>
+<tr>
+<td>FN (false negatives)</td>
+<td>正类预测为负类的数量</td>
+</tr>
+<tr>
+<td>FP (false positives)</td>
+<td>负类预测为正类的数量</td>
+</tr>
+<tr>
+<td>TN (true negatives)</td>
+<td>负类预测为负类的数量</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p> 显然，以上计数指标的总和即为样本总数，TP+FN+FP+TN为样本总量。大部分模型的输出都是一个$[0, 1]$的值，需要设置一个阈值来判断类别判别为正类或负类，一般情况下这个阈值为$0.5$，当模型输出大于该阈值，则判别为正类，否则为负类。当阈值调得越小，假阳性就越多；多阈值调得越大，假阴性就越多。</p>
+<p>所有的正类，</p>
+<script type="math/tex; mode=display">
+P = TP + FN</script><p>所有的负类，</p>
+<script type="math/tex; mode=display">
+N = FP + TN</script><h2 id="准确率"><a href="#准确率" class="headerlink" title="准确率"></a>准确率</h2><p>准确率之所有样本中，预测正确的比例，即</p>
+<script type="math/tex; mode=display">
+\begin{align}
+\text{accuracy} 
+&= \frac{TP+TN}{P+N} \newline
+&= \frac{TP+TN}{FP+FN+FP+TN}
+\end{align}</script><p>对正负样本不平衡敏感，通过 balanced accuracy 解决这个问题。</p>
+<p>与之相反的是<strong>错误率</strong>，</p>
+<script type="math/tex; mode=display">
+\text{error} = 1 - \text{accuracy}</script><p>有时候我们需要关心模型预测的更多细节，例如一个大型的数据中心，里面有大量的磁盘，那么模型能够识别里面的故障盘的比例是多少（即召回率），或者模型多的多次故障预测，磁盘真的故障的比例多少（精确率）。另外，在一些极端情况下，如数据中心有一百块磁盘，故障盘只有一块，健康盘99块，那么模型直接把所有盘判断为健康，那么模型的预测的准确率也为99%。显然，这样的准确率是没有意义的。</p>
+<h2 id="P-R曲线和AP面积"><a href="#P-R曲线和AP面积" class="headerlink" title="P-R曲线和AP面积"></a>P-R曲线和AP面积</h2><p>precision，查准率，预测为正类的样本中，有多少是真的正类，</p>
+<script type="math/tex; mode=display">
+\text{precision} = \frac{TP}{TP+ \color{red}{FP}}</script><p>recall，查全率，召回率，所有的正类中，有多少被预测为正类</p>
+<script type="math/tex; mode=display">
+\text{recall} = \frac{TP}{TP+ \color{red}{FN}}</script><p>理想情况下 precision 和 recall 越高越好，但是这两个指标是在一定程度上对立的。precision和recall的计算差异就在FP和FN上。当FP越大，precision就越小，即假阳性越大，把没有问题的样本判别为有问题的样本，这就导致<strong>较低的效率或者说较高的成本</strong>。当FN越大，recall就越小，即假阴性越大，把有问题的样本判别为没有问题的样本，这就导致漏判，<strong>带来较高的风险</strong>。</p>
+<p>因此，precision可以看做是一个任务的成本指标，越小成本约大；recall可以看做是一个任务的风险指标，越小风险越大。因此，衡量一个任务的成本与风险可以同时使用precision与recall指标。</p>
+<p>对于NER、中文分词等场景，输出往往是集合类型或列表类型，那么precision的计算为，</p>
+<script type="math/tex; mode=display">
+P(A, B) = \frac{\left| A \cap B \right|}{\left|B\right|}</script><p>recall的计算为，</p>
+<script type="math/tex; mode=display">
+R(A, B) = \frac{\left| A \cap B \right|}{\left|A\right|}</script><p>A表示<strong>正确的实体</strong>及其所在文本中的位置（NER通常是<code>(entity,label,start,end）</code>这样的形式，而分词是<code>(word, start, end)</code>）集合，B表示<strong>预测的实体</strong>及其所在文本中的集合，即</p>
+<script type="math/tex; mode=display">
+A = TP \cup FN  \\
+B = TP \cap FP</script><p>需要强调，计算评估指标不能直接使用实体的集合，比如考虑一个句子里有两个相同的实体（同名同标签）但是位置不同，模型无论是只识别其中之一还是都识别出来，求集合后的结果都一样，这样是不准确的，无法更准确评估模型。</p>
+<p>以precision为纵坐标，recall为横坐标，那么就构成P-R曲线，它越靠近右上角模型性能越好。</p>
+<p>P-R 曲线与坐标轴围成的面积叫 AP 分数（Average Precision Score），计算方法为，</p>
+<script type="math/tex; mode=display">
+\text{AP} = \sum_n (R_n - R_{n-1}) P_n</script><p>类似的是ROC曲线，其与坐标轴围成的面积称为AUC，一会谈到。</p>
+<h2 id="F-1-score"><a href="#F-1-score" class="headerlink" title="F-1 score"></a>F-1 score</h2><p>precision 和 recall 的调和平均</p>
+<script type="math/tex; mode=display">
+F_1 = \frac{2 \cdot \text{precison} \cdot \text{recall}}{\text{precision} + \text{recall}}</script><p>用以反映precision 和 recall的整体性能。通过化简，可以使用混淆矩阵中的四个值表示，</p>
+<script type="math/tex; mode=display">
+F_{1} = \frac{2TP}{2TP + FP + FN}</script><p>在 precision 和 recall 的重要性不一致的情况下，可以加权，</p>
+<script type="math/tex; mode=display">
+F_{\beta} = \frac{\text{precision} \cdot \text{recall}}{\frac{\beta^2}{1+\beta^2}\cdot \text{precision} + \frac{1}{1+\beta^2}\cdot \text{recall}}</script><p>可以令</p>
+<script type="math/tex; mode=display">
+\alpha =\frac {1}{1+\beta ^{2}}</script><p>来化简上式。对于NER或中文分词任务，$F_\beta$计算方式为，</p>
+<script type="math/tex; mode=display">
+F_\beta(A, B) = \left(1 + \beta^2\right) \frac{P(A, B) \times R(A, B)}{\beta^2 P(A, B) + R(A, B)}</script><h2 id="ROC曲线与AUC面积"><a href="#ROC曲线与AUC面积" class="headerlink" title="ROC曲线与AUC面积"></a>ROC曲线与AUC面积</h2><p>ROC曲线全称为<strong>接收者操作特征</strong>曲线（receiver operating characteristic curve），其纵坐标是真阳性率，横坐标是假阳性率。</p>
+<h3 id="ROC曲线"><a href="#ROC曲线" class="headerlink" title="ROC曲线"></a>ROC曲线</h3><p>真阳性率，在所有阳性样本中，模型检测出来的阳性比例，也就是召回率，</p>
+<script type="math/tex; mode=display">
+\text{tpr} = \frac{TP}{P} = \frac{TP}{TP+FN} = \text{recall}</script><p>假阳性率，把阴性误报成阳性的比例，</p>
+<script type="math/tex; mode=display">
+\text{fpr} = \frac{FP}{N} = \frac{FP}{FP+TN}</script><p>TPR与FPR对正负样本不平衡不敏感，因为调整阈值下，分母N与P不会变。很多<a href="../10660/">failure prediction papers</a>都使用FAR（false alarm ratio，其实就是fpr）、FDR（failure detection rates的缩写，实质是recall），因此TPR和FPR在具体的情景中也有不同的别称。</p>
+<p>以纵坐标是真阳性率，横坐标是假阳性率，得到ROC曲线，</p>
+<p><img src="../images/roc-auc-demo-1.png" alt></p>
+<p>ROC曲线越接近左上角，模型整体性能越好，如图中蓝色曲线比橙色曲线好。黑心虚线就是随机预测的结果。最优结果是fpr恒为0，而tpr恒为1。</p>
+<p>绘制 ROC 曲线，最直观的方法是使用一个变动的阈值$\alpha \in [0, 1]$，分别计算该阈值下的tpr与fpr，然后绘制曲线。但是这种方法计算效率并不高。</p>
+<h3 id="AUC"><a href="#AUC" class="headerlink" title="AUC"></a>AUC</h3><p>AUC（Area Under the Curve） 是 ROC 曲线与坐标轴围成的面积，面积越大，模型性能越好。计算方法可以使用梯形法（trapezoidal rule ），即曲线上所有相邻两点的连线与其下方所围成的梯形面积的总和。直观上来看，这种方法获得的计算结果倾向于低估实际的AUC面积。</p>
+<p>AUC 的统计意义：</p>
+<ul>
+<li>AUC值越大的分类器，正确率越高，模型的性能越好，可以作为模型间比较的性能指标</li>
+<li>若随机抽取一个阳性样本和一个阴性样本，分类器正确判断阳性样本的值高于阴性样本之几率</li>
+</ul>
+<h2 id="多分类"><a href="#多分类" class="headerlink" title="多分类"></a>多分类</h2><p>二分类指标可以推广到多分类问题上，只不过需要区分两类指标：</p>
+<ul>
+<li>macro，在所有类别的指标上平均</li>
+<li>micro，在整体结果上计算</li>
+</ul>
+<h2 id="阈值选择"><a href="#阈值选择" class="headerlink" title="阈值选择"></a>阈值选择</h2><p>因此，准确率（Accuracy），精确率（Precision），召回率（Recall） 、$F_{\beta}$这些指标全部依赖模型的阈值选择。因此可以绘制曲线图，刻画随阈值变化以上指标的变化，最优阈值是上述指定指标取最大值时所对应的阈值。例如阈值$\alpha \in [0, 1]$，随其变动的指标$F_1$，那么当$F_1$取最大时，那么对应的$\alpha$取值为0.6，那么该值可以作为模型类别判别的阈值。</p>
+<h2 id="应用和总结"><a href="#应用和总结" class="headerlink" title="应用和总结"></a>应用和总结</h2><p>分类性能指标及其别名有如下表格：</p>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>含义</th>
+<th>补充</th>
+<th>使用情景</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>错误率 error rate</td>
+<td>分类错误数占样本总数</td>
+<td>(FN+FP) / (TP+FN+FP+TN)</td>
+<td>/</td>
+</tr>
+<tr>
+<td>准确率accuracy</td>
+<td>1 - 错误率</td>
+<td>(TP+TN) / (TP+FN+FP+TN)</td>
+<td>准确率与错误率不足以全面衡量模型。因为在某些情况下，模型把所有样本判别为负类也能获得一个很好的准确率</td>
+</tr>
+<tr>
+<td>精确率 (precision)</td>
+<td>precision = TP / (TP+FP)</td>
+<td>查准率。本文中的含义：所有故障预测中，有多少比例是真的故障。</td>
+<td>当FP很大，即假阳性太多，precision就会很小，这会导致较大的<strong>成本</strong>（较低的效率），因为没有问题的样本被误判为有问题。</td>
+</tr>
+<tr>
+<td>回召率 (recall)</td>
+<td>recall = TP / (TP+FN)</td>
+<td>查全率。本文中的含义：在所有故障磁盘中，有多少比例被预测出来。</td>
+<td>当FN很大，即假阴性太多，recall就会很小，这会导致较大的风险。因为太多有问题的样本没有被检测出来。</td>
+</tr>
+<tr>
+<td>f-score</td>
+<td>precision和recall的调和平均</td>
+<td>某些场景下，precision 和 recall 的代价是不等的，为了表达这种情况，precision 和recall 可以加权求和。</td>
+<td>通常使用F1，用来同时控制precision和recall，前者是<strong>成本</strong>的来源，后者是<strong>风险</strong>的来源。说白了，当precision和recall都重要的情况下，使用该指标。</td>
+</tr>
+<tr>
+<td>FPR或FAR</td>
+<td><strong>FAR = FP / (FP + TN)</strong></td>
+<td>false alarm ratio，false positive ratio，假阳性率。在本文中的含义：所有正常磁盘中，有多少比例的磁盘被判别为故障。显然这个值越小越好。</td>
+<td>TPR曲线实际上就是正样本的累积分布曲线，FPR曲线实际上就是负样本的累积分布曲线</td>
+</tr>
+<tr>
+<td>TPR或FDR</td>
+<td>等价于 <strong>recall = TP / (TP+FN)</strong></td>
+<td>在机器学习中并没有FDR的定义，它实际为failure detection rates的缩写，等价于recall定义。显然，这个值越大越好。 实际上，FDR与FAR是互相约束，通过ROC曲线可以直观到阈值大小。</td>
+<td>根据FAR、FDR的定义，显然，我们需要模型的FAR值越小越好，FDR值越大越好。比较不同模型的预测性能可以直接使用以上指标。</td>
+</tr>
+<tr>
+<td>PR曲线</td>
+<td>precision和recall在变动阈值下构成的曲线</td>
+<td></td>
+<td>正负样本不平衡敏感，因此在正负样本不平衡时使用</td>
+</tr>
+<tr>
+<td>ROC曲线</td>
+<td>TPR与FPR在变动阈值下构成的曲线</td>
+<td></td>
+<td>正负样本不平衡不敏感，因此在正负样本平衡时使用</td>
+</tr>
+<tr>
+<td><strong>AUC</strong></td>
+<td>ROC 曲线与坐标轴围起来的面积，用于度量分类任务的整体性能。</td>
+<td>AUC 是 ROC 曲线与坐标轴围成的图像的面积</td>
+<td>当两条ROC曲线有相交情况时，不好判断模型的优良，可以使用AUC来判断。通常我们使用它来比较两个两个不同模型的整体性能</td>
+</tr>
+</tbody>
+</table>
+</div>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p>[1] 《机器学习》</p>
+<p>[2] 维基百科</p>
+<p>转载请包括本文地址：<a href="../16051/">https://allenwind.github.io/blog/16051/</a><br>更多文章请参考：<a href="../archives/">https://allenwind.github.io/blog/archives/</a></p>
+</div><div class="tags"><a href="/blog/tags/分类/">分类</a><a href="/blog/tags/指标/">指标</a></div><div class="post-nav"><a class="next" href="/blog/16003/">天马行空：设计自己的激活函数</a></div></div></div></div><div class="pure-u-1-4 hidden_mid_and_down"><div id="sidebar"><div class="widget"><form class="search-form" action="//www.google.com/search" method="get" accept-charset="utf-8" target="_blank"><input type="text" name="q" maxlength="20" placeholder="Search"><input type="hidden" name="sitesearch" value="http://allenwind.github.io/blog"></form></div><div class="widget"><div class="widget-title"><i class="fa fa-folder-o"> 分类</i></div><ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/blog/categories/C-C/">C/C++</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Go/">Go</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Java/">Java</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Linux/">Linux</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/NLP/">NLP</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Python/">Python</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/数学/">数学</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/数据库/">数据库</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/数据结构和算法/">数据结构和算法</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/机器学习深度学习/">机器学习深度学习</a></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/记录/">记录</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-star-o"> 标签</i></div><div class="tagcloud"><a href="/blog/tags/C语言/" style="font-size: 15px;">C语言</a> <a href="/blog/tags/算法/" style="font-size: 15px;">算法</a> <a href="/blog/tags/C/" style="font-size: 15px;">C</a> <a href="/blog/tags/Python/" style="font-size: 15px;">Python</a> <a href="/blog/tags/设计模式/" style="font-size: 15px;">设计模式</a> <a href="/blog/tags/分布式/" style="font-size: 15px;">分布式</a> <a href="/blog/tags/数据库/" style="font-size: 15px;">数据库</a> <a href="/blog/tags/区块链/" style="font-size: 15px;">区块链</a> <a href="/blog/tags/SQL/" style="font-size: 15px;">SQL</a> <a href="/blog/tags/NoSQL/" style="font-size: 15px;">NoSQL</a> <a href="/blog/tags/MySQL/" style="font-size: 15px;">MySQL</a> <a href="/blog/tags/ACID/" style="font-size: 15px;">ACID</a> <a href="/blog/tags/sudo/" style="font-size: 15px;">sudo</a> <a href="/blog/tags/Docker/" style="font-size: 15px;">Docker</a> <a href="/blog/tags/git/" style="font-size: 15px;">git</a> <a href="/blog/tags/Linux/" style="font-size: 15px;">Linux</a> <a href="/blog/tags/Git/" style="font-size: 15px;">Git</a> <a href="/blog/tags/gcc/" style="font-size: 15px;">gcc</a> <a href="/blog/tags/Systemd/" style="font-size: 15px;">Systemd</a> <a href="/blog/tags/Tensorflow/" style="font-size: 15px;">Tensorflow</a> <a href="/blog/tags/命令行/" style="font-size: 15px;">命令行</a> <a href="/blog/tags/网络/" style="font-size: 15px;">网络</a> <a href="/blog/tags/记录/" style="font-size: 15px;">记录</a> <a href="/blog/tags/操作系统/" style="font-size: 15px;">操作系统</a> <a href="/blog/tags/正则表达式/" style="font-size: 15px;">正则表达式</a> <a href="/blog/tags/数据结构/" style="font-size: 15px;">数据结构</a> <a href="/blog/tags/Go/" style="font-size: 15px;">Go</a> <a href="/blog/tags/go/" style="font-size: 15px;">go</a> <a href="/blog/tags/Java/" style="font-size: 15px;">Java</a> <a href="/blog/tags/LRU/" style="font-size: 15px;">LRU</a> <a href="/blog/tags/ARC/" style="font-size: 15px;">ARC</a> <a href="/blog/tags/剑指Offer/" style="font-size: 15px;">剑指Offer</a> <a href="/blog/tags/函数式/" style="font-size: 15px;">函数式</a> <a href="/blog/tags/搜索引擎/" style="font-size: 15px;">搜索引擎</a> <a href="/blog/tags/Stack/" style="font-size: 15px;">Stack</a> <a href="/blog/tags/并发编程/" style="font-size: 15px;">并发编程</a> <a href="/blog/tags/网络编程/" style="font-size: 15px;">网络编程</a> <a href="/blog/tags/并发/" style="font-size: 15px;">并发</a> <a href="/blog/tags/HTTP/" style="font-size: 15px;">HTTP</a> <a href="/blog/tags/装饰器/" style="font-size: 15px;">装饰器</a> <a href="/blog/tags/Redis/" style="font-size: 15px;">Redis</a> <a href="/blog/tags/数学/" style="font-size: 15px;">数学</a> <a href="/blog/tags/时间序列/" style="font-size: 15px;">时间序列</a> <a href="/blog/tags/投资/" style="font-size: 15px;">投资</a> <a href="/blog/tags/概率/" style="font-size: 15px;">概率</a> <a href="/blog/tags/统计/" style="font-size: 15px;">统计</a> <a href="/blog/tags/信息论/" style="font-size: 15px;">信息论</a> <a href="/blog/tags/度量/" style="font-size: 15px;">度量</a> <a href="/blog/tags/机器学习/" style="font-size: 15px;">机器学习</a> <a href="/blog/tags/贝叶斯/" style="font-size: 15px;">贝叶斯</a> <a href="/blog/tags/最小二乘法/" style="font-size: 15px;">最小二乘法</a> <a href="/blog/tags/深度学习/" style="font-size: 15px;">深度学习</a> <a href="/blog/tags/变分推断/" style="font-size: 15px;">变分推断</a> <a href="/blog/tags/随机/" style="font-size: 15px;">随机</a> <a href="/blog/tags/不等式/" style="font-size: 15px;">不等式</a> <a href="/blog/tags/采样/" style="font-size: 15px;">采样</a> <a href="/blog/tags/分布/" style="font-size: 15px;">分布</a> <a href="/blog/tags/矩阵/" style="font-size: 15px;">矩阵</a> <a href="/blog/tags/光滑/" style="font-size: 15px;">光滑</a> <a href="/blog/tags/逼近/" style="font-size: 15px;">逼近</a> <a href="/blog/tags/特征工程/" style="font-size: 15px;">特征工程</a> <a href="/blog/tags/交叉验证/" style="font-size: 15px;">交叉验证</a> <a href="/blog/tags/词向量/" style="font-size: 15px;">词向量</a> <a href="/blog/tags/信息/" style="font-size: 15px;">信息</a> <a href="/blog/tags/集成学习/" style="font-size: 15px;">集成学习</a> <a href="/blog/tags/分类/" style="font-size: 15px;">分类</a> <a href="/blog/tags/证明/" style="font-size: 15px;">证明</a> <a href="/blog/tags/损失函数/" style="font-size: 15px;">损失函数</a> <a href="/blog/tags/回归/" style="font-size: 15px;">回归</a> <a href="/blog/tags/正则化/" style="font-size: 15px;">正则化</a> <a href="/blog/tags/指标/" style="font-size: 15px;">指标</a> <a href="/blog/tags/NLP/" style="font-size: 15px;">NLP</a> <a href="/blog/tags/Embedding/" style="font-size: 15px;">Embedding</a> <a href="/blog/tags/神经网络/" style="font-size: 15px;">神经网络</a> <a href="/blog/tags/Transformer/" style="font-size: 15px;">Transformer</a> <a href="/blog/tags/Attention/" style="font-size: 15px;">Attention</a> <a href="/blog/tags/对抗训练/" style="font-size: 15px;">对抗训练</a> <a href="/blog/tags/文本分类/" style="font-size: 15px;">文本分类</a> <a href="/blog/tags/分词/" style="font-size: 15px;">分词</a> <a href="/blog/tags/并行/" style="font-size: 15px;">并行</a> <a href="/blog/tags/NER/" style="font-size: 15px;">NER</a> <a href="/blog/tags/概率图/" style="font-size: 15px;">概率图</a> <a href="/blog/tags/HMM/" style="font-size: 15px;">HMM</a> <a href="/blog/tags/图/" style="font-size: 15px;">图</a> <a href="/blog/tags/可视化/" style="font-size: 15px;">可视化</a> <a href="/blog/tags/RNN/" style="font-size: 15px;">RNN</a> <a href="/blog/tags/LSTM/" style="font-size: 15px;">LSTM</a> <a href="/blog/tags/梯度/" style="font-size: 15px;">梯度</a> <a href="/blog/tags/注意力/" style="font-size: 15px;">注意力</a> <a href="/blog/tags/序列编码/" style="font-size: 15px;">序列编码</a> <a href="/blog/tags/BERT/" style="font-size: 15px;">BERT</a> <a href="/blog/tags/磁盘故障/" style="font-size: 15px;">磁盘故障</a> <a href="/blog/tags/优化/" style="font-size: 15px;">优化</a> <a href="/blog/tags/CNN/" style="font-size: 15px;">CNN</a> <a href="/blog/tags/卷积/" style="font-size: 15px;">卷积</a> <a href="/blog/tags/调参/" style="font-size: 15px;">调参</a> <a href="/blog/tags/Flask/" style="font-size: 15px;">Flask</a> <a href="/blog/tags/web/" style="font-size: 15px;">web</a> <a href="/blog/tags/socket/" style="font-size: 15px;">socket</a> <a href="/blog/tags/安全/" style="font-size: 15px;">安全</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-file-o"> 最近文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/blog/16051/">机器学习之分类问题的评估指标总结</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/16003/">天马行空：设计自己的激活函数</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/15887/">函数光滑近似（4）：Heaviside step函数及其应用</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/15205/">引入参数控制softmax的smooth程度</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/15110/">分析与拓展：多分类模型的输出为什么使用softmax？</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14990/">一种基于光滑逼近的正态分布采样法</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14721/">GELU由来：从狄拉克函数到GELU激活函数</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14465/">Lp范数的上下界分析</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14441/">logsumexp函数分析</a></li><li class="post-list-item"><a class="post-list-link" href="/blog/14133/">分析Mish激活函数的设计思路</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-external-link"> 友情链接</i></div><ul></ul><a href="https://github.com/allenwind" title="My GitHub" target="_blank">My GitHub</a><ul></ul><a href="http://www.arxiv-sanity.com/" title="arxiv-sanity" target="_blank">arxiv-sanity</a><ul></ul><a href="https://arxiv.org/" title="arxiv.org" target="_blank">arxiv.org</a></div></div></div><div class="pure-u-1 pure-u-md-3-4"><div id="footer">Copyright © 2021 <a href="/blog/." rel="nofollow">Mr.Feng Blog.</a> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a><a rel="nofollow" target="_blank" href="https://github.com/tufu9441/maupassant-hexo"> Theme</a> by<a rel="nofollow" target="_blank" href="https://github.com/pagecho"> Cho.</a></div></div></div><a class="show" id="rocket" href="#top"></a><script type="text/javascript" src="/blog/js/totop.js?v=0.0.0" async></script><script type="text/javascript" src="//lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js" async></script><script type="text/javascript" src="/blog/js/fancybox.js?v=0.0.0" async></script><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css"><script type="text/x-mathjax-config">MathJax.Hub.Config({
+  tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}
+  });
+</script><script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-MML-AM_CHTML" async></script><script type="text/javascript" src="/blog/js/codeblock-resizer.js?v=0.0.0"></script><script type="text/javascript" src="/blog/js/smartresize.js?v=0.0.0"></script></div></body></html>
